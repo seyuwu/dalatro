@@ -184,6 +184,22 @@ const Advisor = (function () {
         }
         break;
       }
+      case "sentry": {
+        const minesWave = Content.waves.order
+          .slice(state.run.waveIndex + 1)
+          .map((id) => Content.waves.byId[id])
+          .find((w) => (w.modifiers || []).some((m) => m.id === "mines"));
+        if (minesWave) lines.push(`Впереди ${minesWave.name}: без вардов каждый бой теряет 2 карты руки`);
+        else lines.push("Techies остались позади — Sentry больше не нужен, можно продать");
+        break;
+      }
+      case "bloodstone": {
+        const lost = Math.max(0, 6 - state.run.barracks);
+        lines.push(lost
+          ? `Сейчас +${lost * 0.5} к множителю (${lost} казарм потеряно)`
+          : "Казармы целы — камень спит. Расцветает после провалов");
+        break;
+      }
       case "heart":
         if (byAttrHas(heroes, "str", 4)) lines.push("Флеш Силы почти собран — Heart утяжелит каждый удар");
         break;

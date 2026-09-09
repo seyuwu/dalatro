@@ -51,6 +51,67 @@ const Effects = (function () {
       ctx.scoring.mult += effect.value * n;
       return { label: `${ctx.sourceName}: +${effect.value * n} к множителю (${n} предметов)` };
     },
+    ADD_MULT_PER_LOST_BARRACKS(effect, ctx) {
+      const max = (typeof Game !== "undefined" && Game.BARRACKS_MAX) || 6;
+      const lost = Math.max(0, max - ctx.state.run.barracks);
+      if (!lost) return null;
+      const bonus = Math.round(effect.value * lost * 10) / 10;
+      ctx.scoring.mult += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${lost} разрушенных казарм)` };
+    },
+    ADD_POWER_PER_LOST_BARRACKS(effect, ctx) {
+      const max = (typeof Game !== "undefined" && Game.BARRACKS_MAX) || 6;
+      const lost = Math.max(0, max - ctx.state.run.barracks);
+      if (!lost) return null;
+      ctx.scoring.power += effect.value * lost;
+      return { label: `${ctx.sourceName}: +${effect.value * lost} силы (${lost} разрушенных казарм)` };
+    },
+    ADD_POWER_PER_PAIR_GROUP(effect, ctx) {
+      const counts = new Map();
+      for (const c of ctx.playedCards) counts.set(c.power, (counts.get(c.power) || 0) + 1);
+      const groups = [...counts.values()].filter((n) => n >= 2).length;
+      if (!groups) return null;
+      ctx.scoring.power += effect.value * groups;
+      return { label: `${ctx.sourceName}: +${effect.value * groups} силы (${groups} групп рангов)` };
+    },
+    ADD_POWER_PER_EMPTY_SLOT(effect, ctx) {
+      const maxSlots = (typeof Game !== "undefined" && Game.maxSlots) ? Game.maxSlots(ctx.state) : 5;
+      const empty = Math.max(0, maxSlots - ctx.playedCards.length);
+      if (!empty) return null;
+      ctx.scoring.power += effect.value * empty;
+      return { label: `${ctx.sourceName}: +${effect.value * empty} силы (${empty} пустых позиций)` };
+    },
+    ADD_POWER_PER_SAME_RANK(effect, ctx) {
+      if (!ctx.card) return null;
+      const same = ctx.playedCards.filter((c) => c.power === ctx.card.power).length - 1;
+      if (same <= 0) return null;
+      ctx.scoring.power += effect.value * same;
+      return { label: `${ctx.sourceName}: +${effect.value * same} силы (${same} героя своего ранга)` };
+    },
+    ADD_POWER_PER_DISCARD(effect, ctx) {
+      const bonus = Math.min(effect.cap || Infinity, ctx.state.player.discardUids.length) * effect.value;
+      if (!bonus) return null;
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} силы из сброса (${ctx.state.player.discardUids.length} карт)` };
+    },
+    ADD_POWER_PER_USED_DISCARD(effect, ctx) {
+      const base = (typeof Game !== "undefined" && Game.DISCARDS_PER_WAVE) || 3;
+      const used = Math.max(0, base - ctx.state.player.discardsLeft);
+      const bonus = used * (effect.value || 4);
+      if (!bonus) return null;
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} силы (${used} ТП-сбросов за волну)` };
+    },
+    ADD_MULT_PER_ATTRIBUTE(effect, ctx) {
+      const n = ctx.playedCards.filter((c) => c.attr === effect.attr).length;
+      if (!n) return null;
+      ctx.scoring.mult += effect.value * n;
+      return { label: `${ctx.sourceName}: +${effect.value * n} к множителю (${n} героев ${Content.attrNames[effect.attr]})` };
+    },
+    LAST_HIT_GOLD(effect, ctx) {
+      ctx.scoring.flags.lastHitGold = (ctx.scoring.flags.lastHitGold || 0) + effect.value;
+      return { label: `${ctx.sourceName}: точный ласт-хит принесёт +${effect.value} золота` };
+    },
     GOLD(effect, ctx) {
       ctx.state.run.gold += effect.value;
       return { label: `${ctx.sourceName}: ${fmt(effect.value)} золота`, gold: effect.value };

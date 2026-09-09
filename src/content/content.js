@@ -15,9 +15,10 @@ const Content = (function () {
   const combos = { list: COMBOS_DATA, byId: byId(COMBOS_DATA) };
   const waves = { list: WAVES_DATA, byId: byId(WAVES_DATA), order: WAVES_DATA.map((w) => w.id) };
   const modifiers = { list: MODIFIERS_DATA, byId: byId(MODIFIERS_DATA) };
+  const curses = CURSES.filter((id) => modifiers.byId[id]);
 
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, attrNames, attrShort };
 })();

@@ -103,10 +103,10 @@ const Art = (function () {
   const DOTA_ITEM_IMG = {
     battle_fury: "bfury", meteor_hammer: "meteor_hammer", drum: "ancient_janggo",
     midas: "hand_of_midas", bkb: "black_king_bar", kaya: "kaya_and_sange",
-    vladmir: "vladmir", daedalus: "greater_crit", satanic: "satanic",
+    vladmir: "vladmir", sentry: "sentry_ward", daedalus: "greater_crit", satanic: "satanic",
     shadow_blade: "invis_sword", heart: "heart", refresher: "refresher",
-    butterfly: "butterfly", manta: "manta", rapier: "rapier", radiance: "radiance",
-    octarine: "octarine_core",
+    bloodstone: "bloodstone", butterfly: "butterfly", manta: "manta", rapier: "rapier",
+    radiance: "radiance", octarine: "octarine_core",
   };
 
   // Item art: CDN icon over the emoji fallback (same pattern as heroArt).

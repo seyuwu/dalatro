@@ -27,15 +27,15 @@ function play(s, heroIds) {
   return s.combat.lastResolution;
 }
 
-test("фулл-хаус 555+77: 414 урона (69 × 6), без лишних триггеров", () => {
+test("фулл-хаус 555+77: 518 урона (69 × 6 × 1.25 ставка), без лишних триггеров", () => {
   const s = newRun("FULL1");
   const res = play(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   assertEq(res.combo.type, "full_house", "комбо");
   assertEq(res.power, 69, "сила (40 база + 29 карт)");
   assertEq(res.mult, 6, "множитель");
-  assertEq(res.damage, 414, "урон");
-  // оверкилл 114 при хп 300: floor(114/20) = 5 золота
-  assertEq(res.goldGained, 5, "золото за оверкилл");
+  assertEq(res.damage, 518, "урон: round(414 × 1.25 за пятёрку)");
+  // оверкилл 218 при хп 300: floor(150/20) + floor(68/40) = 7 + 1 = 8 золота
+  assertEq(res.goldGained, 8, "золото за оверкилл");
   assertEq(res.killed, true);
   assertEq(s.combat.outcome, "cleared");
 });
@@ -75,13 +75,13 @@ test("Butterfly: слабейшая карта ±1 ранг → two_pair из 2,
   const s = newRun("BFL1");
   const without = play(s, ["cm", "tusk", "axe", "morphling"]);
   assertEq(without.combo.type, "pair", "без бабочки — пара");
-  assertEq(without.damage, 50, "25 × 2");
+  assertEq(without.damage, 55, "25 × 2, ставка ×1.1 за четвёрку");
   const s2 = newRun("BFL2");
   s2.player.items.push("butterfly");
   const withB = play(s2, ["cm", "tusk", "axe", "morphling"]);
-  // cm 2 → 3: 3,3,5,5 = two_pair: (20 + 15) × 2 = 70
+  // cm 2 → 3: 3,3,5,5 = two_pair: (20 + 15) × 2 = 70 → ×1.1 = 77
   assertEq(withB.combo.type, "two_pair", "с бабочкой — две пары");
-  assertEq(withB.damage, 70, "35 × 2");
+  assertEq(withB.damage, 77, "35 × 2 × 1.1");
 });
 
 test("Manta: иллюзия даёт пол-силы, но считается за ранг для комбо", () => {
@@ -106,13 +106,13 @@ test("превью не ломает состояние и не жжёт RNG", (
   forceHand(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   s.combat.selectedUids = ["axe", "morphling", "zeus", "pudge", "juggernaut"].map((h) => uidOf(s, h));
   const clone = Sim.simulate(s, { type: "CONFIRM_FIGHT" });
-  assertEq(clone.combat.lastResolution.damage, 414, "превью урон");
+  assertEq(clone.combat.lastResolution.damage, 518, "превью урон");
   assertEq(s.combat.wave.hp, 300, "башня не тронута");
   assertEq(s.player.fightsLeft, 4, "бои не потрачены");
   assertEq(s.player.handUids.length, 5, "рука на месте");
   // реальный бой даёт тот же урон
   const res = Game.dispatch(s, { type: "CONFIRM_FIGHT" });
-  assertEq(s.combat.lastResolution.damage, 414, "реальный урон совпал");
+  assertEq(s.combat.lastResolution.damage, 518, "реальный урон совпал");
 });
 
 test("Armor T2: первый бой ×0.5, BKB игнорирует", () => {

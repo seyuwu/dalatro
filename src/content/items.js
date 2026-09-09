@@ -26,7 +26,7 @@ const ITEMS_DATA = [
   },
   {
     id: "bkb", name: "Black King Bar", cost: 7, emoji: "🛡️", rarity: "common", category: "rule",
-    desc: "Игнорирует модификаторы башен (Armor, Glyph). На Рошана не действует.",
+    desc: "Игнорирует модификаторы башен (Armor, Glyph, мины Techies). На Рошана не действует.",
     ability: { name: "Avatar", event: "FIGHT_SCORING", effects: [{ type: "IGNORE_TOWER_MODS" }] },
   },
   {
@@ -38,6 +38,10 @@ const ITEMS_DATA = [
     id: "vladmir", name: "Vladmir's Offering", cost: 8, emoji: "🩸", rarity: "common", category: "economy",
     desc: "+2 золота за каждый бой, даже проигранный.",
     ability: { name: "Vampiric Aura", event: "FIGHT_SCORING", effects: [{ type: "GOLD", value: 2 }] },
+  },
+  {
+    id: "sentry", name: "Sentry Ward", cost: 6, emoji: "👁️", rarity: "common", category: "rule",
+    desc: "Обезвреживает мины Techies: заминированные карты можно разыгрывать.",
   },
 
   // ---------- rare ----------
@@ -69,6 +73,11 @@ const ITEMS_DATA = [
     id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult",
     desc: "Способности героев срабатывают дважды за бой.",
     ability: { name: "Refresh", event: "FIGHT_SCORING", effects: [{ type: "REFRESH_HERO_TRIGGERS" }] },
+  },
+  {
+    id: "bloodstone", name: "Bloodstone", cost: 10, emoji: "🔴", rarity: "rare", category: "mult",
+    desc: "+0.5 к множителю за каждую разрушенную казарму. Чем страшнее забег — тем злее камень.",
+    ability: { name: "Blood Rite", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_LOST_BARRACKS", value: 0.5 }] },
   },
   {
     id: "butterfly", name: "Butterfly", cost: 8, emoji: "🦋", rarity: "rare", category: "rule",

@@ -27,6 +27,7 @@ const SRC_FILES = [
   "src/systems/combat.js",
   "src/systems/economy.js",
   "src/systems/advisor.js",
+  "src/ui/icons.js",
 ];
 
 const ctx = vm.createContext({ console, structuredClone });

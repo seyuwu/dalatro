@@ -49,5 +49,13 @@ const DeckSys = (function () {
     state.player.discardUids = [];
   }
 
-  return { createFromHeroes, draw, moveToDiscard, resetAll, HAND_SIZE };
+  // Creates a card for a recruited hero and adds it to the deck (tavern).
+  function addHero(state, heroId) {
+    const uid = "c" + uidCounter++;
+    state.cards[uid] = { uid, heroId };
+    state.player.deckUids.push(uid);
+    return uid;
+  }
+
+  return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, HAND_SIZE };
 })();

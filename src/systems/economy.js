@@ -17,7 +17,8 @@ const Economy = (function () {
   }
 
   // Fills up to `slots` offers from items not owned and not already offered.
-  function generateOffers(state, slots = OFFER_SLOTS, keepLocked = []) {
+  // guaranteeEpic: элитная башня — в лавке будет хотя бы один эпик.
+  function generateOffers(state, slots = OFFER_SLOTS, keepLocked = [], guaranteeEpic = false) {
     const rng = Rng.current();
     const offers = keepLocked.slice();
     const taken = new Set(offers.map((o) => o.id).concat(state.player.items));
@@ -31,6 +32,20 @@ const Economy = (function () {
       const id = rng.pick(pool);
       taken.add(id);
       offers.push({ id, locked: false });
+    }
+    if (guaranteeEpic && !offers.some((o) => Content.items.byId[o.id].rarity === "epic")) {
+      const epics = Content.items.list
+        .map((i) => i.id)
+        .filter((id) => !taken.has(id) && Content.items.byId[id].rarity === "epic");
+      if (epics.length) {
+        const swapIdx = offers.findIndex((o) => !o.locked);
+        if (swapIdx !== -1) {
+          taken.delete(offers[swapIdx].id);
+          const id = rng.pick(epics);
+          offers[swapIdx] = { id, locked: false };
+          taken.add(id);
+        }
+      }
     }
     return offers;
   }

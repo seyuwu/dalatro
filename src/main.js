@@ -1,6 +1,9 @@
 // Dalatro — main: app state holder + event delegation. UI events become actions.
+// UI prefs (sound/motion/onboarding) live here, game state in Game.dispatch.
 (function () {
   const SAVE_KEY = "dalatro_save_v1";
+  const PREFS_KEY = "dalatro_prefs_v3";
+  const ONBOARD_KEY = "dalatro_onboard_v3";
 
   function saveState() {
     try {
@@ -26,28 +29,90 @@
     } catch (e) { return null; }
   }
 
+  function loadPrefs() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+      UI.UIState.motion = raw.motion !== false;
+      if (raw.sound === false && !Sfx.isMuted()) Sfx.toggleMuted();
+    } catch (e) { /* defaults */ }
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ sound: !Sfx.isMuted(), motion: UI.UIState.motion }));
+    } catch (e) { /* ignore */ }
+  }
+
+  loadPrefs();
   let state = loadState() || Game.createInitialState("");
   let fighting = false;
 
+  let audioContext = null;
+  function playTone() {
+    // Оставлен для совместимости: основной звук — через Sfx (ui/audio.js).
+    Sfx.play("attack");
+  }
+
+  function rerender() {
+    UI.render(state);
+  }
+  window.__dalatroRerender = rerender;
+
   function dispatchAndRender(action) {
+    // Всплывает только реально обновлённое: новая раздача/шоп/реролл.
+    // Выбор карты состояние коллекций не меняет — всё остаётся на местах.
+    const HAND_DEAL = new Set(["START_RUN", "CONFIRM_FIGHT", "DISCARD", "RETRY_WAVE", "LEAVE_SHOP", "TAKE_ROUTE", "DEBUG_DRAW"]);
+    const SHOP_REFRESH = new Set(["ENTER_SHOP", "REROLL_SHOP"]);
+    const INV_REFRESH = new Set(["BUY_ITEM", "SELL_ITEM"]);
+    const LAB_REFRESH = new Set(["BUY_RECRUIT", "EXILE_HERO"]);
+    if (HAND_DEAL.has(action.type)) UI.UIState.animHand = true;
+    if (SHOP_REFRESH.has(action.type)) {
+      UI.UIState.animShop = true;
+      UI.UIState.animInv = true;
+      UI.UIState.animLab = true;
+    }
+    if (INV_REFRESH.has(action.type)) UI.UIState.animInv = true;
+    if (LAB_REFRESH.has(action.type)) UI.UIState.animLab = true;
+    if (action.type === "LEAVE_SHOP") UI.UIState.animRoute = true;
+
     state = Game.dispatch(state, action);
     saveState();
 
     // Fight: animate the resolution stack first, then reveal the result.
     if (action.type === "CONFIRM_FIGHT" && state.combat.lastResolution) {
       fighting = true;
+      Sfx.play("attack");
       const resolution = state.combat.lastResolution;
       UI.playFightAnimation(resolution, () => {
         fighting = false;
-        render();
+        if (state.combat.outcome === "cleared") Sfx.play("win");
+        else if (state.combat.outcome === "failed") Sfx.play("lose");
+        rerender();
       });
       return;
     }
-    render();
+    rerender();
   }
 
-  function render() {
-    UI.render(state);
+  function closeModal() {
+    UI.UIState.modal = null;
+    UI.UIState.detail = null;
+    rerender();
+  }
+
+  function clearSelection() {
+    state.combat.selectedUids = [];
+    rerender();
+  }
+
+  function startRun(seedCode) {
+    state = Game.dispatch(state, { type: "START_RUN", seedCode });
+    saveState();
+    if (!localStorage.getItem(ONBOARD_KEY)) {
+      UI.UIState.onboarding = true;
+      UI.UIState.onboardingStep = 0;
+    }
+    rerender();
   }
 
   document.getElementById("app").addEventListener("click", (e) => {
@@ -57,46 +122,128 @@
     switch (action) {
       case "start": {
         const input = document.getElementById("seed-input");
-        dispatchAndRender({ type: "START_RUN", seedCode: input ? input.value : "" });
+        startRun(input ? input.value : "");
         break;
       }
-      case "select": dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
+      case "select": Sfx.play("select"); dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
       case "fight": dispatchAndRender({ type: "CONFIRM_FIGHT" }); break;
-      case "toggle-discard":
-        UI.UIState.discardMode = !UI.UIState.discardMode;
-        render();
-        break;
-      case "discard": dispatchAndRender({ type: "DISCARD", uids: state.combat.selectedUids.slice() }); break;
+      case "discard": Sfx.play("discard"); dispatchAndRender({ type: "DISCARD", uids: state.combat.selectedUids.slice() }); break;
+      case "clear-selection": clearSelection(); break;
       case "enter-shop":
-        UI.UIState.inspectedId = null;
+        Sfx.play("click");
         dispatchAndRender({ type: "ENTER_SHOP" });
         break;
-      case "buy": dispatchAndRender({ type: "BUY_ITEM", itemId: el.dataset.id }); break;
-      case "inspect": if (UI.setInspected(el.dataset.inspect)) render(); break;
-      case "sell": dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id }); break;
+      case "buy": Sfx.play("buy"); dispatchAndRender({ type: "BUY_ITEM", itemId: el.dataset.id }); break;
+      case "sell":
+        dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });
+        if (UI.UIState.modal === "detail") UI.UIState.modal = null;
+        UI.toast(state, "Предмет продан за половину цены");
+        rerender();
+        break;
+      case "item-open":
+        UI.UIState.modal = "detail";
+        UI.UIState.detail = el.dataset.id;
+        rerender();
+        break;
+      case "item-hint": UI.toast(state, "Новые предметы появятся в лавке после зачистки волны."); break;
       case "lock": dispatchAndRender({ type: "LOCK_OFFER", itemId: el.dataset.id }); break;
       case "reroll": dispatchAndRender({ type: "REROLL_SHOP" }); break;
-      case "leave-shop": dispatchAndRender({ type: "LEAVE_SHOP" }); break;
+      case "leave-shop": Sfx.play("click"); dispatchAndRender({ type: "LEAVE_SHOP" }); break;
+      case "take-route":
+        Sfx.play("path");
+        dispatchAndRender({ type: "TAKE_ROUTE", kind: el.dataset.kind });
+        break;
+      case "buy-recruit":
+        Sfx.play("buy");
+        dispatchAndRender({ type: "BUY_RECRUIT", heroId: el.dataset.id });
+        UI.toast(state, "Герой нанят — он в колоде");
+        break;
+      case "exile":
+        Sfx.play("discard");
+        dispatchAndRender({ type: "EXILE_HERO", heroId: el.dataset.id });
+        break;
+      case "train":
+        Sfx.play("buy");
+        dispatchAndRender({ type: "TRAIN_HERO", heroId: el.dataset.id });
+        break;
       case "retry": dispatchAndRender({ type: "RETRY_WAVE" }); break;
-      case "restart":
+      case "restart": {
+        const input = document.getElementById("seed-input-modal");
         localStorage.removeItem(SAVE_KEY);
-        state = Game.createInitialState("");
-        UI.UIState.discardMode = false;
-        UI.UIState.debugOpen = false;
-        UI.UIState.inspectedId = null;
-        render();
+        closeModal();
+        startRun(input ? input.value : "");
+        UI.toast(state, "Новый забег начался. Удачи на линии!");
         break;
-      case "abandon":
-        localStorage.removeItem(SAVE_KEY);
-        state = Game.createInitialState("");
-        UI.UIState.discardMode = false;
-        UI.UIState.inspectedId = null;
-        render();
+      }
+      case "open-modal":
+        UI.UIState.modal = el.dataset.modal;
+        if (el.dataset.modal === "collection") UI.UIState.collectionTab = "heroes";
+        rerender();
         break;
-      case "debug-toggle":
-        UI.UIState.debugOpen = !UI.UIState.debugOpen;
-        render();
+      case "open-collection":
+        UI.UIState.modal = "collection";
+        UI.UIState.collectionTab = "heroes";
+        UI.UIState.search = "";
+        rerender();
         break;
+      case "open-collection-deck":
+        UI.UIState.modal = "collection";
+        UI.UIState.collectionTab = "deck";
+        UI.UIState.search = "";
+        rerender();
+        break;
+      case "open-score":
+        UI.UIState.modal = "score";
+        rerender();
+        break;
+      case "collection-tab":
+        UI.UIState.collectionTab = el.dataset.tab;
+        UI.UIState.search = "";
+        rerender();
+        break;
+      case "close-modal": closeModal(); break;
+      case "modal-backdrop":
+        if (e.target === el) {
+          if (UI.UIState.onboarding) {
+            UI.UIState.onboarding = false;
+            try { localStorage.setItem(ONBOARD_KEY, "seen"); } catch (err) { /* ignore */ }
+          }
+          closeModal();
+        }
+        break;
+      case "sort":
+        UI.UIState.sort = UI.UIState.sort === el.dataset.mode ? "deal" : el.dataset.mode;
+        rerender();
+        break;
+      case "nav-play": closeModal(); break;
+      case "toggle-sound":
+        Sfx.toggleMuted();
+        savePrefs();
+        rerender();
+        break;
+      case "toggle-motion":
+        UI.UIState.motion = !UI.UIState.motion;
+        savePrefs();
+        rerender();
+        break;
+      case "next-tip":
+        UI.UIState.tipIndex = (UI.UIState.tipIndex + 1) % 6;
+        rerender();
+        break;
+      case "close-toast": UI.UIState.toast = ""; rerender(); break;
+      case "onboard-start":
+        UI.UIState.onboarding = true;
+        UI.UIState.onboardingStep = 0;
+        rerender();
+        break;
+      case "onboard-next": UI.UIState.onboardingStep += 1; rerender(); break;
+      case "onboard-prev": UI.UIState.onboardingStep = Math.max(0, UI.UIState.onboardingStep - 1); rerender(); break;
+      case "onboard-close":
+        UI.UIState.onboarding = false;
+        try { localStorage.setItem(ONBOARD_KEY, "seen"); } catch (err) { /* ignore */ }
+        rerender();
+        break;
+      case "debug-toggle": UI.UIState.debugOpen = !UI.UIState.debugOpen; rerender(); break;
       case "debug-gold": dispatchAndRender({ type: "DEBUG_GOLD" }); break;
       case "debug-fights": dispatchAndRender({ type: "DEBUG_FIGHTS" }); break;
       case "debug-tower": dispatchAndRender({ type: "DEBUG_DAMAGE_TOWER", amount: 100 }); break;
@@ -107,33 +254,74 @@
     }
   });
 
-  // Shop inspect: hovering an offer shows its breakdown, clicking pins it.
-  document.getElementById("app").addEventListener("mouseover", (e) => {
-    if (state.phase !== "shop") return;
-    const el = e.target.closest("[data-inspect]");
-    if (el && UI.setInspected(el.dataset.inspect)) render();
+  // Live search inside collection modal (input event, not click).
+  document.getElementById("app").addEventListener("input", (e) => {
+    const el = e.target.closest("[data-action-input=search]");
+    if (el) {
+      UI.UIState.search = el.value;
+      // re-render only the modal grid: cheap full render is fine
+      rerender();
+      const input = document.querySelector("[data-action-input=search]");
+      if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+    }
   });
 
-  // Enter key on seed input starts the run.
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && state.phase === "title") {
-      const input = document.getElementById("seed-input");
-      if (input && document.activeElement === input) {
-        dispatchAndRender({ type: "START_RUN", seedCode: input.value });
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) {
+      if (e.key === "Enter" && e.target.id === "seed-input") {
+        startRun(e.target.value);
+      }
+      if (e.key === "Enter" && e.target.id === "seed-input-modal") {
+        startRun(e.target.value);
+      }
+      return;
+    }
+    if (e.key === "Escape") {
+      if (UI.UIState.onboarding) { UI.UIState.onboarding = false; try { localStorage.setItem(ONBOARD_KEY, "seen"); } catch (err) { } }
+      closeModal();
+      if (!fighting) clearSelection();
+      return;
+    }
+    if (UI.UIState.onboarding) {
+      if (e.key === "Enter" || e.key === "ArrowRight") {
+        UI.UIState.onboardingStep += 1;
+        rerender();
+      }
+      if (e.key === "ArrowLeft") {
+        UI.UIState.onboardingStep = Math.max(0, UI.UIState.onboardingStep - 1);
+        rerender();
+      }
+      return;
+    }
+    if (UI.UIState.modal || fighting) return;
+    if (/^[1-7]$/.test(e.key) && state.phase === "wave" && !state.combat.outcome) {
+      e.preventDefault();
+      const order = UI.handOrder(state);
+      const uid = order[Number(e.key) - 1];
+      if (uid) dispatchAndRender({ type: "SELECT_CARD", uid });
+    }
+    if (e.key === "Enter" && state.phase === "wave" && !state.combat.outcome) {
+      e.preventDefault();
+      if (state.combat.selectedUids.length) dispatchAndRender({ type: "CONFIRM_FIGHT" });
+    }
+    if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.phase === "wave" && !state.combat.outcome) {
+      if (state.combat.selectedUids.length && state.player.discardsLeft > 0) {
+        e.preventDefault();
+        dispatchAndRender({ type: "DISCARD", uids: state.combat.selectedUids.slice() });
+        UI.toast(state, "Подкрепление прибыло. Собери новую комбинацию.");
       }
     }
-    // D = toggle debug sandbox
     if (e.key.toLowerCase() === "d" && state.phase !== "title") {
       UI.UIState.debugOpen = !UI.UIState.debugOpen;
-      render();
+      rerender();
     }
   });
 
-  render();
+  rerender();
 
   // Debug handle for sandbox/testing (used by docs screenshots and console).
   window.__dalatro = {
     get state() { return state; },
-    Game, Sim, Advisor,
+    Game, Sim, Advisor, UI,
   };
 })();

@@ -48,9 +48,9 @@ test("Radiance: +3 силы за каждого сыгранного", () => {
   s.player.items.push("radiance");
   const res = play(s, ["axe", "morphling", "zeus", "pudge", "centaur"]);
   // сет 5-5-5: 30 + (5+5+5+7+10=32) + 15 = 77; морф копирует силу у axe → str; zeus без int-соседа
-  // axe: сет → +10 → 87; mult 3 → 261
+  // axe: сет → +10 → 87; mult 3 → 261, ставка ×1.25 за пятёрку → 326
   assertEq(res.power, 87, "30 + 32 + 15 + 10");
-  assertEq(res.damage, 261, "87 × 3");
+  assertEq(res.damage, 326, "round(87 × 3 × 1.25)");
 });
 
 test("Octarine: +1 множитель за каждый предмет", () => {
@@ -64,12 +64,12 @@ test("Octarine: +1 множитель за каждый предмет", () => {
   assertEq(res.mult, 8, "2 база + 2 zeus + 1 kaya + 3 octarine");
 });
 
-test("Vladmir: +2 золота за бой", () => {
+test("Vladmir: +2 золота за бой, харас добавляет +1", () => {
   const s = newRun("VLD1");
   s.player.items.push("vladmir");
   const goldBefore = s.run.gold;
   const res = play(s, ["tusk"]);
-  assertEq(s.run.gold, goldBefore + 2, "+2 за бой");
+  assertEq(s.run.gold, goldBefore + 3, "+2 за бой и +1 за харас одним героем");
   assertEq(res.damage, 8, "обычный урон не тронут");
 });
 
@@ -77,9 +77,9 @@ test("Shadow Blade: бамп сильнейшего только если он �
   const s = newRun("SHB1");
   s.player.items.push("shadow_blade");
   const res = play(s, ["dawnbreaker", "centaur", "tusk", "cm", "sven"]);
-  // 9,10,3,2,8 (хай-карта 37): сильнейшая 10 → −1 → пара 9-9: (10+32) × 2
+  // 9,10,3,2,8 (хай-карта 37): сильнейшая 10 → −1 → пара 9-9: (10+32) × 2 = 84 × 1.25 = 105
   assertEq(res.combo.type, "pair", "бамп собрал пару из 9+10");
-  assertEq(res.damage, 84, "42 × 2");
+  assertEq(res.damage, 105, "42 × 2 × 1.25");
   // а вот пару бамп ломать не должен — движок выбирает лучший вариант
   const s2 = newRun("SHB2");
   s2.player.items.push("shadow_blade");

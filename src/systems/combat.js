@@ -8,6 +8,8 @@
 //   4. Hero triggers (slot order): ON_PLAY then COMBO_DETECTED
 //   5. Item triggers (acquisition order): FIGHT_SCORING
 //   6. Refresher    — hero triggers (4) run a second time
+//   6.5 Commitment  — ставка карт: ×1.1 (4 героя) / ×1.25 (5 героев)
+//   6.6 Momentum    — серия зачищенных волн: ×1.05 за каждую
 //   7. Tower mods   — BKB / Butterfly interact, then armor / glyph
 //   8. Damage       — power × mult × finalMult × towerMult
 //   9. Death/Aegis  — revive once, else killed
@@ -16,12 +18,34 @@ const Combat = (function () {
   const HAND_SIZE = DeckSys.HAND_SIZE;
   const MAX_SLOTS = 5;
 
+  // Ставка: сколько героев отправил в бой. 2-3 героя — нейтрально.
+  const COMMIT_TIERS = {
+    1: { name: "Харас", finalMult: 1, gold: 1 },
+    4: { name: "Тимфайт", finalMult: 1.1, gold: 0 },
+    5: { name: "Коммит", finalMult: 1.25, gold: 0 },
+  };
+  // Импульс: серия зачищенных волн подряд (сбрасывается провалом).
+  const MOMENTUM_STEP = 0.05;
+  const MOMENTUM_CAP = 10;
+
   function realPlayedCards(state) {
     return state.combat.selectedUids.map((uid) => {
       const card = state.cards[uid];
-      const hero = Content.heroes.byId[card.heroId];
-      return { uid, heroId: card.heroId, power: hero.power, attr: hero.attr, illusion: false, slotIndex: 0 };
+      return { uid, heroId: card.heroId, power: Game.rankOf(state, card.heroId), attr: heroAttr(state, card.heroId), illusion: false, slotIndex: 0 };
     });
+  }
+
+  // Ранг с учётом тренировки (state.run.ranks) и проклятие-список волны.
+  function heroAttr(state, heroId) {
+    return Content.heroes.byId[heroId].attr;
+  }
+
+  function waveCurses(state) {
+    const wave = state.combat.wave;
+    if (!wave) return [];
+    return (wave.modifiers || [])
+      .map((m) => m.id)
+      .filter((id) => Content.modifiers.byId[id] && Content.modifiers.byId[id].curse);
   }
 
   function collectPreDetectEffects(state, playedCards) {
@@ -211,7 +235,14 @@ const Combat = (function () {
     const played = realPlayedCards(state);
     played.forEach((c, i) => (c.slotIndex = i));
 
-    state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb") } };
+    state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb"), lastHitGold: 0 } };
+
+    // Проклятия элитной башни: BKB выключает их все.
+    const curses = state.combat.scoring.flags.bkbBlocksMods ? [] : waveCurses(state);
+    const silenced = curses.includes("silence");
+    if (silenced) {
+      Resolver.pushStep(resolution, { icon: "☠", label: "Безмолвие: способности героев отключены", kind: "modifier" });
+    }
 
     // 1-2. Pre-detect + detection.
     const { effective, combo, copyLog } = buildEffectiveSet(state, played, resolution);
@@ -222,28 +253,67 @@ const Combat = (function () {
       kind: "combo",
     });
 
-    // 3. Base power + played card powers.
+    // 3. Base power + played card powers (туман: ранг ≤4 не даёт силы).
+    const fog = curses.includes("fog");
     state.combat.scoring.power = combo.basePower;
     let cardPowerSum = 0;
-    for (const card of effective) cardPowerSum += card.power;
+    for (const card of effective) {
+      if (fog && card.power <= 4) continue;
+      cardPowerSum += card.power;
+    }
+    if (fog && effective.some((c) => c.power <= 4)) {
+      Resolver.pushStep(resolution, { icon: "☠", label: "Туман войны: герои ранга ≤4 не дают силы", kind: "modifier" });
+    }
     state.combat.scoring.power += cardPowerSum;
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
 
     // 4. Hero triggers.
-    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["hero"]);
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, silenced ? [] : ["hero"]);
 
     // 5. Item triggers.
     runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["item"]);
 
     // 6. Refresher: hero triggers again.
-    if (state.combat.scoring.flags.refreshHeroTriggers) {
+    if (state.combat.scoring.flags.refreshHeroTriggers && !silenced) {
       runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: ["hero"], refreshed: true }, ["hero"]);
     }
 
-    // 7. Tower modifiers.
-    const towerMult = towerDamageMult(state, resolution) * enemyShieldMult(state);
+    // 6.5 Ставка: чем больше отряд, тем жирнее удар.
+    const commit = COMMIT_TIERS[played.length];
+    if (commit && commit.finalMult !== 1) {
+      state.combat.scoring.finalMult *= commit.finalMult;
+      Resolver.pushStep(resolution, {
+        icon: "🎖",
+        label: `Ставка «${commit.name}» (${played.length} героев): ×${commit.finalMult} к урону`,
+        kind: "info",
+      });
+    }
+
+    // 6.6 Импульс: серия зачищенных волн.
+    const momentumStacks = Math.min(state.run.momentum || 0, MOMENTUM_CAP);
+    if (momentumStacks > 0) {
+      const momentumMult = 1 + momentumStacks * MOMENTUM_STEP;
+      state.combat.scoring.finalMult *= momentumMult;
+      Resolver.pushStep(resolution, {
+        icon: "🔥",
+        label: `Импульс ${momentumStacks} волн подряд: ×${round2(momentumMult)} к урону`,
+        kind: "info",
+      });
+    }
+
+    // 7. Tower modifiers + проклятия элиты.
+    let curseMultiplier = 1;
+    if (curses.includes("adaptation") && state.combat.lastComboType === combo.type) {
+      curseMultiplier *= 0.5;
+      Resolver.pushStep(resolution, { icon: "☠", label: "Адаптация: повтор комбинации ×0.5", kind: "modifier" });
+    }
+    if (curses.includes("bastion") && Content.combos.byId[combo.type].rank <= 2) {
+      curseMultiplier *= 0.5;
+      Resolver.pushStep(resolution, { icon: "☠", label: "Фортификация: малое комбо ×0.5", kind: "modifier" });
+    }
+    const towerMult = towerDamageMult(state, resolution) * enemyShieldMult(state) * curseMultiplier;
     resolution.blocked = towerMult === 0;
 
     // 8. Damage.
@@ -290,6 +360,15 @@ const Combat = (function () {
     if (!resolution.blocked && damage === hpBefore && hpBefore > 0) {
       gold += 5;
       Resolver.pushStep(resolution, { icon: "🎯", label: "Last Hit! +5 золота", kind: "gold" });
+      const track = s.flags.lastHitGold || 0;
+      if (track) {
+        gold += track;
+        Resolver.pushStep(resolution, { icon: "💰", label: `Track: +${track} золота за точный ласт-хит`, kind: "gold" });
+      }
+    }
+    if (commit && commit.gold) {
+      gold += commit.gold;
+      Resolver.pushStep(resolution, { icon: "💰", label: `Харас (1 герой): +${commit.gold} золото`, kind: "gold" });
     }
     resolution.goldGained = gold;
     state.run.gold += gold;
@@ -303,6 +382,7 @@ const Combat = (function () {
     DeckSys.draw(state, Rng.current());
     state.player.fightsLeft -= 1;
     state.combat.fightIndex += 1;
+    state.combat.lastComboType = combo.type; // для проклятия «Адаптация»
     state.combat.lastResolution = resolution;
     state.combat.scoring = null;
     return resolution;
@@ -318,5 +398,5 @@ const Combat = (function () {
     return Math.round(v * 100) / 100;
   }
 
-  return { resolveFight, realPlayedCards, buildEffectiveSet, HAND_SIZE, MAX_SLOTS };
+  return { resolveFight, realPlayedCards, buildEffectiveSet, HAND_SIZE, MAX_SLOTS, COMMIT_TIERS, MOMENTUM_STEP, MOMENTUM_CAP };
 })();
