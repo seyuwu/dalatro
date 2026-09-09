@@ -1034,7 +1034,22 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #405038; border-ra
   * { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* --- rules toggle на титульном экране (state.rules: classic | formation) --- */
+/* --- выбор ядра скоринга (state.rules: classic | formation): титул + «Новый забег» --- */
 .title-rules { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0 0 14px; }
-.title-rules .active-rule { outline: 2px solid rgba(110, 210, 160, 0.75); outline-offset: -1px; }
-.title-rules .rule-beta { opacity: 0.65; font-size: 11px; margin-left: 6px; }
+.modal .title-rules { justify-content: flex-start; margin: 6px 0 14px; width: 100%; }
+.rule-choice {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 10px 14px; border-radius: 10px; text-align: left; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.04);
+  color: inherit; font: inherit;
+}
+.rule-choice:hover { background: rgba(255, 255, 255, 0.08); }
+.rule-choice strong { font-size: 14px; }
+.rule-choice small { opacity: 0.72; font-size: 11px; max-width: 240px; line-height: 1.45; }
+.rule-choice.active-rule {
+  border-color: rgba(110, 210, 160, 0.85);
+  box-shadow: 0 0 0 1px rgba(110, 210, 160, 0.45) inset;
+  background: rgba(110, 210, 160, 0.08);
+}
+.rule-beta { opacity: 0.65; font-size: 10px; margin-left: 6px; border: 1px solid currentColor; border-radius: 6px; padding: 0 5px; }
+.act-pill.rules-formation { color: #7ad6a0; border-color: rgba(110, 210, 160, 0.5); }

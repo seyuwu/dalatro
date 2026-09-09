@@ -516,10 +516,27 @@ const UI = (function () {
     </footer>`;
   }
 
+  // Выбор ядра скоринга (state.rules). Один и тот же блок на титульном экране
+  // и в окне «Новый забег» — режим применяется к следующему запускаемому забегу.
+  function rulesToggleHtml(active) {
+    const rules = active === "formation" ? "formation" : "classic";
+    return `<div class="title-rules">
+      <button class="rule-choice ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">
+        <strong>Классика</strong>
+        <small>Покерные комбо: пары, сеты, стриты. Сила × множитель = урон.</small>
+      </button>
+      <button class="rule-choice ${rules === "formation" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="formation">
+        <strong>Формации <span class="rule-beta">эксперимент</span></strong>
+        <small>Строй тимфайт: порядок слотов решает, связки складываются все, урон встречает броню башни.</small>
+      </button>
+    </div>`;
+  }
+
   function runBarHtml(state) {
     return `<section class="run-bar">
       <div class="run-heading"><span class="live-dot"></span><h1>Твой забег</h1>
         <span class="run-id">#DL–${esc(state.seedCode)}</span><span class="run-divider"></span>
+        <span class="act-pill ${state.rules === "formation" ? "rules-formation" : ""}" title="Ядро скоринга этого забега">${state.rules === "formation" ? icon("target", 12) : icon("leaf", 12)} ${state.rules === "formation" ? "ФОРМАЦИИ" : "КЛАССИКА"}</span>
         <span class="act-pill">${icon("leaf", 12)} АКТ ${state.run.act}</span>
         <span class="act-name">На линии</span></div>
       <div class="run-tools">
@@ -547,10 +564,7 @@ const UI = (function () {
           <span class="equals">=</span>
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
-        <div class="title-rules">
-          <button class="subtle-button ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">Классика: покерные комбо</button>
-          <button class="subtle-button ${rules === "formation" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="formation" title="Формации + связки + типы урона. Экспериментальное ядро скоринга (state.rules)">Формации: порядок решает <span class="rule-beta">эксперимент</span></button>
-        </div>
+        ${rulesToggleHtml(UIState.rulesDraft)}
         <div class="seed-row">
           <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
           <button class="primary-button" data-action="start">Начать забег ${icon("arrow", 15)}</button>
@@ -1100,9 +1114,12 @@ const UI = (function () {
   }
 
   function newRunModalHtml() {
+    const current = UIState.rulesDraft === "formation" ? "formation" : "classic";
     return `<div class="reset-icon">${icon("rotate", 28)}</div>
       <h2>Ещё один забег?</h2>
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
+      <span class="section-label">ЯДРО СКОРИНГА НОВОГО ЗАБЕГА</span>
+      ${rulesToggleHtml(current)}
       <input id="seed-input-modal" class="seed-modal-input" placeholder="Seed (пусто = случайный)" maxlength="12">
       <div class="modal-actions">
         <button class="secondary-button" data-action="close-modal">Продолжить текущий</button>
