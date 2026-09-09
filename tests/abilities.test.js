@@ -34,29 +34,29 @@ test("Tusk — Snowball: +4 за соседа по слоту, в обоих р�
   const centerC = ablPlay(ablRun("ABL2b"), ["axe", "tusk", "pudge"]);
   assertEq(centerC.damage, 28, "classic: +8 за двух соседей");
   const edgeF = ablPlay(ablRun("ABL2c", "formation"), ["tusk", "axe", "pudge"]);
-  assertEq(edgeF.damage, 97, "formation: ранги 3,5,7 по возрастанию — Рампа (43+4) × 2.25");
+  assertEq(edgeF.damage, 84, "formation Рампа: (16+5+15+4) × 2.1");
   const centerF = ablPlay(ablRun("ABL2d", "formation"), ["axe", "tusk", "pudge"]);
-  assertEq(centerF.damage, 65, "formation: порядок ломается — Отряд (43) × 1.5");
+  assertEq(centerF.damage, 56, "formation Отряд: (17+15+8) × 1.4");
   assert(ablStep(centerF, "Tusk: +8 силы (2 соседа по слоту)"));
 });
 
 test("Sven — God's Strength: ×1.5 только если он сильнейший в бою", () => {
   const topF = ablPlay(ablRun("ABL3", "formation"), ["sven", "cm"]);
-  assertEq(topF.damage, 50, "formation Дуэль: 22 × 1.5 × 1.5");
+  assertEq(topF.damage, 42, "formation Дуэль: 20 × (1.4 × 1.5)");
   assert(ablStep(topF, "Sven: ×1.5"));
   const notTopF = ablPlay(ablRun("ABL3b", "formation"), ["sven", "centaur"]);
-  assertEq(notTopF.damage, 62, "Centaur сильнее — урлы нет; Дуэль (12+18+6 Сила+5 Фронт) × 1.5");
+  assertEq(notTopF.damage, 52, "Centaur сильнее — урлы нет; Дуэль (10+5 Сила+4 Фронт+18) × 1.4");
   const topC = ablPlay(ablRun("ABL3c"), ["sven", "cm"]);
   assertEq(topC.damage, 23, "classic хай-карта 15 × 1.5");
 });
 
 test("Centaur — Trample: +4 силы за героя, только из первого слота", () => {
   const frontF = ablPlay(ablRun("ABL4", "formation"), ["centaur", "axe", "pudge"]);
-  assertEq(frontF.damage, 89, "formation Отряд: (14+11+22+12) × 1.5");
+  assertEq(frontF.damage, 77, "formation Отряд: (12+9+22+12) × 1.4");
   assert(ablStep(frontF, "Centaur Warrunner: +12 силы"));
   const backF = ablPlay(ablRun("ABL4b", "formation"), ["axe", "pudge", "centaur"]);
   assertEq(backF.combo.type, "ramp", "ранги 5,7,10 по возрастанию — Рампа");
-  assertEq(backF.damage, 115, "(18+11+22) × 2.25");
+  assertEq(backF.damage, 99, "(16+9+22) × 2.1");
   assert(!ablStep(backF, "Warrunner: +12"), "в тылу способности нет");
   const frontC = ablPlay(ablRun("ABL4c"), ["centaur", "axe", "pudge"]);
   assertEq(frontC.damage, 39, "classic: хай-карта 27 + 12");
@@ -65,7 +65,7 @@ test("Centaur — Trample: +4 силы за героя, только из пер
 test("Dawnbreaker — Solar Guardian: +1 множитель за каждого Универсала", () => {
   const f = ablPlay(ablRun("ABL5", "formation"), ["dawnbreaker", "primal", "cm"]);
   assertEq(f.combo.type, "wedge", "Primal в центре — Клин");
-  assertEq(f.damage, 170, "formation Клин: (18+22) × (2.25 + 2 за двух UNI), pure");
+  assertEq(f.damage, 156, "formation Клин: (16+22) × (2.1 + 2 за двух UNI), pure");
   assert(ablStep(f, "Dawnbreaker: +2 к множителю (2 героев Универсал)"));
   const c = ablPlay(ablRun("ABL5b"), ["dawnbreaker", "primal", "cm"]);
   assertEq(c.damage, 81, "classic хай-карта 27 × 3");
@@ -74,7 +74,7 @@ test("Dawnbreaker — Solar Guardian: +1 множитель за каждого 
 test("Primal — Pulverize: ×2 в центре пятёрки (и 4 Protect 1 собирается)", () => {
   const f = ablPlay(ablRun("ABL6", "formation"), ["tusk", "axe", "primal", "pudge", "centaur"]);
   assertEq(f.combo.type, "protect", "кэрри в центре: 11 против среднего 6.25, margin 4");
-  assertEq(f.damage, 630, "(26+6+36+4 Tusk) × (3.5 × 2 Pulverize) × 1.25");
+  assertEq(f.damage, 510, "(23+5+36+4 Tusk) × (3.0 × 2 Pulverize) × 1.25");
   assert(ablStep(f, "Primal Beast: ×2"));
   const c = ablPlay(ablRun("ABL6b"), ["tusk", "axe", "primal", "pudge", "centaur"]);
   assertEq(c.damage, 113, "classic хай-карта 45 × 2 × 1.25");
@@ -87,7 +87,7 @@ test("Terrorblade — Soul Mirror: копирует атрибут соседа 
   ablAdd(s, "terrorblade");
   const f = ablPlay(s, ["terrorblade", "cm"]);
   assert(ablStep(f, "Terrorblade копирует атрибут «Интеллект»"), "зеркало смотрит вправо");
-  assertEq(f.damage, 50, "formation Дуэль: (12+13) × (1.5+0.5 Интеллект)");
+  assertEq(f.damage, 41, "formation Дуэль: (10+13) × (1.4+0.4 Интеллект)");
   const s2 = ablRun("ABL7b");
   ablAdd(s2, "terrorblade");
   const c = ablPlay(s2, ["terrorblade", "cm"]);
@@ -99,7 +99,7 @@ test("Rubick — Fade Bolt: +9 силы рядом с INT", () => {
   ablAdd(s, "rubick");
   const f = ablPlay(s, ["rubick", "zeus"]);
   assert(ablStep(f, "Rubick: +9 силы"));
-  assertEq(f.damage, 132, "formation Дуэль: (12+12+9) × (1.5+0.5+2 Zeus)");
+  assertEq(f.damage, 118, "formation Дуэль: (10+12+9) × (1.4+0.4+2 Zeus)");
   const s2 = ablRun("ABL8b");
   ablAdd(s2, "rubick");
   const c = ablPlay(s2, ["rubick", "zeus"]);
@@ -111,7 +111,7 @@ test("Kez — Echo Slash: +10 силы за средний ранг в отря�
   ablAdd(s, "kez");
   const f = ablPlay(s, ["tusk", "kez", "centaur"]);
   assert(ablStep(f, "Kez: +10 силы"));
-  assertEq(f.damage, 131, "formation Рампа (3,7,10): (18+6+20+10+4) × 2.25");
+  assertEq(f.damage, 116, "formation Рампа (3,7,10): (16+5+20+10+4) × 2.1");
   const s2 = ablRun("ABL9b");
   ablAdd(s2, "kez");
   const c = ablPlay(s2, ["tusk", "kez", "centaur"]);
@@ -145,7 +145,7 @@ test("Desolator: −10 брони в формациях, +6 силы в любо
   s.combat.wave.towerId = "t2";
   s.player.items.push("desolator");
   const res = ablPlay(s, ["cm", "tusk", "axe", "pudge", "sven"]);
-  assertEq(res.damage, 323, "(55+8 Tusk+6) × 3.75 × 1.25 — броня 10 пробита коррозией");
+  assertEq(res.damage, 260, "(50+8+6) × 2.2 × 1.5 × 1.25 — броня 14 минус 10 коррозии");
   assert(ablStep(res, "Desolator: −10 к броне"));
   const classic = ablRun("ABL11b");
   classic.player.items.push("desolator");
@@ -157,11 +157,77 @@ test("Pipe: магический урон игнорирует сопротив�
   const s = ablRun("ABL12", "formation");
   s.combat.wave.towerId = "t3"; // armor 18, mr 25%
   const bare = ablPlay(s, ["juggernaut", "cm", "zeus", "axe", "morphling"]);
-  assertEq(bare.damage, 312, "(18+14+24+8 Jugg+10 Axe) × (2+0.5+2 Zeus) × 1.25, минус 25% mr");
+  assertEq(bare.damage, 260, "Треугольник: (16+9+24+8 Jugg+10 Axe) × (1.9+0.4+2 Zeus) × 1.25, минус 30% mr");
   const s2 = ablRun("ABL12b", "formation");
   s2.combat.wave.towerId = "t3";
   s2.player.items.push("pipe");
   const res = ablPlay(s2, ["juggernaut", "cm", "zeus", "axe", "morphling"]);
-  assertEq(res.damage, 509, "74 × (2+0.5+2+1 Pipe) × 1.25 — сопротивление игнорируется");
+  assertEq(res.damage, 457, "69 × (1.9+0.4+2+1 Pipe) × 1.25 — сопротивление игнорируется");
   assert(ablStep(res, "магический урон игнорирует сопротивление"));
+});
+
+suite("Предметы-капстоуны v0.7 и переход актов");
+
+test("Ethereal Blade: ×1.4 за магический урон", () => {
+  const s = ablRun("ABL13", "formation");
+  s.combat.wave.towerId = "t3";
+  s.player.items.push("ethereal_blade");
+  const res = ablPlay(s, ["juggernaut", "cm", "zeus", "axe", "morphling"]);
+  assertEq(res.damage, 363, "69 × (4.3 × 1.4) × 1.25, минус 30% mr");
+  assert(ablStep(res, "Ethereal Blade: ×1.4"));
+});
+
+test("Monkey King Bar: +10 силы и ×1.25 за физический урон", () => {
+  const s = ablRun("ABL14", "formation");
+  s.combat.wave.towerId = "t2";
+  s.player.items.push("mkb");
+  const res = ablPlay(s, ["cm", "tusk", "axe", "pudge", "sven"]);
+  assertEq(res.damage, 337, "(50+8+10) × 3.3 × 1.25 ставка = 351, минус 14 брони");
+  assert(ablStep(res, "Monkey King Bar"));
+});
+
+test("Eye of Skadi: босс без Aegis возрождения", () => {
+  const s = ablRun("ABL15");
+  s.player.items.push("skadi");
+  s.combat.wave = { towerId: "roshan", name: "Roshan", emoji: "👹", isBoss: true, miniBoss: false, elite: false,
+    hp: 100, maxHp: 2800, modifiers: [{ id: "aegis" }], enemyItems: [], aegisUsed: false };
+  const res = ablPlay(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
+  assertEq(res.killed, true, "Skadi: босс умер насовсем");
+  assertEq(s.combat.wave.aegisUsed, false);
+  assert(ablStep(res, "башня больше не возродится"));
+});
+
+test("Dragon Lance: предмет скрепляет строй (+3 × n−1)", () => {
+  const s = ablRun("ABL16");
+  s.player.items.push("dragon_lance");
+  const res = ablPlay(s, ["tusk", "axe", "pudge"]);
+  assertEq(res.damage, 30, "classic: 20 + 4 Tusk + 6 Lance (строй из 3)");
+  assert(ablStep(res, "Dragon Lance: +6 силы (строй из 3 героев)"));
+});
+
+test("Drum of Endurance: +0.25 множителя за героя", () => {
+  const s = ablRun("ABL17");
+  s.player.items.push("drum");
+  const res = ablPlay(s, ["axe", "morphling", "zeus"]);
+  assertEq(Math.round(res.mult * 100) / 100, 3.75, "3 (Ганг 5-5-5) + 0.75 (3 героя)");
+  assertEq(res.damage, 206, "(30+15+10 Axe) × 3.75");
+});
+
+test("Акт-переход: босс акта даёт +10 золота и казарму, дальше — новый акт", () => {
+  const s = ablRun("ABL18");
+  const goldBefore = s.run.gold;
+  s.run.waveIndex = 4;
+  const def = Content.waves.byId["roshan"];
+  s.combat.wave = { towerId: "roshan", name: def.name, emoji: def.emoji, isBoss: true, miniBoss: false, elite: false,
+    hp: 100, maxHp: def.hp, gold: def.gold, modifiers: [], enemyItems: [], aegisUsed: false };
+  ablPlay(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
+  assertEq(s.combat.outcome, "cleared");
+  assertEq(s.run.gold, goldBefore + 10 + 10 + 6, "зачистка 10 + акт-премия 10 + оверкилл 6 (418/60)");
+  assert(s.log.some((l) => l.includes("АКТ 1 ПРОЙДЕН")), "лог акта");
+  assertEq(s.phase, "wave", "победа только после акта 3");
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  Game.dispatch(s, { type: "LEAVE_SHOP" });
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "normal" });
+  assertEq(s.run.act, 2, "начался акт 2");
+  assertEq(s.combat.wave.name, "Руины");
 });

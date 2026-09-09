@@ -94,7 +94,7 @@ test("провал волны сбрасывает импульс", () => {
   assertEq(s.combat.outcome, "failed");
   Game.dispatch(s, { type: "RETRY_WAVE" });
   assertEq(s.run.momentum, 0, "серия сброшена");
-  assertEq(s.run.barracks, 5, "казарма снесена");
+  assertEq(s.run.barracks, 1, "казарма снесена (из 2)");
 });
 
 suite("Мины Techies");
@@ -139,10 +139,10 @@ suite("Bloodstone");
 test("+0.5 множителя за каждую потерянную казарму", () => {
   const s = newRun("BLD1");
   s.player.items.push("bloodstone");
-  s.run.barracks = 4; // потеряно 2
+  s.run.barracks = 1; // потеряна 1 из 2
   const res = play(s, ["tusk"]);
-  assertEq(res.mult, 2, "1 база + 2 × 0.5");
-  assertEq(res.damage, 16, "8 × 2");
+  assertEq(res.mult, 1.5, "1 база + 1 × 0.5");
+  assertEq(res.damage, 12, "8 × 1.5");
   const s2 = newRun("BLD2");
   s2.player.items.push("bloodstone");
   const res2 = play(s2, ["tusk"]);

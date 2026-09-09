@@ -36,6 +36,10 @@ const UI = (function () {
     rubick: "рядом INT-герой: +9 силы",
     kez: "средний по рангу в отряде: +10 силы",
     ancient_apparition: "на боссе: Aegis не сработает",
+    kunkka: "в центре пятёрки при 4+ героях: +2 множителя",
+    ursa: "сильнейший в бою: ×1.8 множителя",
+    enigma: "создаёт иллюзию себя (50% силы)",
+    tinker: "способности героев срабатывают дважды",
     // таверна (ростер)
     undying: "+2 силы за карту в сбросе (до 12)",
     ogre_magi: "25%: +3 к множителю",
@@ -286,14 +290,14 @@ const UI = (function () {
     const faction = isBoss || wave.miniBoss ? "БОСС АКТА" : "ПОСТРОЙКА СВЕТА";
     return `
     <section class="encounter-panel panel">
-      <div class="section-label"><span>ТЕКУЩАЯ ЦЕЛЬ</span><span class="wave-badge">${state.run.waveIndex + 1} / ${Content.waves.order.length}</span></div>
+      <div class="section-label"><span>ТЕКУЩАЯ ЦЕЛЬ</span><span class="wave-badge">АКТ ${state.run.act || 1} · волна ${state.run.waveIndex % 5 + 1}/5</span></div>
       <div class="tower-emblem ${isBoss ? "boss" : ""}">${isBoss || wave.miniBoss ? icon("skull", 37) : icon("castle", 37)}<span class="emblem-ring"></span></div>
       <span class="enemy-faction">${faction}</span>
       <h2>${wave.name}${wave.miniBoss ? " — мини-босс" : ""}</h2>
       <div class="target-health">${icon("heart", 13)}<strong>${Math.max(0, wave.hp).toLocaleString("ru")}</strong><span>/ ${wave.maxHp.toLocaleString("ru")}</span></div>
       <div class="health-track"><div style="width:${hpPct}%"></div></div>
       ${waveRuleRows(state)}
-      <div class="reward-row"><span>Награда за победу</span><b>${icon("coins", 14)}${Game.WAVE_CLEAR_GOLD}+</b></div>
+      <div class="reward-row"><span>Награда за победу</span><b>${icon("coins", 14)}${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}+</b></div>
     </section>
     <section class="resource-panel panel">
       <div class="resource-stat"><span>${icon("swords", 13)}Тимфайты</span><strong class="mint">${state.player.fightsLeft}<small> / ${FIGHTS}</small></strong>
@@ -512,16 +516,17 @@ const UI = (function () {
   }
 
   function footerHtml(state) {
-    const names = ["T1", "T2", "T3", "TECHIES", "ROSHAN"];
-    const steps = names.map((n, i) => {
-      const cls = i === state.run.waveIndex ? "current" : i < state.run.waveIndex ? "complete" : "";
-      const ico = i === names.length - 1 ? icon("skull", 12) : i < state.run.waveIndex ? icon("check", 11) : icon("castle", 12);
-      return `<span class="${cls}">${ico}<span>${n}</span>${i < names.length - 1 ? "<i></i>" : ""}</span>`;
+    const act = state.run.act || 1;
+    const slot = state.run.waveIndex % 5;
+    const steps = [1, 2, 3, 4, 5].map((n, i) => {
+      const cls = i === slot ? "current" : i < slot ? "complete" : "";
+      const ico = i === 4 ? icon("skull", 12) : i < slot ? icon("check", 11) : icon("castle", 12);
+      return `<span class="${cls}">${ico}<span>${n}</span>${i < 4 ? "<i></i>" : ""}</span>`;
     }).join("");
     return `<footer class="footer">
       <div class="act-progress">${steps}</div>
-      <span class="footer-tagline">Немного Dota. Немного покера. Ещё один забег.</span>
-      <span class="footer-ver">DALATRO <span>v0.5</span></span>
+      <span class="footer-tagline">АКТ ${act}/3 · ${Content.actNames[act]} · волна ${slot + 1} из 5 · всего ${state.run.waveIndex + (state.phase === "victory" ? 1 : 0)}/15</span>
+      <span class="footer-ver">DALATRO <span>v0.7</span></span>
     </footer>`;
   }
 
@@ -546,8 +551,8 @@ const UI = (function () {
       <div class="run-heading"><span class="live-dot"></span><h1>Твой забег</h1>
         <span class="run-id">#DL–${esc(state.seedCode)}</span><span class="run-divider"></span>
         <span class="act-pill ${state.rules === "formation" ? "rules-formation" : ""}" title="Ядро скоринга этого забега">${state.rules === "formation" ? icon("target", 12) : icon("leaf", 12)} ${state.rules === "formation" ? "ФОРМАЦИИ" : "КЛАССИКА"}</span>
-        <span class="act-pill">${icon("leaf", 12)} АКТ ${state.run.act}</span>
-        <span class="act-name">На линии</span></div>
+        <span class="act-pill">${icon("leaf", 12)} АКТ ${state.run.act || 1}</span>
+        <span class="act-name">${Content.actNames[state.run.act || 1] || "На линии"}</span></div>
       <div class="run-tools">
         <span class="autosave">${icon("check", 12)}Прогресс сохранён</span>
         <button class="subtle-button" data-action="open-modal" data-modal="new">${icon("rotate", 13)}Новый забег</button>
@@ -789,7 +794,7 @@ const UI = (function () {
               <span class="section-label">${won ? "ДРЕВНИЙ ПАЛ" : "КРЕПОСТЬ РАЗРУШЕНА"}</span>
               <h2>${won ? "Это был легендарный забег." : "Каждый конец — новая раздача."}</h2>
               <p>${won
-      ? `${Content.waves.order.length} волн. Один невероятный билд. Серия: ${state.run.momentum || 0} волн импульса.`
+      ? `${Content.waves.order.length} волн, три акта. Один невероятный билд. Серия: ${state.run.momentum || 0} волн импульса.`
       : "Попробуй другой билд: ставка, импульс и контры боссов решают."}</p>
               <div class="end-stats">
                 <div><strong>${state.run.waveIndex + (won ? 1 : 0)}</strong><span>Волн пройдено</span></div>
@@ -820,7 +825,7 @@ const UI = (function () {
         <button class="${UIState.modal === "help" ? "active" : ""}" data-action="open-modal" data-modal="help">${icon("book", 16)}Как играть</button>
       </nav>
       <div class="header-right">
-        <span class="version">BETA <span>0.5</span></span>
+        <span class="version">BETA <span>0.7</span></span>
         <button class="icon-button" data-action="toggle-sound" title="${Sfx.isMuted() ? "Включить звук" : "Выключить звук"}">${Sfx.isMuted() ? icon("mute", 18) : icon("volume", 18)}</button>
         <button class="icon-button" data-action="open-modal" data-modal="settings" title="Настройки">${icon("settings", 18)}</button>
       </div>
@@ -838,9 +843,10 @@ const UI = (function () {
       return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true">
         <div class="outcome-emblem win">${icon("check", 44)}</div>
         <span class="section-label mint">ВОЛНА ЗАЧИЩЕНА</span>
-        <h2>${state.combat.wave.isBoss ? "Рошан повержен!" : "Башня пала."}</h2>
+        <h2>${state.combat.wave.isBoss ? (state.run.waveIndex >= Content.waves.order.length - 1 ? "Трон пал!" : "Акт пройден!") : "Башня пала."}</h2>
         <div class="outcome-rows">
-          <div><span>Зачистка</span><b>${icon("coins", 13)}+${Game.WAVE_CLEAR_GOLD}</b></div>
+          <div><span>Зачистка</span><b>${icon("coins", 13)}+${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}</b></div>
+          ${state.combat.wave.isBoss && state.run.waveIndex < Content.waves.order.length - 1 ? `<div><span>Акт пройден</span><b>${icon("coins", 13)}+10 · ${icon("shield", 13)}+1 казарма</b></div>` : ""}
           ${res && res.goldGained ? `<div><span>Оверкилл / ласт-хит</span><b>${icon("coins", 13)}+${res.goldGained}</b></div>` : ""}
           ${mom > 0 ? `<div><span>Импульс</span><b class="momentum-text">${icon("flame", 13)}${mom} волн подряд</b></div>` : ""}
         </div>

@@ -50,7 +50,7 @@ test("цепочка видна и в превью-симуляции", () => {
   const clone = Sim.simulate(s, { type: "CONFIRM_FIGHT" });
   const steps = clone.combat.lastResolution.steps;
   assert(steps.some((st) => st.icon === "🔗"), "превью показывает цепочку");
-  assertEq(s.combat.wave.hp, 300, "состояние не тронуто");
+  assertEq(s.combat.wave.hp, 450, "состояние не тронуто");
 });
 
 test("Morphling без копии (слот 1) не порождает 🔗", () => {

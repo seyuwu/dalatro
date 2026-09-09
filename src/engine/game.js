@@ -5,7 +5,7 @@ const Game = (function () {
   const FIGHTS_PER_WAVE = 4;
   const DISCARDS_PER_WAVE = 3;
   const WAVE_CLEAR_GOLD = 6;
-  const BARRACKS_MAX = 6;
+  const BARRACKS_MAX = 2; // жизни забега: одна ошибка — полколоды, вторая — конец
   const EXILE_COST = 4;
   const TRAIN_COST = 5;
   const TRAIN_RANK_MAX = 12;
@@ -15,7 +15,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 6, gold: 4, momentum: 0, ranks: {}, campBoon: false },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false },
@@ -52,6 +52,7 @@ const Game = (function () {
     const def = Content.waves.byId[Content.waves.order[waveIndex]];
     const elite = !!(route && route.elite) && !def.isBoss;
     const hp = elite ? Math.round(def.hp * 1.5) : def.hp;
+    state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
       name: def.name,
@@ -78,8 +79,8 @@ const Game = (function () {
     DeckSys.draw(state, Rng.current());
     assignMines(state);
     log(state, elite
-      ? `— Элитная волна ${waveIndex + 1}: ${def.name} — ${hp} HP (${Content.modifiers.byId[route.curse].name}!)`
-      : `— Волна ${waveIndex + 1}: ${def.name} — ${def.hp} HP`);
+      ? `— Элитная волна (акт ${state.run.act}): ${def.name} — ${hp} HP (${Content.modifiers.byId[route.curse].name}!)`
+      : `— Акт ${state.run.act}, волна ${waveIndex % 5 + 1}: ${def.name} — ${def.hp} HP`);
   }
 
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
@@ -166,13 +167,21 @@ const Game = (function () {
           s.combat.outcome = "cleared";
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);
           s.combat.campTaken = false;
-          const clearGold = s.combat.wave.elite ? Math.round(WAVE_CLEAR_GOLD * 1.5) : WAVE_CLEAR_GOLD;
+          const baseGold = s.combat.wave.gold || WAVE_CLEAR_GOLD;
+          const clearGold = s.combat.wave.elite ? Math.round(baseGold * 1.5) : baseGold;
           s.run.gold += clearGold;
           log(s, `Волна зачищена! +${clearGold} золота${s.combat.wave.elite ? " (элитная добыча ×1.5)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
-            s.phase = "victory";
-            log(s, "РОШАН ПОВЕРЖЕН. ТИ ВЗЯТ!");
+            if (s.run.waveIndex >= Content.waves.order.length - 1) {
+              s.phase = "victory";
+              log(s, "ТРОН ПАЛ. ТИ ВЗЯТ!");
+            } else {
+              // Акт пройден: премия за переход — золото и восстановление казармы.
+              s.run.gold += 10;
+              s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
+              log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота, +1 казарма (восстановление)`);
+            }
           }
         } else if (s.player.fightsLeft <= 0) {
           s.combat.outcome = "failed";

@@ -226,10 +226,10 @@ test("Lina: +20 силы при 1–2 героях", () => {
 test("Huskar: +3 силы за разрушенную казарму", () => {
   const s = newRun("NH2");
   recruitInto(s, "huskar");
-  s.run.barracks = 4; // потеряно 2
+  s.run.barracks = 1; // потеряна 1 из 2
   setWave(s, "t1");
   const res = play(s, ["huskar"]);
-  assertEq(res.power, 20, "5 базы + 9 хускар + 6 за казармы");
+  assertEq(res.power, 17, "5 базы + 9 хускар + 3 за казарму");
 });
 
 test("Skywrath: ×2 в одиночке; Tidehunter: 5 героев +2 множителя", () => {

@@ -34,7 +34,7 @@ test("детектор выбирает МАКСИМУМ УРОНА, а не п�
   assertEq(f.id, "phalanx", "Фаланга 55×2.5=137.5 жирнее Рампы 49×2.25=110.25");
   const ramp = f.alternatives.find((x) => x.id === "ramp");
   assert(ramp, "Рампа должна оставаться в списке альтернатив");
-  assertEq(ramp.damage, 110.25);
+  assertEq(Math.round(ramp.damage * 10) / 10, 96.6);
 });
 
 test("ничья по урону — позиционная формация приоритетнее", () => {
@@ -76,9 +76,9 @@ test("Стена: слоты 1–2 — Сила ранга ≥6", () => {
   ];
   const f = FormationSys.evaluate(cards);
   assertEq(f.id, "wall");
-  assertEq(f.basePower, 47); // 20 база + 27 связок (Сила 6, Ганг 8, Цепочка 8, Фронт 5); Σ сил добавит combat
-  assertEq(f.baseMult, 2);
-  assertEq(f.damage, 168);   // «полный ожидаемый результат»: (47 + Σ37) × 2
+  assertEq(f.basePower, 39); // 18 база + 21 связка (Сила 5, Ганг 6, Цепочка 6, Фронт 4); Σ сил добавит combat
+  assertEq(f.baseMult, 1.9);
+  assertEq(Math.round(f.damage * 10) / 10, 144.4);   // «полный ожидаемый результат»: (39 + Σ37) × 1.9
 });
 
 test("Фаланга: 4+ одного атрибута", () => {
@@ -156,15 +156,15 @@ test("Ловкость даёт и силу, и множитель", () => {
   const f = FormationSys.evaluate([
     { power: 5, attr: "agi", slotIndex: 0 }, { power: 6, attr: "agi", slotIndex: 1 },
   ]);
-  assertEq(f.bondPower, 5);
-  assertEq(f.bondMult, 0.25);
+  assertEq(f.bondPower, 4);
+  assertEq(f.bondMult, 0.2);
 });
 
 test("Интеллект даёт множитель", () => {
   const f = FormationSys.evaluate([
     { power: 5, attr: "int", slotIndex: 0 }, { power: 6, attr: "int", slotIndex: 1 },
   ]);
-  assertEq(f.bondMult, 0.5);
+  assertEq(f.bondMult, 0.4);
 });
 
 test("Ганг: 2 одинаковых ранга", () => {
@@ -268,9 +268,9 @@ suite("Ставка, альтернативы и перестановка");
 test("commit применяется до защиты (как finalMult в combat.js)", () => {
   const cards = [{ power: 7, attr: "agi", slotIndex: 0 }];
   const defense = { armor: 18, mr: 0 };
-  // (6 база + 7 сила) = 13; броня съедает половину → 6.5 → 7.
-  assertEq(FormationSys.evaluate(cards, { defense }).damage, 7);
-  // 13 × 1.25 = 16.25, минус половина → 8.125 → 8.
+  // (5 база + 7 сила) = 12; броня съедает половину → 6.
+  assertEq(FormationSys.evaluate(cards, { defense }).damage, 6);
+  // 12 × 1.25 = 15, минус половина → 7.5 → 8.
   assertEq(FormationSys.evaluate(cards, { defense, commit: 1.25 }).damage, 8);
 });
 
@@ -292,12 +292,12 @@ test("bestSwap находит Клин перестановкой (gameplay loop
   const opts = { defense: TOWER_DEFENSE.t3, commit: 1.25 };
   const base = FormationSys.evaluate(cards, opts);
   assertEq(base.id, "wall");
-  assertEq(base.damage, 212); // Стена: (20+19 связок+28 сил) × 2.75 × 1.25 − 18 брони
+  assertEq(base.damage, 163); // Стена: (18+15 связок+28 сил) × 2.5 × 1.25 − 28 брони
   const hint = FormationSys.bestSwap(cards, opts);
   assert(hint, "перестановка Sven ↔ Crystal Maiden обязана собрать Клин");
   assertEq(hint.id, "wedge");
-  assertEq(hint.damage, 225); // Клин pure: (18+14+28) × 3 × 1.25, броню игнорирует
-  assertEq(hint.gain, 13);
+  assertEq(hint.damage, 186); // Клин pure: (16+11+28) × 2.7 × 1.25, броню игнорирует
+  assertEq(hint.gain, 23);
 });
 
 test("bestSwap возвращает null, когда улучшений нет", () => {

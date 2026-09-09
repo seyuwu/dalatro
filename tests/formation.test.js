@@ -41,9 +41,9 @@ test("формация детектится в бою, Axe срабатывае�
   assertEq(res.combo.type, "phalanx");
   assertEq(res.combo.tier, 3);
   assertEq(res.damageType, "physical");
-  assertEq(res.power, 83, "сила: 24 база + 19 связки + 30 карт + 10 от Axe");
-  assertEq(res.mult, 3.75, "2.5 × 1.5 от Sven (сильнейший в бою)");
-  assertEq(res.damage, 389, "83 × 3.75 × 1.25 ставка, T1 без защиты");
+  assertEq(res.power, 75, "сила: 20 база + 15 связки + 30 карт + 10 от Axe");
+  assertEq(Math.round(res.mult * 100) / 100, 3.3, "2.2 × 1.5 от Sven (сильнейший в бою)");
+  assertEq(res.damage, 309, "75 × 3.3 × 1.25 ставка, T1 без защиты");
   assert(frmHasStep(res, "Формация «Фаланга»"), "шаг формации в стеке");
   assert(frmHasStep(res, "Связка «Сила»"), "шаг связки в стеке");
   assert(frmHasStep(res, "Связка «Фронт»"), "Morphling стал STR — фронт собран");
@@ -54,18 +54,18 @@ test("формация детектится в бою, Axe срабатывае�
 test("порядок слотов меняет урон: по возрастанию 295, обратный 319 (Фронт)", () => {
   const a = frmPlay(frmRun("FRM3", "formation"), ["cm", "tusk", "axe", "pudge", "sven"]);
   assertEq(a.combo.type, "phalanx", "детектор берёт максимум урона: Фаланга, не Рампа");
-  assertEq(a.damage, 295, "(30+25+8 Tusk) × 2.5 × 1.5 Sven × 1.25, T1");
+  assertEq(a.damage, 239, "(25+25+8 Tusk) × 2.2 × 1.5 Sven × 1.25, T1");
   const b = frmPlay(frmRun("FRM3", "formation"), ["sven", "pudge", "axe", "tusk", "cm"]);
   assertEq(b.combo.type, "phalanx");
-  assertEq(b.damage, 319, "+5 связки Фронт (слоты 1–2 STR ≥5)");
+  assertEq(b.damage, 256, "+4 связки Фронт (слоты 1–2 STR ≥5)");
 });
 
 test("митигейт: физический урон минус броня T2, шаг виден в стеке", () => {
   const s = frmRun("FRM4", "formation");
   s.combat.wave.towerId = "t2"; // защита: armor 10, mr 0
   const res = frmPlay(s, ["cm", "tusk", "axe", "pudge", "sven"]);
-  assertEq(res.damage, 285, "295 raw − 10 брони");
-  assert(frmHasStep(res, "Броня башни 10"), "шаг митигейта телеграфирует расчёт");
+  assertEq(res.damage, 225, "239 raw − 14 брони");
+  assert(frmHasStep(res, "Броня башни 14"), "шаг митигейта телеграфирует расчёт");
 });
 
 test("чистый урон игнорирует броню (Клин/4-1 pure)", () => {
@@ -74,7 +74,7 @@ test("чистый урон игнорирует броню (Клин/4-1 pure)"
   const res = frmPlay(s, ["cm", "tusk", "centaur", "pudge", "zeus"]);
   assertEq(res.combo.type, "protect", "пик в центре, margin 4: 10 против среднего 4.25");
   assertEq(res.damageType, "pure");
-  assertEq(res.damage, 503, "(26+6+27+8 Tusk) × (3.5+0.5 Интеллект +2 Zeus) × 1.25 — броня T2 не применяется");
+  assertEq(res.damage, 425, "(23+5+27+8 Tusk) × (3.0+0.4 Интеллект +2 Zeus) × 1.25 — броня T2 не применяется");
   assert(frmHasStep(res, "Чистый урон"), "шаг «чистый урон» в стеке");
 });
 
@@ -84,7 +84,7 @@ test("алиас Satanic: ×1.5 на слабых формациях (tier ≤ 2
   // порядок 5-2-7 не читается как Рампа → Отряд, tier 1
   const weak = frmPlay(s, ["zeus", "cm", "juggernaut"]);
   assert(frmHasStep(weak, "Satanic"), "Satanic срабатывает на tier ≤ 2");
-  assertEq(weak.damage, 168, "28 × (1.5+0.5 Интеллект +2 Zeus) × 1.5 Satanic");
+  assertEq(weak.damage, 148, "26 × (1.4+0.4 Интеллект +2 Zeus) × 1.5 Satanic");
   const strong = frmPlay(frmRun("FRM6b", "formation"), ["cm", "tusk", "centaur", "pudge", "zeus"]);
   assert(!frmHasStep(strong, "Satanic"), "на tier 5 Satanic молчит");
 });
@@ -93,7 +93,7 @@ test("проклятие Фортификация на формациях бьё
   const s = frmRun("FRM7", "formation");
   s.combat.wave.modifiers.push({ id: "bastion" });
   const weak = frmPlay(s, ["cm", "tusk"]); // Дуэль, tier 1
-  assertEq(weak.damage, 16, "(12+5+4 Tusk) × 1.5 × 0.5");
+  assertEq(weak.damage, 14, "(10+5+4 Tusk) × 1.4 × 0.5");
   assert(frmHasStep(weak, "Фортификация"));
   const strong = frmPlay(frmRun("FRM7b", "formation"), ["cm", "tusk", "centaur", "pudge", "zeus"]); // 4-1, tier 5
   assert(!frmHasStep(strong, "Фортификация"), "tier 5 не «малое комбо»");
@@ -104,7 +104,7 @@ test("BKB снимает и числовую защиту (formation)", () => {
   s.combat.wave.towerId = "t2";
   s.player.items.push("bkb");
   const res = frmPlay(s, ["cm", "tusk", "axe", "pudge", "sven"]);
-  assertEq(res.damage, 295, "physical без брони — как на T1");
+  assertEq(res.damage, 239, "physical без брони — как на T1");
   assert(frmHasStep(res, "BKB: числовая защита"));
 });
 
@@ -115,7 +115,7 @@ test("detectPower работает в формациях (Butterfly собира
   // слабейшая (CM 2) → детект-ранг 3: Ганг 3-3 даёт +8 силы, выбор кандидата лучший
   assert(frmHasStep(res, "Butterfly"), "PRE_DETECT-семейство живо на формациях");
   assertEq(res.combo.type, "phalanx");
-  assertEq(res.power, 71, "24 база + (6 Сила + 8 Ганг) + 25 карт + 8 Tusk");
+  assertEq(res.power, 64, "20 база + (5 Сила + 6 Ганг) + 25 карт + 8 Tusk");
 });
 
 test("classic не затронут: та же рука — прежнее покерное комбо и математика", () => {

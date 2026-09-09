@@ -28,7 +28,7 @@ test("Heart: +25 силы", () => {
   s.player.items.push("heart");
   const res = play(s, ["tusk", "cm"]);
   // хай-карта (5+3+2=10) + 4 Tusk-сосед + 25 = 39
-  assertEq(res.damage, 39, "10 + 4 Tusk + 25");
+  assertEq(res.damage, 24, "10 + 4 Tusk + 10 Heart (+0 казармы)");
 });
 
 test("Satanic: ×1.5 на паре, молчит на хай-карте", () => {
@@ -60,7 +60,7 @@ test("Octarine: +1 множитель за каждый предмет", () => {
   // морф копирует INT у зевса (слева) → зевс +2; флеш? инт 3, аги 0 — нет. пара 5-5: (10+15) × (2+2+3) = 25 × 7
   // kaya +10 силы → 35; octarine даёт +3 (3 предмета)
   assertEq(res.combo.type, "pair", "комбо");
-  assertEq(res.power, 57, "10 + 12 карт + 25 heart + 10 kaya");
+  assertEq(res.power, 42, "10 + 12 карт + 10 heart + 10 kaya");
   assertEq(res.mult, 8, "2 база + 2 zeus + 1 kaya + 3 octarine");
 });
 
@@ -93,11 +93,11 @@ test("Meteor Hammer: +8 силы при 3+ героях", () => {
   const s = newRun("MET1");
   s.player.items.push("meteor_hammer");
   const three = play(s, ["tusk", "cm", "sven"]);
-  assertEq(three.damage, 45, "(5+13+4 Tusk+8) × 1.5 Sven");
+  assertEq(three.damage, 83, "(18+4 Tusk) × 1.5 Sven + 50 осады");
   const s2 = newRun("MET2");
   s2.player.items.push("meteor_hammer");
   const two = play(s2, ["tusk", "cm"]);
-  assertEq(two.damage, 14, "без триггера (10+4 Tusk)");
+  assertEq(two.damage, 64, "(10+4 Tusk) + 50 осады");
 });
 
 suite("Advisor");

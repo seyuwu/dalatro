@@ -56,6 +56,9 @@ const Cond = (function () {
           return tierOf(ctx) >= (minTier != null ? minTier : comboRank(condition.value));
         }
         return !!ctx.combo && comboRank(ctx.combo.type) >= comboRank(condition.value);
+      case "DAMAGE_TYPE_IS":
+        // Ярлык типа урона есть и у формаций, и у покерных комбо (world.js).
+        return !!ctx.combo && ctx.combo.damageType === condition.value;
       case "TIER_MIN":
         return tierOf(ctx) >= condition.value;
       case "TIER_MAX":

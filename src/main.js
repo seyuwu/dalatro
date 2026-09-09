@@ -1,7 +1,7 @@
 // Dalatro — main: app state holder + event delegation. UI events become actions.
 // UI prefs (sound/motion/onboarding) live here, game state in Game.dispatch.
 (function () {
-  const SAVE_KEY = "dalatro_save_v1";
+  const SAVE_KEY = "dalatro_save_v2"; // v2: акты/новый баланс — старые сейфы несовместимы и не подхватываются
   const PREFS_KEY = "dalatro_prefs_v3";
   const ONBOARD_KEY = "dalatro_onboard_v3";
 

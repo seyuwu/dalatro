@@ -131,6 +131,13 @@ const HEROES_DATA = [
       when: { type: "PLAYED_COUNT_ABOVE", value: 4 },
       effects: [{ type: "ADD_MULT", value: 2 }],
     } },
+  {
+    id: "kunkka", name: "Kunkka", attr: "str", power: 12, inDeck: false,
+    ability: {
+      name: "Ghostship", event: "ON_PLAY",
+      when: { all: [{ type: "SLOT_IS", value: 2 }, { type: "PLAYED_COUNT_ABOVE", value: 3 }] },
+      effects: [{ type: "ADD_MULT", value: 2 }],
+    } },
 
   { id: "meepo", name: "Meepo", attr: "agi", power: 2, inDeck: false,
     ability: {
@@ -170,6 +177,13 @@ const HEROES_DATA = [
     ability: {
       name: "Soul Mirror", event: "PRE_DETECT",
       effects: [{ type: "COPY_ATTRIBUTE", target: "right_neighbor" }],
+    } },
+  {
+    id: "ursa", name: "Ursa", attr: "agi", power: 12, inDeck: false,
+    ability: {
+      name: "Enrage", event: "FIGHT_SCORING",
+      when: { type: "IS_HIGHEST_RANK" },
+      effects: [{ type: "MULT_MULT", value: 1.8 }],
     } },
 
   { id: "oracle", name: "Oracle", attr: "int", power: 3, inDeck: false,
@@ -221,6 +235,12 @@ const HEROES_DATA = [
       when: { type: "IS_BOSS_WAVE" },
       effects: [{ type: "DENY_REVIVE" }],
     } },
+  {
+    id: "enigma", name: "Enigma", attr: "int", power: 12, inDeck: false,
+    ability: {
+      name: "Eidolon", event: "PRE_DETECT",
+      effects: [{ type: "CREATE_ILLUSION", powerRatio: 0.5 }],
+    } },
 
   { id: "io", name: "Io", attr: "uni", power: 2, inDeck: false,
     ability: {
@@ -271,5 +291,11 @@ const HEROES_DATA = [
     ability: {
       name: "Grow", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_PLAYED", value: 3 }],
+    } },
+  {
+    id: "tinker", name: "Tinker", attr: "uni", power: 12, inDeck: false,
+    ability: {
+      name: "Rearm", event: "FIGHT_SCORING",
+      effects: [{ type: "REFRESH_HERO_TRIGGERS" }],
     } },
 ];

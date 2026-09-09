@@ -24,5 +24,5 @@ const Content = (function () {
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();

@@ -239,13 +239,17 @@ const Combat = (function () {
     return (state.combat.wave.enemyItems || []).includes("rapier") ? 0.5 : 1;
   }
 
+  // Оверкилл-золото: делители привязаны к росту HP по актам, кап — 3× награды
+  // за волну. Иначе поздние акты печатают золото из больших пулов HP.
   function overkillGold(state, overkill) {
     if (overkill <= 0) return 0;
-    const halfCap = Math.floor(state.combat.wave.maxHp * 0.5);
+    const wave = state.combat.wave;
+    const halfCap = Math.floor(wave.maxHp * 0.5);
     const fast = Math.min(overkill, halfCap);
     const slow = Math.max(0, overkill - halfCap);
-    const raw = Math.floor(fast / 20) + Math.floor(slow / 40);
-    return Math.floor(raw * state.combat.scoring.flags.overkillRate);
+    const raw = Math.floor(fast / 60) + Math.floor(slow / 120);
+    const cap = (wave.gold || 6) * 3;
+    return Math.min(cap, Math.floor(raw * state.combat.scoring.flags.overkillRate));
   }
 
   // Runs the whole fight against state.combat.wave. Mutates state.
@@ -376,6 +380,11 @@ const Combat = (function () {
       damage = Math.round(mitigated * towerMult);
     } else {
       damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    }
+    // Осада (TOWER_BURN): чистый добор поверх удара, глиф блокирует всё.
+    if (!resolution.blocked && s.flags.towerBurn) {
+      damage += s.flags.towerBurn;
+      Resolver.pushStep(resolution, { icon: "☄", label: `Осада: +${s.flags.towerBurn} чистого урона по башне`, kind: "item" });
     }
     resolution.damageType = combo.damageType || null;
     resolution.power = s.power;

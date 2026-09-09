@@ -45,6 +45,17 @@ const Effects = (function () {
       ctx.scoring.power += effect.value * n;
       return { label: `${ctx.sourceName}: +${effect.value * n} силы (${n} героев × ${effect.value})` };
     },
+    ADD_MULT_PER_PLAYED(effect, ctx) {
+      const n = ctx.playedCards.length;
+      if (!n) return null;
+      const bonus = Math.round(effect.value * n * 100) / 100;
+      ctx.scoring.mult += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${n} героев × ${effect.value})` };
+    },
+    TOWER_BURN(effect, ctx) {
+      ctx.scoring.flags.towerBurn = (ctx.scoring.flags.towerBurn || 0) + effect.value;
+      return { label: `${ctx.sourceName}: осада — башне нанесётся +${effect.value} чистого урона сверх удара` };
+    },
     ADD_MULT_PER_ITEM(effect, ctx) {
       const n = ctx.state.player.items.length;
       if (!n) return null;
@@ -104,12 +115,19 @@ const Effects = (function () {
     },
     ADD_POWER_PER_NEIGHBOR(effect, ctx) {
       const n = ctx.playedCards ? ctx.playedCards.length : 0;
-      if (n < 2 || ctx.slotIndex == null || ctx.slotIndex < 0) return null;
-      const neighbors = (ctx.slotIndex > 0 ? 1 : 0) + (ctx.slotIndex < n - 1 ? 1 : 0);
+      if (n < 2) return null;
+      // Герой считается с фактическими соседями; предмет «скрепляет строй»
+      // целиком (максимум смежности = n−1).
+      const neighbors = ctx.slotIndex != null && ctx.slotIndex >= 0
+        ? (ctx.slotIndex > 0 ? 1 : 0) + (ctx.slotIndex < n - 1 ? 1 : 0)
+        : n - 1;
       if (!neighbors) return null;
       ctx.scoring.power += effect.value * neighbors;
       const word = neighbors === 1 ? "сосед" : neighbors < 5 ? "соседа" : "соседей";
-      return { label: `${ctx.sourceName}: +${effect.value * neighbors} силы (${neighbors} ${word} по слоту)` };
+      const how = ctx.slotIndex != null && ctx.slotIndex >= 0
+        ? `${neighbors} ${word} по слоту`
+        : `строй из ${n} героев`;
+      return { label: `${ctx.sourceName}: +${effect.value * neighbors} силы (${how})` };
     },
     DENY_REVIVE(effect, ctx) {
       ctx.scoring.flags.denyRevive = true;

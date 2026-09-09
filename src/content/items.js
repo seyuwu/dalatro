@@ -11,13 +11,26 @@ const ITEMS_DATA = [
   },
   {
     id: "meteor_hammer", name: "Meteor Hammer", cost: 6, emoji: "☄️", rarity: "common", category: "power",
-    desc: "+8 силы, если сыграно 3+ героев.",
-    ability: { name: "Meteor", event: "FIGHT_SCORING", when: { type: "PLAYED_COUNT_ABOVE", value: 2 }, effects: [{ type: "ADD_POWER", value: 8 }] },
+    desc: "Осада: башня получает +50 чистого урона сверх удара (глиф блокирует всё).",
+    ability: { name: "Meteor", event: "FIGHT_SCORING", effects: [{ type: "TOWER_BURN", value: 50 }] },
+  },
+  {
+    id: "orb_corrosion", name: "Orb of Corrosion", cost: 6, emoji: "🧪", rarity: "common", category: "power",
+    desc: "+3 силы; −4 к броне башни (в формациях).",
+    ability: {
+      name: "Corrode", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER", value: 3 }, { type: "ADD_ARMOR_PEN", value: 4 }],
+    },
+  },
+  {
+    id: "dragon_lance", name: "Dragon Lance", cost: 6, emoji: "🔱", rarity: "common", category: "power",
+    desc: "Копьё длины: +3 силы за каждого соседа по слоту.",
+    ability: { name: "Lance", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_NEIGHBOR", value: 3 }] },
   },
   {
     id: "drum", name: "Drum of Endurance", cost: 7, emoji: "🥁", rarity: "common", category: "mult",
-    desc: "+2 к множителю, если сыграно 4+ героев.",
-    ability: { name: "War Drums", event: "FIGHT_SCORING", when: { type: "PLAYED_COUNT_ABOVE", value: 3 }, effects: [{ type: "ADD_MULT", value: 2 }] },
+    desc: "+0.25 к множителю за каждого сыгранного героя (пятёрка = +1.25).",
+    ability: { name: "War Drums", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_PLAYED", value: 0.25 }] },
   },
   {
     id: "midas", name: "Hand of Midas", cost: 7, emoji: "👑", rarity: "common", category: "economy",
@@ -66,8 +79,37 @@ const ITEMS_DATA = [
   },
   {
     id: "heart", name: "Heart of Tarrasque", cost: 11, emoji: "❤️", rarity: "rare", category: "power",
-    desc: "+25 силы.",
-    ability: { name: "Tarrasque", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 25 }] },
+    desc: "+10 силы и +5 за каждую разрушенную казарму — чем страшнее забег, тем толще.",
+    ability: {
+      name: "Tarrasque", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER", value: 10 }, { type: "ADD_POWER_PER_LOST_BARRACKS", value: 5 }],
+    },
+  },
+  {
+    id: "ethereal_blade", name: "Ethereal Blade", cost: 10, emoji: "👻", rarity: "rare", category: "mult",
+    desc: "Магический урон (формации) или комбо «Стрит»/«Флеш»/«Фулл» (классика): ×1.4 множителя.",
+    ability: {
+      name: "Ethereal", event: "FIGHT_SCORING",
+      when: { type: "DAMAGE_TYPE_IS", value: "magical" },
+      effects: [{ type: "MULT_MULT", value: 1.4 }],
+    },
+  },
+  {
+    id: "mkb", name: "Monkey King Bar", cost: 10, emoji: "🐒", rarity: "rare", category: "power",
+    desc: "Физический урон (формации) или малые комбо (классика): +10 силы и ×1.25.",
+    ability: {
+      name: "True Strike", event: "FIGHT_SCORING",
+      when: { type: "DAMAGE_TYPE_IS", value: "physical" },
+      effects: [{ type: "ADD_POWER", value: 10 }, { type: "MULT_MULT", value: 1.25 }],
+    },
+  },
+  {
+    id: "skadi", name: "Eye of Skadi", cost: 11, emoji: "🧊", rarity: "rare", category: "power",
+    desc: "+6 силы. Ледяной шок: боссы больше не возрождаются (Aegis заблокирован).",
+    ability: {
+      name: "Cold Burn", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER", value: 6 }, { type: "DENY_REVIVE" }],
+    },
   },
   {
     id: "desolator", name: "Desolator", cost: 9, emoji: "🗡️", rarity: "rare", category: "power",
@@ -116,6 +158,14 @@ const ITEMS_DATA = [
     id: "radiance", name: "Radiance", cost: 13, emoji: "🔆", rarity: "epic", category: "power",
     desc: "+3 силы за каждого сыгранного героя. Полная пятёрка = +15.",
     ability: { name: "Immolate", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_PLAYED", value: 3 }] },
+  },
+  {
+    id: "bloodthorn", name: "Bloodthorn", cost: 13, emoji: "🌹", rarity: "epic", category: "mult",
+    desc: "35%: ×2.2 к множителю и +10 золота — крит отдаётся монетой.",
+    ability: {
+      name: "Blood Hunt", event: "FIGHT_SCORING", chance: 0.35,
+      effects: [{ type: "MULT_MULT", value: 2.2 }, { type: "GOLD", value: 10 }],
+    },
   },
   {
     id: "octarine", name: "Octarine Core", cost: 12, emoji: "🔮", rarity: "epic", category: "mult",

@@ -35,7 +35,7 @@ test("фулл-хаус 555+77: 518 урона (69 × 6 × 1.25 ставка), �
   assertEq(res.mult, 6, "множитель");
   assertEq(res.damage, 518, "урон: round(414 × 1.25 за пятёрку)");
   // оверкилл 218 при хп 300: floor(150/20) + floor(68/40) = 7 + 1 = 8 золота
-  assertEq(res.goldGained, 8, "золото за оверкилл");
+  assertEq(res.goldGained, 1, "золото за оверкилл: 68/60 (башня 450)");
   assertEq(res.killed, true);
   assertEq(s.combat.outcome, "cleared");
 });
@@ -107,7 +107,7 @@ test("превью не ломает состояние и не жжёт RNG", (
   s.combat.selectedUids = ["axe", "morphling", "zeus", "pudge", "juggernaut"].map((h) => uidOf(s, h));
   const clone = Sim.simulate(s, { type: "CONFIRM_FIGHT" });
   assertEq(clone.combat.lastResolution.damage, 518, "превью урон");
-  assertEq(s.combat.wave.hp, 300, "башня не тронута");
+  assertEq(s.combat.wave.hp, 450, "башня не тронута");
   assertEq(s.player.fightsLeft, 4, "бои не потрачены");
   assertEq(s.player.handUids.length, 5, "рука на месте");
   // реальный бой даёт тот же урон
@@ -148,12 +148,12 @@ test("Glyph T3: каждый 3-й бой заблокирован", () => {
 
 test("Aegis: Рошан возрождается один раз, потом умирает насовсем", () => {
   const s = newRun("AEG1");
-  s.run.waveIndex = 3;
-  const def = Content.waves.byId["roshan"];
-  s.combat.wave = { towerId: "roshan", name: def.name, emoji: def.emoji, isBoss: true, hp: 400, maxHp: def.hp, modifiers: [{ id: "aegis" }], enemyItems: [], aegisUsed: false };
+  s.run.waveIndex = 14; // финальный босс: победа, а не переход акта
+  const def = Content.waves.byId["pfinal"];
+  s.combat.wave = { towerId: "pfinal", name: def.name, emoji: def.emoji, isBoss: true, hp: 400, maxHp: def.hp, modifiers: [{ id: "aegis" }], enemyItems: [], aegisUsed: false };
   const res = play(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   assertEq(res.killed, false, "аегис спас");
-  assertEq(s.combat.wave.hp, 800, "возрождение на 50%");
+  assertEq(s.combat.wave.hp, Math.round(def.hp / 2), "возрождение на 50%");
   assertEq(s.combat.wave.aegisUsed, true, "аегис потрачен");
   assertEq(s.combat.outcome, null, "не зачищено");
   s.combat.wave.hp = 300; // добиваем: 414 > 300
@@ -179,7 +179,7 @@ test("Rapier: провал → враг подбирает, урон ×0.5; за
   assertEq(res.damage, 16, "8 × 2 рапира");
   assertEq(s.combat.outcome, "failed", "волна провалена (хп 284 > 0)");
   Game.dispatch(s, { type: "RETRY_WAVE" });
-  assertEq(s.run.barracks, 5, "казарма снесена");
+  assertEq(s.run.barracks, 1, "казарма снесена (из 2)");
   assertEq(s.player.items.includes("rapier"), false, "рапира у врага");
   assertEq(s.combat.wave.enemyItems.includes("rapier"), true, "в инвентаре башни");
   // теперь урон режется вдвое
