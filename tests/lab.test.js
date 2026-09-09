@@ -104,18 +104,18 @@ test("Фортификация: малые комбо ×0.5, BKB игнорир�
   const s = newRun("CRS1");
   setWave(s, "t1", { curse: "bastion" });
   const res = play(s, ["axe", "morphling", "tusk"]);
-  assertEq(res.damage, 23, "пара 23 × 2 × 0.5 (10 база + 5+5+3)");
+  assertEq(res.damage, 27, "пара (10+13+4 Tusk-сосед) × 2 × 0.5");
   const s2 = newRun("CRS2");
   s2.player.items.push("bkb");
   setWave(s2, "t1", { curse: "bastion" });
-  assertEq(play(s2, ["axe", "morphling", "tusk"]).damage, 46, "BKB: полный урон");
+  assertEq(play(s2, ["axe", "morphling", "tusk"]).damage, 54, "BKB: полный урон");
 });
 
 test("Туман войны: ранг ≤4 не даёт силы", () => {
   const s = newRun("CRS3");
   setWave(s, "t1", { curse: "fog" });
   const res = play(s, ["tusk", "centaur"]);
-  assertEq(res.power, 15, "5 базы + 10 кентавра (туск 3 в тумане)");
+  assertEq(res.power, 19, "5 базы + 10 кентавра (туск 3 в тумане) + 4 Tusk-сосед");
 });
 
 test("Безмолвие: герои молчат, предметы работают", () => {
@@ -130,9 +130,9 @@ test("Безмолвие: герои молчат, предметы работа
 test("Адаптация: повтор комбинации ×0.5, смена комбо сбрасывает", () => {
   const s = newRun("CRS5");
   setWave(s, "t1", { curse: "adaptation" });
-  assertEq(play(s, ["axe", "morphling", "tusk"]).damage, 46, "первая пара — полная (23 × 2)");
-  assertEq(play(s, ["axe", "morphling", "tusk"]).damage, 23, "повтор пары ×0.5");
-  assertEq(play(s, ["tusk", "cm", "centaur"]).damage, 20, "другое комбо (хай-карта 20) — полная");
+  assertEq(play(s, ["axe", "morphling", "tusk"]).damage, 54, "первая пара — полная (27 × 2)");
+  assertEq(play(s, ["axe", "morphling", "tusk"]).damage, 27, "повтор пары ×0.5");
+  assertEq(play(s, ["tusk", "cm", "centaur"]).damage, 24, "другое комбо (хай-карта + 4 Tusk) — полная");
 });
 
 test("Обезоруживание: 4 слота, BKB возвращает пятый", () => {

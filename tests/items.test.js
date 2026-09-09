@@ -27,20 +27,20 @@ test("Heart: +25 силы", () => {
   const s = newRun("HEART1");
   s.player.items.push("heart");
   const res = play(s, ["tusk", "cm"]);
-  // хай-карта (5+3+2=10) + 25 = 35 × 1
-  assertEq(res.damage, 35, "10 + 25");
+  // хай-карта (5+3+2=10) + 4 Tusk-сосед + 25 = 39
+  assertEq(res.damage, 39, "10 + 4 Tusk + 25");
 });
 
 test("Satanic: ×1.5 на паре, молчит на хай-карте", () => {
   const s = newRun("SAT1");
   s.player.items.push("satanic");
   const pair = play(s, ["pudge", "juggernaut", "tusk"]);
-  // пара 7-7: (10+17) × 2 × 1.5 = 81
-  assertEq(pair.damage, 81, "27 × 2, множитель 2 → ×1.5 = 3");
+  // пара 7-7: (10+17+4 Tusk) × 2 × 1.5 = 93
+  assertEq(pair.damage, 93, "31 × 2, множитель 2 → ×1.5 = 3");
   const s2 = newRun("SAT2");
   s2.player.items.push("satanic");
   const high = play(s2, ["tusk", "cm"]);
-  assertEq(high.damage, 10, "хай-карта 10 × 1 без Satanic");
+  assertEq(high.damage, 14, "хай-карта 10 + 4 Tusk, без Satanic");
 });
 
 test("Radiance: +3 силы за каждого сыгранного", () => {
@@ -77,27 +77,27 @@ test("Shadow Blade: бамп сильнейшего только если он �
   const s = newRun("SHB1");
   s.player.items.push("shadow_blade");
   const res = play(s, ["dawnbreaker", "centaur", "tusk", "cm", "sven"]);
-  // 9,10,3,2,8 (хай-карта 37): сильнейшая 10 → −1 → пара 9-9: (10+32) × 2 = 84 × 1.25 = 105
+  // 9,10,3,2,8: бамп 10→9 → пара 9-9: (10+32+8 Tusk) × (2+1 Dawnbreaker-UNI) × 1.25 = 188
   assertEq(res.combo.type, "pair", "бамп собрал пару из 9+10");
-  assertEq(res.damage, 105, "42 × 2 × 1.25");
+  assertEq(res.damage, 188, "50 × 3 × 1.25");
   // а вот пару бамп ломать не должен — движок выбирает лучший вариант
   const s2 = newRun("SHB2");
   s2.player.items.push("shadow_blade");
   const res2 = play(s2, ["axe", "morphling", "tusk"]);
-  // 5,5,3: без бампа — пара 25×2=50; с бампом сильнейшего (5→6) — high card; выбор: пара
+  // 5,5,3: без бампа — пара (10+13+4 Tusk)×2; с бампом сильнейшего (5→6) — high card; выбор: пара
   assertEq(res2.combo.type, "pair", "бамп не сломал пару");
-  assertEq(res2.damage, 46, "(10+13) × 2");
+  assertEq(res2.damage, 54, "27 × 2");
 });
 
 test("Meteor Hammer: +8 силы при 3+ героях", () => {
   const s = newRun("MET1");
   s.player.items.push("meteor_hammer");
   const three = play(s, ["tusk", "cm", "sven"]);
-  assertEq(three.damage, 26, "(5+13) + 8");
+  assertEq(three.damage, 45, "(5+13+4 Tusk+8) × 1.5 Sven");
   const s2 = newRun("MET2");
   s2.player.items.push("meteor_hammer");
   const two = play(s2, ["tusk", "cm"]);
-  assertEq(two.damage, 10, "без триггера");
+  assertEq(two.damage, 14, "без триггера (10+4 Tusk)");
 });
 
 suite("Advisor");

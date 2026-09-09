@@ -45,22 +45,33 @@
 | Void Spirit 6 | сильнейший в бою: +8 силы |
 | Beastmaster 8 | +5 силы за героя своего ранга |
 | Tiny 10 | +3 силы за каждого сыгранного |
-
-Rubick, Terrorblade, Ancient Apparition, Kez — пока без способностей.
+| Terrorblade 11 | копирует атрибут соседа СПРАВА |
+| Rubick 7 | сосед INT: +9 силы |
+| Ancient Apparition 11 | на боссе: Aegis не сработает |
+| Kez 7 | средний по рангу в отряде: +10 силы |
 
 ### Способности стартовых героев
 
 | Герой | Событие | Условие | Эффект |
 |---|---|---|---|
+| Tusk — Snowball | ON_PLAY | — | +4 силы за каждого соседа по слоту |
 | Axe — Counter Helix | COMBO_DETECTED | COMBO_IS three | +10 силы |
+| Sven — God's Strength | FIGHT_SCORING | IS_HIGHEST_RANK | ×1.5 множителя |
+| Centaur — Trample | ON_PLAY | SLOT_IS 0 | +4 силы за каждого героя в бою |
 | Morphling — Morph | PRE_DETECT | — | COPY_ATTRIBUTE ← сосед слева |
 | Zeus — Static Field | ON_PLAY | EXISTS_ATTRIBUTE int | +2 множителя |
-| Juggernaut — Blade Fury | ON_PLAY | SLOT_IS 0 | +8 силы |
 | Phantom Assassin — Coup de Grace | COMBO_DETECTED | COMBO_MIN pair, 50% | ×2 множителя |
 | Crystal Maiden — Frostbite | ON_DISCARD | — | +2 золота |
 | Pudge — Meathook | ON_DISCARD | 50% | RETURN_TO_HAND |
+| Juggernaut — Blade Fury | ON_PLAY | SLOT_IS 0 | +8 силы |
+| Dawnbreaker — Solar Guardian | FIGHT_SCORING | — | +1 множитель за каждого Универсала |
+| Primal Beast — Pulverize | FIGHT_SCORING | слот 3 в пятёрке | ×2 множителя |
 
-## Предметы (19)
+Все 40 героев имеют способности; условия читают ранг/атрибут/слот/состав,
+поэтому работают одинаково в classic и formation (алиасы покерных условий
+на формациях — engine/conditions.js, §7 REDESIGN).
+
+## Предметы (21)
 
 ### Common (62%, 6–8g)
 
@@ -86,6 +97,8 @@ Rubick, Terrorblade, Ancient Apparition, Kez — пока без способн�
 | Manta Style 10 | правила | иллюзия сильнейшего: тот же ранг/атрибут, 50% силы |
 | Bloodstone 10 | множитель | +0.5 множителя за каждую разрушенную казарму |
 | Heart of Tarrasque 11 | сила | +25 силы |
+| Desolator 9 | сила | −10 к броне башни (формации) · +6 силы всегда |
+| Pipe of Insight 8 | правила | +1 множитель; в формациях магический урон игнорирует сопротивление башни |
 
 ### Epic (10%, 12–13g)
 

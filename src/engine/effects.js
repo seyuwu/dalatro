@@ -102,6 +102,27 @@ const Effects = (function () {
       ctx.scoring.power += bonus;
       return { label: `${ctx.sourceName}: +${bonus} силы (${used} ТП-сбросов за волну)` };
     },
+    ADD_POWER_PER_NEIGHBOR(effect, ctx) {
+      const n = ctx.playedCards ? ctx.playedCards.length : 0;
+      if (n < 2 || ctx.slotIndex == null || ctx.slotIndex < 0) return null;
+      const neighbors = (ctx.slotIndex > 0 ? 1 : 0) + (ctx.slotIndex < n - 1 ? 1 : 0);
+      if (!neighbors) return null;
+      ctx.scoring.power += effect.value * neighbors;
+      const word = neighbors === 1 ? "сосед" : neighbors < 5 ? "соседа" : "соседей";
+      return { label: `${ctx.sourceName}: +${effect.value * neighbors} силы (${neighbors} ${word} по слоту)` };
+    },
+    DENY_REVIVE(effect, ctx) {
+      ctx.scoring.flags.denyRevive = true;
+      return { label: `${ctx.sourceName}: башня больше не возродится (Aegis заблокирован)` };
+    },
+    ADD_ARMOR_PEN(effect, ctx) {
+      ctx.scoring.flags.armorPen = (ctx.scoring.flags.armorPen || 0) + effect.value;
+      return { label: `${ctx.sourceName}: −${effect.value} к броне башни (формации)` };
+    },
+    PIERCE_MR(effect, ctx) {
+      ctx.scoring.flags.pierceMr = true;
+      return { label: `${ctx.sourceName}: магический урон игнорирует сопротивление башни` };
+    },
     ADD_MULT_PER_ATTRIBUTE(effect, ctx) {
       const n = ctx.playedCards.filter((c) => c.attr === effect.attr).length;
       if (!n) return null;

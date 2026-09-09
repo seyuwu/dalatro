@@ -78,9 +78,11 @@ const Combat = (function () {
     for (const { effect, card, slotIndex, sourceName } of collectPreDetectEffects(state, effective)) {
       switch (effect.type) {
         case "COPY_ATTRIBUTE": {
-          if (effect.target === "left_neighbor" && slotIndex > 0) {
-            const neighbor = effective[slotIndex - 1];
-            if (neighbor && neighbor.attr !== effective[slotIndex].attr) {
+          const right = effect.target === "right_neighbor";
+          const neighbor = right
+            ? (slotIndex < effective.length - 1 ? effective[slotIndex + 1] : null)
+            : (slotIndex > 0 ? effective[slotIndex - 1] : null);
+          if (neighbor && neighbor.attr !== effective[slotIndex].attr) {
               Resolver.pushStep(resolution, {
                 icon: "✦",
                 label: `${sourceName} копирует атрибут «${Content.attrNames[neighbor.attr]}» у ${Content.heroes.byId[neighbor.heroId].name}`,
@@ -94,7 +96,6 @@ const Combat = (function () {
               });
               effective[slotIndex].attr = neighbor.attr;
             }
-          }
           break;
         }
         case "CREATE_ILLUSION": {
@@ -356,8 +357,10 @@ const Combat = (function () {
     if (state.rules === "formation") {
       // Третья ось: тип урона против числовой защиты цели (до волновых модов).
       const raw = s.power * s.mult * s.finalMult;
-      const defense = towerDefenseOf(state);
-      const mitigated = FormationSys.mitigate(raw, combo.damageType, defense, 0);
+      const baseDefense = towerDefenseOf(state);
+      const defense = s.flags.pierceMr ? { armor: baseDefense.armor, mr: 0 } : baseDefense;
+      const pen = s.flags.armorPen || 0;
+      const mitigated = FormationSys.mitigate(raw, combo.damageType, defense, pen);
       if (state.combat.scoring.flags.bkbBlocksMods) {
         Resolver.pushStep(resolution, { icon: "🛡", label: "BKB: числовая защита башни игнорируется", kind: "modifier" });
       } else if (combo.damageType === "pure") {
@@ -365,8 +368,10 @@ const Combat = (function () {
       } else if (combo.damageType === "magical" && defense.mr) {
         Resolver.pushStep(resolution, { icon: "✺", label: `Сопротивление ${Math.round(defense.mr * 100)}%: ${Math.round(raw)} → ${mitigated}`, kind: "modifier" });
       } else if (defense.armor) {
-        const absorbed = Math.min(defense.armor, raw * 0.5);
-        Resolver.pushStep(resolution, { icon: "🛡", label: `Броня башни ${defense.armor}: −${Math.round(absorbed)} (${Math.round(raw)} → ${mitigated})`, kind: "modifier" });
+        const effArmor = Math.max(0, defense.armor - pen);
+        const absorbed = Math.min(effArmor, raw * 0.5);
+        const penNote = pen ? ` (−${Math.min(pen, defense.armor)} коррозия)` : "";
+        Resolver.pushStep(resolution, { icon: "🛡", label: `Броня башни ${effArmor}${penNote}: −${Math.round(absorbed)} (${Math.round(raw)} → ${mitigated})`, kind: "modifier" });
       }
       damage = Math.round(mitigated * towerMult);
     } else {
@@ -391,7 +396,7 @@ const Combat = (function () {
 
     if (tower.hp <= 0) {
       const aegis = (tower.modifiers || []).find((m) => m.id === "aegis");
-      if (aegis && !tower.aegisUsed) {
+      if (aegis && !tower.aegisUsed && !s.flags.denyRevive) {
         tower.aegisUsed = true;
         const def = Content.modifiers.byId["aegis"];
         const result = Effects.apply({ type: "REVIVE", hpPercent: def.hpPercent }, {

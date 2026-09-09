@@ -70,6 +70,22 @@ const ITEMS_DATA = [
     ability: { name: "Tarrasque", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 25 }] },
   },
   {
+    id: "desolator", name: "Desolator", cost: 9, emoji: "🗡️", rarity: "rare", category: "power",
+    desc: "Коррозия: −10 к броне башни (в формациях). +6 силы в любом режиме.",
+    ability: {
+      name: "Corruption", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_ARMOR_PEN", value: 10 }, { type: "ADD_POWER", value: 6 }],
+    },
+  },
+  {
+    id: "pipe", name: "Pipe of Insight", cost: 8, emoji: "📕", rarity: "rare", category: "rule",
+    desc: "Барьер: +1 к множителю. В формациях магический урон игнорирует сопротивление башни.",
+    ability: {
+      name: "Insight Barrier", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_MULT", value: 1 }, { type: "PIERCE_MR" }],
+    },
+  },
+  {
     id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult",
     desc: "Способности героев срабатывают дважды за бой.",
     ability: { name: "Refresh", event: "FIGHT_SCORING", effects: [{ type: "REFRESH_HERO_TRIGGERS" }] },

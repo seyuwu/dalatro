@@ -1,13 +1,20 @@
 // Dalatro content — heroes.
 // Card = hero + a mechanical rule (trigger), never just a skin.
 // The full 40-slot grid (10 ranks × 4 attributes) exists here: heroes with
-// inDeck:true form the starting 12, the rest are ready for future shop
-// recruitment / acts (see ROADMAP.md). Non-starting heroes have no abilities yet.
+// inDeck:true form the starting 12; the rest are recruited in the shop.
+// Every hero has an ability; new rules lean on rank/attr/slot/count conditions
+// so they read the same in both scoring modes (classic и formation).
 //
 // Power 2..11 (11 = Aegis-tier). attr: str | agi | int | uni.
 const HEROES_DATA = [
   // --- Starting deck (12) ---
-  { id: "tusk", name: "Tusk", attr: "str", power: 3, inDeck: true, ability: null },
+  {
+    id: "tusk", name: "Tusk", attr: "str", power: 3, inDeck: true,
+    ability: {
+      name: "Snowball", event: "ON_PLAY",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR", value: 4 }],
+    },
+  },
   {
     id: "axe", name: "Axe", attr: "str", power: 5, inDeck: true,
     ability: {
@@ -23,8 +30,22 @@ const HEROES_DATA = [
       effects: [{ type: "RETURN_TO_HAND" }],
     },
   },
-  { id: "sven", name: "Sven", attr: "str", power: 8, inDeck: true, ability: null },
-  { id: "centaur", name: "Centaur Warrunner", attr: "str", power: 10, inDeck: true, ability: null },
+  {
+    id: "sven", name: "Sven", attr: "str", power: 8, inDeck: true,
+    ability: {
+      name: "God's Strength", event: "FIGHT_SCORING",
+      when: { type: "IS_HIGHEST_RANK" },
+      effects: [{ type: "MULT_MULT", value: 1.5 }],
+    },
+  },
+  {
+    id: "centaur", name: "Centaur Warrunner", attr: "str", power: 10, inDeck: true,
+    ability: {
+      name: "Trample", event: "ON_PLAY",
+      when: { type: "SLOT_IS", value: 0 },
+      effects: [{ type: "ADD_POWER_PER_PLAYED", value: 4 }],
+    },
+  },
 
   {
     id: "morphling", name: "Morphling", attr: "agi", power: 5, inDeck: true,
@@ -66,8 +87,21 @@ const HEROES_DATA = [
     },
   },
 
-  { id: "dawnbreaker", name: "Dawnbreaker", attr: "uni", power: 9, inDeck: true, ability: null },
-  { id: "primal", name: "Primal Beast", attr: "uni", power: 11, inDeck: true, ability: null },
+  {
+    id: "dawnbreaker", name: "Dawnbreaker", attr: "uni", power: 9, inDeck: true,
+    ability: {
+      name: "Solar Guardian", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_MULT_PER_ATTRIBUTE", attr: "uni", value: 1 }],
+    },
+  },
+  {
+    id: "primal", name: "Primal Beast", attr: "uni", power: 11, inDeck: true,
+    ability: {
+      name: "Pulverize", event: "FIGHT_SCORING",
+      when: { all: [{ type: "SLOT_IS", value: 2 }, { type: "PLAYED_COUNT_IS", value: 5 }] },
+      effects: [{ type: "MULT_MULT", value: 2 }],
+    },
+  },
 
   // --- Ростер таверны (28): рекрутируются в лавке, способности v0.4 ---
   { id: "undying", name: "Undying", attr: "str", power: 2, inDeck: false,
@@ -131,7 +165,12 @@ const HEROES_DATA = [
       when: { type: "IS_BOSS_WAVE" },
       effects: [{ type: "ADD_MULT", value: 2 }],
     } },
-  { id: "terrorblade", name: "Terrorblade", attr: "agi", power: 11, inDeck: false, ability: null },
+  {
+    id: "terrorblade", name: "Terrorblade", attr: "agi", power: 11, inDeck: false,
+    ability: {
+      name: "Soul Mirror", event: "PRE_DETECT",
+      effects: [{ type: "COPY_ATTRIBUTE", target: "right_neighbor" }],
+    } },
 
   { id: "oracle", name: "Oracle", attr: "int", power: 3, inDeck: false,
     ability: {
@@ -151,7 +190,12 @@ const HEROES_DATA = [
       when: { type: "PLAYED_COUNT_BELOW", value: 3 },
       effects: [{ type: "ADD_POWER", value: 20 }],
     } },
-  { id: "rubick", name: "Rubick", attr: "int", power: 7, inDeck: false, ability: null },
+  { id: "rubick", name: "Rubick", attr: "int", power: 7, inDeck: false,
+    ability: {
+      name: "Fade Bolt", event: "ON_PLAY",
+      when: { type: "NEIGHBOR_ATTR_IS", value: "int" },
+      effects: [{ type: "ADD_POWER", value: 9 }],
+    } },
   { id: "invoker", name: "Invoker", attr: "int", power: 8, inDeck: false,
     ability: {
       name: "Invoke", event: "FIGHT_SCORING",
@@ -170,7 +214,13 @@ const HEROES_DATA = [
       when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
       effects: [{ type: "ADD_POWER", value: 12 }],
     } },
-  { id: "ancient_apparition", name: "Ancient Apparition", attr: "int", power: 11, inDeck: false, ability: null },
+  {
+    id: "ancient_apparition", name: "Ancient Apparition", attr: "int", power: 11, inDeck: false,
+    ability: {
+      name: "Ice Blast", event: "FIGHT_SCORING",
+      when: { type: "IS_BOSS_WAVE" },
+      effects: [{ type: "DENY_REVIVE" }],
+    } },
 
   { id: "io", name: "Io", attr: "uni", power: 2, inDeck: false,
     ability: {
@@ -202,7 +252,16 @@ const HEROES_DATA = [
       when: { type: "IS_HIGHEST_RANK" },
       effects: [{ type: "ADD_POWER", value: 8 }],
     } },
-  { id: "kez", name: "Kez", attr: "uni", power: 7, inDeck: false, ability: null },
+  {
+    id: "kez", name: "Kez", attr: "uni", power: 7, inDeck: false,
+    ability: {
+      name: "Echo Slash", event: "FIGHT_SCORING",
+      when: { all: [
+        { type: "PLAYED_COUNT_ABOVE", value: 1 },
+        { not: { any: [{ type: "IS_HIGHEST_RANK" }, { type: "IS_LOWEST_RANK" }] } },
+      ] },
+      effects: [{ type: "ADD_POWER", value: 10 }],
+    } },
   { id: "beastmaster", name: "Beastmaster", attr: "uni", power: 8, inDeck: false,
     ability: {
       name: "Primal Roar", event: "FIGHT_SCORING",

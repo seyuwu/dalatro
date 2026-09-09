@@ -1186,13 +1186,20 @@ const Rng = (function () {
 // Dalatro content — heroes.
 // Card = hero + a mechanical rule (trigger), never just a skin.
 // The full 40-slot grid (10 ranks × 4 attributes) exists here: heroes with
-// inDeck:true form the starting 12, the rest are ready for future shop
-// recruitment / acts (see ROADMAP.md). Non-starting heroes have no abilities yet.
+// inDeck:true form the starting 12; the rest are recruited in the shop.
+// Every hero has an ability; new rules lean on rank/attr/slot/count conditions
+// so they read the same in both scoring modes (classic и formation).
 //
 // Power 2..11 (11 = Aegis-tier). attr: str | agi | int | uni.
 const HEROES_DATA = [
   // --- Starting deck (12) ---
-  { id: "tusk", name: "Tusk", attr: "str", power: 3, inDeck: true, ability: null },
+  {
+    id: "tusk", name: "Tusk", attr: "str", power: 3, inDeck: true,
+    ability: {
+      name: "Snowball", event: "ON_PLAY",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR", value: 4 }],
+    },
+  },
   {
     id: "axe", name: "Axe", attr: "str", power: 5, inDeck: true,
     ability: {
@@ -1208,8 +1215,22 @@ const HEROES_DATA = [
       effects: [{ type: "RETURN_TO_HAND" }],
     },
   },
-  { id: "sven", name: "Sven", attr: "str", power: 8, inDeck: true, ability: null },
-  { id: "centaur", name: "Centaur Warrunner", attr: "str", power: 10, inDeck: true, ability: null },
+  {
+    id: "sven", name: "Sven", attr: "str", power: 8, inDeck: true,
+    ability: {
+      name: "God's Strength", event: "FIGHT_SCORING",
+      when: { type: "IS_HIGHEST_RANK" },
+      effects: [{ type: "MULT_MULT", value: 1.5 }],
+    },
+  },
+  {
+    id: "centaur", name: "Centaur Warrunner", attr: "str", power: 10, inDeck: true,
+    ability: {
+      name: "Trample", event: "ON_PLAY",
+      when: { type: "SLOT_IS", value: 0 },
+      effects: [{ type: "ADD_POWER_PER_PLAYED", value: 4 }],
+    },
+  },
 
   {
     id: "morphling", name: "Morphling", attr: "agi", power: 5, inDeck: true,
@@ -1251,8 +1272,21 @@ const HEROES_DATA = [
     },
   },
 
-  { id: "dawnbreaker", name: "Dawnbreaker", attr: "uni", power: 9, inDeck: true, ability: null },
-  { id: "primal", name: "Primal Beast", attr: "uni", power: 11, inDeck: true, ability: null },
+  {
+    id: "dawnbreaker", name: "Dawnbreaker", attr: "uni", power: 9, inDeck: true,
+    ability: {
+      name: "Solar Guardian", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_MULT_PER_ATTRIBUTE", attr: "uni", value: 1 }],
+    },
+  },
+  {
+    id: "primal", name: "Primal Beast", attr: "uni", power: 11, inDeck: true,
+    ability: {
+      name: "Pulverize", event: "FIGHT_SCORING",
+      when: { all: [{ type: "SLOT_IS", value: 2 }, { type: "PLAYED_COUNT_IS", value: 5 }] },
+      effects: [{ type: "MULT_MULT", value: 2 }],
+    },
+  },
 
   // --- Ростер таверны (28): рекрутируются в лавке, способности v0.4 ---
   { id: "undying", name: "Undying", attr: "str", power: 2, inDeck: false,
@@ -1316,7 +1350,12 @@ const HEROES_DATA = [
       when: { type: "IS_BOSS_WAVE" },
       effects: [{ type: "ADD_MULT", value: 2 }],
     } },
-  { id: "terrorblade", name: "Terrorblade", attr: "agi", power: 11, inDeck: false, ability: null },
+  {
+    id: "terrorblade", name: "Terrorblade", attr: "agi", power: 11, inDeck: false,
+    ability: {
+      name: "Soul Mirror", event: "PRE_DETECT",
+      effects: [{ type: "COPY_ATTRIBUTE", target: "right_neighbor" }],
+    } },
 
   { id: "oracle", name: "Oracle", attr: "int", power: 3, inDeck: false,
     ability: {
@@ -1336,7 +1375,12 @@ const HEROES_DATA = [
       when: { type: "PLAYED_COUNT_BELOW", value: 3 },
       effects: [{ type: "ADD_POWER", value: 20 }],
     } },
-  { id: "rubick", name: "Rubick", attr: "int", power: 7, inDeck: false, ability: null },
+  { id: "rubick", name: "Rubick", attr: "int", power: 7, inDeck: false,
+    ability: {
+      name: "Fade Bolt", event: "ON_PLAY",
+      when: { type: "NEIGHBOR_ATTR_IS", value: "int" },
+      effects: [{ type: "ADD_POWER", value: 9 }],
+    } },
   { id: "invoker", name: "Invoker", attr: "int", power: 8, inDeck: false,
     ability: {
       name: "Invoke", event: "FIGHT_SCORING",
@@ -1355,7 +1399,13 @@ const HEROES_DATA = [
       when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
       effects: [{ type: "ADD_POWER", value: 12 }],
     } },
-  { id: "ancient_apparition", name: "Ancient Apparition", attr: "int", power: 11, inDeck: false, ability: null },
+  {
+    id: "ancient_apparition", name: "Ancient Apparition", attr: "int", power: 11, inDeck: false,
+    ability: {
+      name: "Ice Blast", event: "FIGHT_SCORING",
+      when: { type: "IS_BOSS_WAVE" },
+      effects: [{ type: "DENY_REVIVE" }],
+    } },
 
   { id: "io", name: "Io", attr: "uni", power: 2, inDeck: false,
     ability: {
@@ -1387,7 +1437,16 @@ const HEROES_DATA = [
       when: { type: "IS_HIGHEST_RANK" },
       effects: [{ type: "ADD_POWER", value: 8 }],
     } },
-  { id: "kez", name: "Kez", attr: "uni", power: 7, inDeck: false, ability: null },
+  {
+    id: "kez", name: "Kez", attr: "uni", power: 7, inDeck: false,
+    ability: {
+      name: "Echo Slash", event: "FIGHT_SCORING",
+      when: { all: [
+        { type: "PLAYED_COUNT_ABOVE", value: 1 },
+        { not: { any: [{ type: "IS_HIGHEST_RANK" }, { type: "IS_LOWEST_RANK" }] } },
+      ] },
+      effects: [{ type: "ADD_POWER", value: 10 }],
+    } },
   { id: "beastmaster", name: "Beastmaster", attr: "uni", power: 8, inDeck: false,
     ability: {
       name: "Primal Roar", event: "FIGHT_SCORING",
@@ -1472,6 +1531,22 @@ const ITEMS_DATA = [
     id: "heart", name: "Heart of Tarrasque", cost: 11, emoji: "❤️", rarity: "rare", category: "power",
     desc: "+25 силы.",
     ability: { name: "Tarrasque", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 25 }] },
+  },
+  {
+    id: "desolator", name: "Desolator", cost: 9, emoji: "🗡️", rarity: "rare", category: "power",
+    desc: "Коррозия: −10 к броне башни (в формациях). +6 силы в любом режиме.",
+    ability: {
+      name: "Corruption", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_ARMOR_PEN", value: 10 }, { type: "ADD_POWER", value: 6 }],
+    },
+  },
+  {
+    id: "pipe", name: "Pipe of Insight", cost: 8, emoji: "📕", rarity: "rare", category: "rule",
+    desc: "Барьер: +1 к множителю. В формациях магический урон игнорирует сопротивление башни.",
+    ability: {
+      name: "Insight Barrier", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_MULT", value: 1 }, { type: "PIERCE_MR" }],
+    },
   },
   {
     id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult",
@@ -1758,6 +1833,11 @@ const Cond = (function () {
         return !!(ctx.playedCards && ctx.playedCards.some((c, i) =>
           Math.abs(i - ctx.slotIndex) === 1 && c.attr !== ctx.card.attr
         ));
+      case "NEIGHBOR_ATTR_IS":
+        // A position neighbor with the given attribute (left or right).
+        return !!(ctx.playedCards && ctx.card && ctx.playedCards.some((c, i) =>
+          Math.abs(i - ctx.slotIndex) === 1 && c.attr === condition.value
+        ));
       case "IS_LOWEST_RANK":
         return !!(ctx.card && ctx.playedCards && ctx.playedCards.length > 1 &&
           ctx.playedCards.every((c) => c.power >= ctx.card.power));
@@ -1880,6 +1960,27 @@ const Effects = (function () {
       if (!bonus) return null;
       ctx.scoring.power += bonus;
       return { label: `${ctx.sourceName}: +${bonus} силы (${used} ТП-сбросов за волну)` };
+    },
+    ADD_POWER_PER_NEIGHBOR(effect, ctx) {
+      const n = ctx.playedCards ? ctx.playedCards.length : 0;
+      if (n < 2 || ctx.slotIndex == null || ctx.slotIndex < 0) return null;
+      const neighbors = (ctx.slotIndex > 0 ? 1 : 0) + (ctx.slotIndex < n - 1 ? 1 : 0);
+      if (!neighbors) return null;
+      ctx.scoring.power += effect.value * neighbors;
+      const word = neighbors === 1 ? "сосед" : neighbors < 5 ? "соседа" : "соседей";
+      return { label: `${ctx.sourceName}: +${effect.value * neighbors} силы (${neighbors} ${word} по слоту)` };
+    },
+    DENY_REVIVE(effect, ctx) {
+      ctx.scoring.flags.denyRevive = true;
+      return { label: `${ctx.sourceName}: башня больше не возродится (Aegis заблокирован)` };
+    },
+    ADD_ARMOR_PEN(effect, ctx) {
+      ctx.scoring.flags.armorPen = (ctx.scoring.flags.armorPen || 0) + effect.value;
+      return { label: `${ctx.sourceName}: −${effect.value} к броне башни (формации)` };
+    },
+    PIERCE_MR(effect, ctx) {
+      ctx.scoring.flags.pierceMr = true;
+      return { label: `${ctx.sourceName}: магический урон игнорирует сопротивление башни` };
     },
     ADD_MULT_PER_ATTRIBUTE(effect, ctx) {
       const n = ctx.playedCards.filter((c) => c.attr === effect.attr).length;
@@ -2982,9 +3083,11 @@ const Combat = (function () {
     for (const { effect, card, slotIndex, sourceName } of collectPreDetectEffects(state, effective)) {
       switch (effect.type) {
         case "COPY_ATTRIBUTE": {
-          if (effect.target === "left_neighbor" && slotIndex > 0) {
-            const neighbor = effective[slotIndex - 1];
-            if (neighbor && neighbor.attr !== effective[slotIndex].attr) {
+          const right = effect.target === "right_neighbor";
+          const neighbor = right
+            ? (slotIndex < effective.length - 1 ? effective[slotIndex + 1] : null)
+            : (slotIndex > 0 ? effective[slotIndex - 1] : null);
+          if (neighbor && neighbor.attr !== effective[slotIndex].attr) {
               Resolver.pushStep(resolution, {
                 icon: "✦",
                 label: `${sourceName} копирует атрибут «${Content.attrNames[neighbor.attr]}» у ${Content.heroes.byId[neighbor.heroId].name}`,
@@ -2998,7 +3101,6 @@ const Combat = (function () {
               });
               effective[slotIndex].attr = neighbor.attr;
             }
-          }
           break;
         }
         case "CREATE_ILLUSION": {
@@ -3260,8 +3362,10 @@ const Combat = (function () {
     if (state.rules === "formation") {
       // Третья ось: тип урона против числовой защиты цели (до волновых модов).
       const raw = s.power * s.mult * s.finalMult;
-      const defense = towerDefenseOf(state);
-      const mitigated = FormationSys.mitigate(raw, combo.damageType, defense, 0);
+      const baseDefense = towerDefenseOf(state);
+      const defense = s.flags.pierceMr ? { armor: baseDefense.armor, mr: 0 } : baseDefense;
+      const pen = s.flags.armorPen || 0;
+      const mitigated = FormationSys.mitigate(raw, combo.damageType, defense, pen);
       if (state.combat.scoring.flags.bkbBlocksMods) {
         Resolver.pushStep(resolution, { icon: "🛡", label: "BKB: числовая защита башни игнорируется", kind: "modifier" });
       } else if (combo.damageType === "pure") {
@@ -3269,8 +3373,10 @@ const Combat = (function () {
       } else if (combo.damageType === "magical" && defense.mr) {
         Resolver.pushStep(resolution, { icon: "✺", label: `Сопротивление ${Math.round(defense.mr * 100)}%: ${Math.round(raw)} → ${mitigated}`, kind: "modifier" });
       } else if (defense.armor) {
-        const absorbed = Math.min(defense.armor, raw * 0.5);
-        Resolver.pushStep(resolution, { icon: "🛡", label: `Броня башни ${defense.armor}: −${Math.round(absorbed)} (${Math.round(raw)} → ${mitigated})`, kind: "modifier" });
+        const effArmor = Math.max(0, defense.armor - pen);
+        const absorbed = Math.min(effArmor, raw * 0.5);
+        const penNote = pen ? ` (−${Math.min(pen, defense.armor)} коррозия)` : "";
+        Resolver.pushStep(resolution, { icon: "🛡", label: `Броня башни ${effArmor}${penNote}: −${Math.round(absorbed)} (${Math.round(raw)} → ${mitigated})`, kind: "modifier" });
       }
       damage = Math.round(mitigated * towerMult);
     } else {
@@ -3295,7 +3401,7 @@ const Combat = (function () {
 
     if (tower.hp <= 0) {
       const aegis = (tower.modifiers || []).find((m) => m.id === "aegis");
-      if (aegis && !tower.aegisUsed) {
+      if (aegis && !tower.aegisUsed && !s.flags.denyRevive) {
         tower.aegisUsed = true;
         const def = Content.modifiers.byId["aegis"];
         const result = Effects.apply({ type: "REVIVE", hpPercent: def.hpPercent }, {
@@ -3925,6 +4031,15 @@ const UI = (function () {
     zeus: "рядом INT-герой: +2 множителя",
     axe: "комбо «Ганг»: +10 силы",
     cm: "ТП-сброс: +2 золота",
+    tusk: "катится: +4 силы за каждого соседа по слоту",
+    sven: "сильнейший в бою: ×1.5 множителя",
+    centaur: "в слоте 1: +4 силы за каждого героя в бою",
+    dawnbreaker: "+1 множитель за каждого Универсала",
+    primal: "в центре пятёрки: ×2 множителя",
+    terrorblade: "копирует атрибут соседа справа",
+    rubick: "рядом INT-герой: +9 силы",
+    kez: "средний по рангу в отряде: +10 силы",
+    ancient_apparition: "на боссе: Aegis не сработает",
     // таверна (ростер)
     undying: "+2 силы за карту в сбросе (до 12)",
     ogre_magi: "25%: +3 к множителю",

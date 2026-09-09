@@ -101,6 +101,11 @@ const Cond = (function () {
         return !!(ctx.playedCards && ctx.playedCards.some((c, i) =>
           Math.abs(i - ctx.slotIndex) === 1 && c.attr !== ctx.card.attr
         ));
+      case "NEIGHBOR_ATTR_IS":
+        // A position neighbor with the given attribute (left or right).
+        return !!(ctx.playedCards && ctx.card && ctx.playedCards.some((c, i) =>
+          Math.abs(i - ctx.slotIndex) === 1 && c.attr === condition.value
+        ));
       case "IS_LOWEST_RANK":
         return !!(ctx.card && ctx.playedCards && ctx.playedCards.length > 1 &&
           ctx.playedCards.every((c) => c.power >= ctx.card.power));

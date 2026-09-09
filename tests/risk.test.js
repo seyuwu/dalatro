@@ -48,14 +48,14 @@ test("5 героев = ×1.25: шаг «Коммит» в стеке, урон 4
 test("4 героя = ×1.1: пара 25×2 → 55", () => {
   const s = newRun("STAV2");
   const res = play(s, ["axe", "morphling", "tusk", "cm"]);
-  assertEq(res.damage, 55, "round(50 × 1.1)");
+  assertEq(res.damage, 73, "round((25+8 Tusk) × 2 × 1.1)");
 });
 
 test("2-3 героя — нейтрально, шага ставки нет", () => {
   const s = newRun("STAV3");
   const res = play(s, ["axe", "morphling", "tusk"]);
   assert(!res.steps.some((st) => st.icon === "🎖"), "нет шага ставки");
-  assertEq(res.damage, 46, "23 × 2 без изменений");
+  assertEq(res.damage, 54, "(23+4 Tusk) × 2 без изменений");
 });
 
 test("харас: 1 герой = +1 золото", () => {
@@ -82,8 +82,8 @@ test("зачистка волны даёт серию, следующая вол
   s.player.fightsLeft = 4;
   const res = play(s, ["pudge", "juggernaut", "tusk"]);
   assert(res.steps.some((st) => st.icon === "🔥"), "шаг импульса в стеке");
-  // пара 7-7: (10 + 7+7+3) × 2 = 54 → ×1.05 = 57
-  assertEq(res.damage, 57, "round(54 × 1.05)");
+  // пара 7-7: (10 + 7+7+3+4 Tusk) × 2 = 62 → ×1.05 = 65
+  assertEq(res.damage, 65, "round(62 × 1.05)");
 });
 
 test("провал волны сбрасывает импульс", () => {

@@ -75,13 +75,13 @@ test("Butterfly: слабейшая карта ±1 ранг → two_pair из 2,
   const s = newRun("BFL1");
   const without = play(s, ["cm", "tusk", "axe", "morphling"]);
   assertEq(without.combo.type, "pair", "без бабочки — пара");
-  assertEq(without.damage, 55, "25 × 2, ставка ×1.1 за четвёрку");
+  assertEq(without.damage, 73, "25+8 Tusk (2 соседа) × 2, ставка ×1.1");
   const s2 = newRun("BFL2");
   s2.player.items.push("butterfly");
   const withB = play(s2, ["cm", "tusk", "axe", "morphling"]);
-  // cm 2 → 3: 3,3,5,5 = two_pair: (20 + 15) × 2 = 70 → ×1.1 = 77
+  // cm 2 → 3: 3,3,5,5 = two_pair: (20 + 15 + 8 Tusk) × 2 = 86 → ×1.1 = 95
   assertEq(withB.combo.type, "two_pair", "с бабочкой — две пары");
-  assertEq(withB.damage, 77, "35 × 2 × 1.1");
+  assertEq(withB.damage, 95, "43 × 2 × 1.1");
 });
 
 test("Manta: иллюзия даёт пол-силы, но считается за ранг для комбо", () => {
