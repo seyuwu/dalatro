@@ -23,17 +23,17 @@ const WAVES_DATA = [
   { id: "techies", act: 1, name: "Techies", emoji: "💣", hp: 1750, gold: 8, miniBoss: true, modifiers: [{ id: "mines" }] },
   { id: "roshan", act: 1, name: "Roshan", emoji: "👹", hp: 2800, gold: 10, isBoss: true, modifiers: [{ id: "aegis" }] },
   // --- АКТ 2 «Тёмный лес» ---
-  { id: "f1", act: 2, name: "Руины", emoji: "🌲", hp: 1100, gold: 8, modifiers: [] },
-  { id: "f2", act: 2, name: "Сторожевой лагерь", emoji: "⛺", hp: 2050, gold: 8, modifiers: [{ id: "armor" }] },
-  { id: "f3", act: 2, name: "Цитадель", emoji: "🏯", hp: 3400, gold: 8, modifiers: [{ id: "glyph" }] },
-  { id: "fmini", act: 2, name: "Сапёры", emoji: "💣", hp: 4200, gold: 10, miniBoss: true, modifiers: [{ id: "mines" }] },
-  { id: "fboss", act: 2, name: "Древний Рошан", emoji: "🐲", hp: 6700, gold: 12, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
+  { id: "f1", act: 2, name: "Руины", emoji: "🌲", hp: 1500, gold: 8, modifiers: [] },
+  { id: "f2", act: 2, name: "Сторожевой лагерь", emoji: "⛺", hp: 2800, gold: 8, modifiers: [{ id: "armor" }] },
+  { id: "f3", act: 2, name: "Цитадель", emoji: "🏯", hp: 4600, gold: 8, modifiers: [{ id: "glyph" }] },
+  { id: "fmini", act: 2, name: "Сапёры", emoji: "💣", hp: 5800, gold: 10, miniBoss: true, modifiers: [{ id: "mines" }] },
+  { id: "fboss", act: 2, name: "Древний Рошан", emoji: "🐲", hp: 9200, gold: 12, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
   // --- АКТ 3 «Трон» ---
-  { id: "p1", act: 3, name: "Пепелище", emoji: "🌑", hp: 2650, gold: 10, modifiers: [{ id: "fog" }] },
-  { id: "p2", act: 3, name: "Бастион", emoji: "🗼", hp: 4900, gold: 10, modifiers: [{ id: "silence" }] },
-  { id: "p3", act: 3, name: "Сердце тьмы", emoji: "🏯", hp: 8150, gold: 12, modifiers: [{ id: "glyph" }, { id: "disarm" }] },
-  { id: "pmini", act: 3, name: "Шахты Трона", emoji: "💣", hp: 10100, gold: 14, miniBoss: true, modifiers: [{ id: "mines" }] },
-  { id: "pfinal", act: 3, name: "Трон", emoji: "👑", hp: 16100, gold: 20, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
+  { id: "p1", act: 3, name: "Пепелище", emoji: "🌑", hp: 6400, gold: 10, modifiers: [{ id: "fog" }] },
+  { id: "p2", act: 3, name: "Бастион", emoji: "🗼", hp: 12000, gold: 10, modifiers: [{ id: "silence" }] },
+  { id: "p3", act: 3, name: "Сердце тьмы", emoji: "🏯", hp: 19600, gold: 12, modifiers: [{ id: "glyph" }, { id: "disarm" }] },
+  { id: "pmini", act: 3, name: "Шахты Трона", emoji: "💣", hp: 24400, gold: 14, miniBoss: true, modifiers: [{ id: "mines" }] },
+  { id: "pfinal", act: 3, name: "Трон", emoji: "👑", hp: 38000, gold: 20, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
 ];
 
 const ACT_NAMES = { 1: "На линии", 2: "Тёмный лес", 3: "Трон" };
@@ -96,15 +96,15 @@ const TOWER_DEFENSE = {
   // Акт 2
   f1: { armor: 8, mr: 0 },
   f2: { armor: 20, mr: 0 },
-  f3: { armor: 34, mr: 0.4 },
+  f3: { armor: 38, mr: 0.4 },
   fmini: { armor: 18, mr: 0 },
-  fboss: { armor: 50, mr: 0.45 },
+  fboss: { armor: 54, mr: 0.5 },
   // Акт 3
-  p1: { armor: 14, mr: 0.1 },
-  p2: { armor: 32, mr: 0.15 },
-  p3: { armor: 44, mr: 0.5 },
-  pmini: { armor: 24, mr: 0 },
-  pfinal: { armor: 56, mr: 0.6 },
+  p1: { armor: 20, mr: 0.15 },
+  p2: { armor: 40, mr: 0.2 },
+  p3: { armor: 52, mr: 0.55 },
+  pmini: { armor: 30, mr: 0 },
+  pfinal: { armor: 64, mr: 0.65 },
 };
 
 const DAMAGE_TYPE_NAMES = { physical: "физический", magical: "магический", pure: "чистый" };

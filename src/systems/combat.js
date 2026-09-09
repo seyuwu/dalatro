@@ -248,7 +248,7 @@ const Combat = (function () {
     const fast = Math.min(overkill, halfCap);
     const slow = Math.max(0, overkill - halfCap);
     const raw = Math.floor(fast / 60) + Math.floor(slow / 120);
-    const cap = (wave.gold || 6) * 3;
+    const cap = 5; // жёсткий кап: оверкилл — бонус точности, а не печать золота
     return Math.min(cap, Math.floor(raw * state.combat.scoring.flags.overkillRate));
   }
 

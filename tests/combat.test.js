@@ -29,6 +29,7 @@ function play(s, heroIds) {
 
 test("фулл-хаус 555+77: 518 урона (69 × 6 × 1.25 ставка), без лишних триггеров", () => {
   const s = newRun("FULL1");
+  s.combat.wave.hp = 450; s.combat.wave.maxHp = 720; // бьём по ослабленной башне — тест про математику удара
   const res = play(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   assertEq(res.combo.type, "full_house", "комбо");
   assertEq(res.power, 69, "сила (40 база + 29 карт)");

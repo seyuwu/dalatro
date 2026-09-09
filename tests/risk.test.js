@@ -71,6 +71,7 @@ suite("Импульс");
 
 test("зачистка волны даёт серию, следующая волна бьёт ×1.05", () => {
   const s = newRun("MOM1");
+  s.combat.wave.hp = 450; s.combat.wave.maxHp = 720;
   assertEq(s.run.momentum, 0, "старт без серии");
   play(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]); // 518 убивает T1 (300)
   assertEq(s.combat.outcome, "cleared");

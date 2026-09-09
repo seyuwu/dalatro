@@ -232,9 +232,13 @@
         savePrefs();
         rerender();
         break;
-      case "next-tip":
-        UI.UIState.tipIndex = (UI.UIState.tipIndex + 1) % 6;
+      case "toggle-journal":
+        UI.UIState.journalOpen = !UI.UIState.journalOpen;
         rerender();
+        break;
+      case "show-tip":
+        UI.toast(state, "Совет: " + UI.tipText(UI.UIState.tipIndex));
+        UI.UIState.tipIndex = (UI.UIState.tipIndex + 1) % 6;
         break;
       case "close-toast": UI.UIState.toast = ""; rerender(); break;
       case "onboard-start":
@@ -309,6 +313,36 @@
     if (e.key === "Enter" && state.phase === "wave" && !state.combat.outcome) {
       e.preventDefault();
       if (state.combat.selectedUids.length) dispatchAndRender({ type: "CONFIRM_FIGHT" });
+    }
+    // Лавка: 1–5 купить предложение, R — реролл, Enter — следующая волна.
+    if (state.phase === "shop") {
+      if (/^[1-5]$/.test(e.key)) {
+        const offer = (state.shop.offers || [])[Number(e.key) - 1];
+        if (offer) {
+          const item = Content.items.byId[offer.id];
+          if (state.run.gold >= item.cost) {
+            Sfx.play("buy");
+            dispatchAndRender({ type: "BUY_ITEM", itemId: offer.id });
+          } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${item.cost}.`);
+        }
+      }
+      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Economy.REROLL_COST) {
+        dispatchAndRender({ type: "REROLL_SHOP" });
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        Sfx.play("click");
+        dispatchAndRender({ type: "LEAVE_SHOP" });
+      }
+      return;
+    }
+    // Развилка: 1/2/3 — выбор тропы.
+    if (state.phase === "route" && /^[1-3]$/.test(e.key)) {
+      const kinds = ["normal", "elite", "camp"];
+      const kind = kinds[Number(e.key) - 1];
+      if (kind === "camp" && state.combat.campTaken) return;
+      Sfx.play("path");
+      dispatchAndRender({ type: "TAKE_ROUTE", kind });
     }
     if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.phase === "wave" && !state.combat.outcome) {
       if (state.combat.selectedUids.length && state.player.discardsLeft > 0) {

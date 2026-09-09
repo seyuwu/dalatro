@@ -65,7 +65,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .brand-divider { width: 1px; height: 27px; background: var(--border); margin-left: 1px; }
 .brand-caption { color: #7b897e; font-size: 9px; line-height: 1.8; letter-spacing: 1.15px; font-weight: 750; }
 .main-nav { display: flex; align-self: stretch; align-items: stretch; gap: 29px; margin-left: auto; margin-right: auto; }
-.main-nav button { font-size: 14px; color: #8d998f; position: relative; display: flex; gap: 8px; align-items: center; padding: 0 2px; }
+.main-nav button { font-size: 14px; color: #8d998f; position: relative; display: flex; gap: 8px; align-items: center; padding: 0 2px; white-space: nowrap; }
 .main-nav button.active { color: #dce3d8; }
 .main-nav button.active:after { content: ''; position: absolute; height: 2px; bottom: 0; left: 0; right: 0; background: var(--gold); }
 .main-nav button:hover { color: #e7eada; }
@@ -76,23 +76,18 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .icon-button:hover { background: #ffffff0b; color: #d8dfd5; }
 .icon-button.small { width: 21px; height: 21px; }
 
-/* ---------- run bar ---------- */
-.page-shell { max-width: 1536px; margin: auto; padding: 0 3.2%; }
-.run-bar { min-height: 80px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
-.run-heading { display: flex; gap: 12px; align-items: center; }
-.live-dot { display: inline-block; width: 6px; height: 6px; background: #8fae82; border-radius: 50%; box-shadow: 0 0 9px #8fae8228; flex-shrink: 0; }
-.run-heading h1 { font-size: 20px; font-weight: 750; letter-spacing: -.5px; }
-.run-id { font-size: 12px; color: #677469; margin-top: 2px; }
-.run-divider { width: 1px; height: 15px; background: #354032; margin: 0 5px; }
-.act-pill { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #a1b798; background: #263025; border: 1px solid #394936; border-radius: 4px; display: flex; align-items: center; gap: 6px; padding: 4px 7px; }
-.act-name { font-size: 13px; color: #a1aaa0; }
-.run-tools { display: flex; align-items: center; gap: 23px; }
-.autosave { display: flex; align-items: center; gap: 5px; color: #647569; font-size: 12px; }
-.subtle-button { display: flex; gap: 7px; align-items: center; color: #9aa398; font-size: 12px; }
+/* ---------- topbar run meta (run-bar слит в шапку) ---------- */
+.page-shell { max-width: 1536px; margin: auto; padding: 18px 3.2% 0; min-height: calc(100vh - 80px); display: flex; flex-direction: column; }
+.run-meta { display: flex; align-items: center; gap: 8px; }
+.run-id { font-size: 11px; color: #677469; white-space: nowrap; }
+.act-pill { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #a1b798; background: #263025; border: 1px solid #394936; border-radius: 4px; display: flex; align-items: center; gap: 6px; padding: 4px 7px; white-space: nowrap; }
+.autosave { display: flex; align-items: center; gap: 5px; color: #647569; font-size: 11px; white-space: nowrap; }
+.subtle-button { display: flex; gap: 7px; align-items: center; color: #9aa398; font-size: 12px; white-space: nowrap; }
 .subtle-button:hover { color: var(--gold); }
 
-/* ---------- layout: sidebar | play | combos ---------- */
-.game-layout { display: grid; grid-template-columns: 232px minmax(0, 1fr) 252px; gap: 22px; align-items: start; }
+/* ---------- layout: sidebar | scene | context ---------- */
+.game-layout { display: grid; grid-template-columns: 232px minmax(0, 1fr) 252px; gap: 22px; align-items: stretch; padding-bottom: 18px; }
+.game-layout.two { grid-template-columns: 232px minmax(0, 1fr); align-items: start; }
 .sidebar { display: flex; flex-direction: column; gap: 13px; }
 .panel { background: linear-gradient(125deg, #1b221c, #171e19); border: 1px solid var(--border); border-radius: 8px; }
 .section-label { font-size: 10px; font-weight: 750; letter-spacing: 1.45px; display: flex; align-items: center; justify-content: space-between; color: #8d9b8d; gap: 7px; }
@@ -100,56 +95,40 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .section-label.mint { color: var(--mint); }
 .section-label.gold { color: var(--gold); }
 
-/* ---------- encounter ---------- */
-.encounter-panel { padding: 16px 17px 0; text-align: center; overflow: hidden; position: relative; background: radial-gradient(ellipse at 50% 33%, #34392344, transparent 60%), #181f19; }
-.wave-badge { font-size: 10px; letter-spacing: .2px; border: 1px solid #364032; padding: 2px 5px; border-radius: 4px; color: #a6b3a1; }
-.tower-emblem { width: 78px; height: 80px; margin: 18px auto 15px; color: #d1ae6f; display: flex; align-items: center; justify-content: center; position: relative; }
-.tower-emblem:before { content: ''; position: absolute; inset: 7px; background: linear-gradient(140deg, #3d42263b, #2b312123); border: 1px solid #695e3344; transform: rotate(45deg); border-radius: 10px; }
-.tower-emblem:after { content: ''; position: absolute; width: 72px; height: 72px; border: 1px solid #5f5d3125; transform: rotate(45deg); border-radius: 12px; }
-.tower-emblem svg { z-index: 1; filter: drop-shadow(0 2px 10px #d8bb5438); }
-.emblem-ring { position: absolute; width: 94px; height: 94px; border-radius: 50%; border: 1px dashed #51573950; }
-.tower-emblem.boss { color: var(--danger); }
-.enemy-faction { font-size: 9px; font-weight: 700; letter-spacing: 1.65px; color: #828976; }
-.encounter-panel h2 { font-size: 21px; line-height: 1.5; font-weight: 750; letter-spacing: -.6px; margin: 6px auto 16px; max-width: 200px; }
-.target-health { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 13px; color: #849482; }
-.target-health svg { color: #9aae8d; }
-.target-health strong { font-size: 29px; line-height: 1.2; color: #d9e2cf; font-weight: 750; letter-spacing: -.9px; }
-.target-health > span { align-self: flex-end; margin-bottom: 3px; }
-.health-track { height: 6px; margin: 12px 0; border-radius: 3px; background: #31372d; overflow: hidden; }
-.health-track > div { height: 100%; background: linear-gradient(90deg, #7c9a70, #a5b78c); border-radius: 3px; transition: width .7s; }
-.wave-rule { font-size: 10px; color: #8b9685; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 17px; margin-bottom: 8px; }
-.wave-rule.done { color: #5e6d58; text-decoration: line-through; }
-.wave-rule.danger { color: #d99281; }
-.wave-rule.momentum { color: #e0b478; }
-.encounter-panel .wave-rule:last-of-type { margin-bottom: 19px; }
-.reward-row { margin: 0 -17px; padding: 13px 17px; border-top: 1px solid #32392c; display: flex; justify-content: space-between; align-items: center; background: #1e241c66; }
-.reward-row > span { color: #a0a68f; font-size: 12px; }
-.reward-row b { display: flex; align-items: center; gap: 5px; font-size: 17px; color: var(--gold); }
-
-/* ---------- resources / economy / journal ---------- */
-.resource-panel { display: grid; grid-template-columns: 1fr 1fr; padding: 15px 0; }
-.resource-stat { padding: 0 15px; }
-.resource-stat + div { border-left: 1px solid var(--border); }
-.resource-stat > span { font-size: 12px; color: #9aa798; display: flex; gap: 5px; align-items: center; white-space: nowrap; }
-.resource-stat > strong { display: block; font-size: 35px; line-height: 1.2; margin: 7px 0 10px; font-weight: 750; letter-spacing: -1px; }
-.resource-stat small { font-size: 15px; color: #64705f; letter-spacing: 0; font-weight: 500; }
-.resource-pips { display: flex; gap: 4px; }
-.resource-pips i { height: 3px; flex: 1; background: #313b30; border-radius: 2px; }
-.economy-panel { padding: 2px 15px; }
-.economy-panel > div { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
-.economy-panel > div + div { border-top: 1px solid #2b352b; }
-.economy-panel > div > span { font-size: 12px; color: #9aa397; display: flex; gap: 7px; align-items: center; }
-.economy-panel strong { font-size: 24px; line-height: 1.2; }
-.economy-panel strong small { font-size: 12px; font-weight: 600; color: #a89269; }
+/* ---------- sidebar: HUD забега ---------- */
+.run-panel { padding: 14px 15px 6px; }
+.run-panel .section-label { margin-bottom: 13px; }
+.wave-badge { font-size: 10px; letter-spacing: .2px; border: 1px solid #364032; padding: 2px 5px; border-radius: 4px; color: #a6b3a1; white-space: nowrap; }
+.act-steps { display: flex; gap: 7px; align-items: center; padding-bottom: 12px; }
+.act-steps > span { display: flex; align-items: center; gap: 4px; color: #4d6145; font-size: 10px; font-weight: 750; letter-spacing: .3px; }
+.act-steps .current { color: #b3bb8d; }
+.act-steps .complete { color: #83ac80; }
+.act-steps i { width: 11px; height: 1px; background: #3a4b30; margin-left: 4px; flex-shrink: 0; }
+.run-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-top: 1px solid #26302a; }
+.run-row > span { font-size: 12px; color: #9aa798; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+.run-row strong { font-size: 20px; line-height: 1.2; font-weight: 750; letter-spacing: -.5px; white-space: nowrap; }
+.run-row strong small { font-size: 11px; color: #a89269; font-weight: 600; letter-spacing: 0; }
+.effects-panel { padding: 12px 15px 13px; }
+.effect-row { display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: #8fa085; padding-top: 10px; line-height: 1.5; }
+.effect-row svg { flex-shrink: 0; color: #8fa085; }
+.effect-row.momentum, .effect-row.momentum svg { color: #e0b478; }
+.effect-row.none { color: #5e6d58; }
+.effect-row.none svg { color: #5e6d58; }
+.effect-row small { display: block; color: #7d8b72; font-size: 9.5px; }
+.resource-pips { display: flex; gap: 4px; flex: 1; max-width: 92px; }
+.resource-pips i { height: 4px; flex: 1; background: #313b30; border-radius: 2px; }
 .lives { display: flex; gap: 3px; color: #394537; }
 .lives .alive { color: #97ac88; }
-.journal-panel { padding: 12px 14px; min-height: 130px; flex: 1; }
+.journal-panel { padding: 12px 14px 14px; }
 .journal-panel .section-label { font-size: 9px; letter-spacing: 1.1px; }
-.journal-entries { padding-top: 12px; display: flex; flex-direction: column; gap: 11px; }
+.journal-tools { display: flex; gap: 3px; align-items: center; }
+.journal-panel .chevron-btn svg { transform: rotate(90deg); transition: transform .18s; }
+.journal-panel.open .chevron-btn svg { transform: rotate(-90deg); }
+.journal-entries { padding-top: 11px; display: flex; flex-direction: column; gap: 10px; }
 .journal-entries > div { display: flex; gap: 8px; align-items: flex-start; color: #677566; }
 .journal-entries > div.latest { color: #a0ad98; }
 .log-dot { width: 4px; height: 4px; flex-shrink: 0; margin-top: 5px; border-radius: 50%; background: #667c5c; }
-.journal-entries p { font-size: 12px; line-height: 1.8; }
+.journal-entries p { font-size: 11.5px; line-height: 1.75; }
 .text-button { display: flex; align-items: center; gap: 6px; color: #889981; font-size: 10px; margin-top: 14px; padding: 0; }
 .text-button:hover { color: var(--gold); }
 .combo-guide { display: flex; align-items: center; gap: 10px; padding: 12px 13px; border: 1px solid #30392c; border-radius: 7px; text-align: left; background: #1a2018; }
@@ -160,9 +139,8 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .combo-guide > svg { color: #718168; }
 .combo-guide:hover { border-color: #6d7553; }
 
-/* ---------- inventory ---------- */
+/* ---------- inventory (полоса билда внизу / карточки в лавке) ---------- */
 .play-area { min-width: 0; display: flex; flex-direction: column; gap: 17px; }
-.inventory-panel { padding: 13px 15px 14px; }
 .inventory-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
 .inventory-heading .section-label { gap: 14px; }
 .slot-count { font-size: 12px; color: #c8d4c1; letter-spacing: 0; }
@@ -175,43 +153,88 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .item-art .item-gem { background: none; border: none; box-shadow: none; width: 100%; height: 100%; }
 .item-art .item-gem img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; }
 .item-slot > span:not(.item-slot-dot) { min-width: 0; }
-.item-slot strong { font-size: 10px; display: block; font-weight: 750; color: #d0d3bb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.item-slot small { display: block; font-size: 7.5px; color: #8d9b74; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-slot strong { font-size: 11px; display: block; font-weight: 750; color: #d0d3bb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-slot small { display: block; font-size: 9px; color: #8d9b74; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-slot-dot { position: absolute; top: 5px; right: 5px; width: 3px; height: 3px; background: #b4b779; border-radius: 50%; }
 .empty-slot { border: 1px dashed #35432f; background: #1b241935; justify-content: center; gap: 7px; color: #51674c; }
-.empty-slot span { font-size: 9px; }
+.empty-slot span { font-size: 10px; }
 .empty-slot:hover { background: #263122; border-color: #566a47; }
 .item-slot.legendary { border-color: #867044; background: linear-gradient(120deg, #342f2166, #222b1e50); }
 
-/* ---------- battlefield ---------- */
-.battlefield { height: 220px; flex-shrink: 0; position: relative; isolation: isolate; overflow: hidden; border-radius: 8px; border: 1px solid #435039; background: #26352b url('images/battlefield.jpg') center 49% / cover; }
-.battlefield:after { content: ''; position: absolute; inset: 5px; border: 1px solid #afc8a115; border-radius: 4px; pointer-events: none; }
-.battlefield-shade { position: absolute; inset: 0; background: linear-gradient(90deg, #0e1b14d9 0%, #0e1b1466 47%, #17271f0a 74%), linear-gradient(0deg, #111f14aa, transparent 65%); z-index: -1; }
-.battlefield-content { padding: 22px 26px; position: relative; z-index: 2; }
-.battlefield-eyebrow { font-size: 9px; display: flex; align-items: center; gap: 7px; letter-spacing: 1.75px; color: #a4b59a; font-weight: 700; }
-.battlefield-eyebrow > span:not(.live-dot) { color: #55674d; padding: 0 2px; }
-.battlefield-eyebrow .live-dot { width: 4px; height: 4px; }
-.battlefield h2 { font-size: 33px; font-weight: 700; letter-spacing: -1.15px; color: #e2e8d8; margin-top: 11px; }
-.battlefield p { font-size: 12px; color: #9dad95; margin-top: 6px; }
-.formation { display: flex; gap: 16px; align-items: center; margin-top: 21px; }
-.formation-cards { display: flex; gap: 7px; }
-.formation-slot { width: 42px; height: 51px; display: flex; align-items: center; justify-content: center; border: 1px dashed #9ab48045; border-radius: 4px; background: #18271d60; position: relative; color: #6a855c; overflow: hidden; }
-.formation-slot > span { position: absolute; bottom: 3px; left: 4px; color: #a9bd90; font-size: 8px; z-index: 2; }
+/* ---------- нижняя полоса: билд + рука во всю ширину ---------- */
+.bottom-band { margin-top: auto; padding: 13px 16px 12px; border: 1px solid var(--border); border-radius: 8px; background: linear-gradient(125deg, #161d17, #131914); display: flex; flex-direction: column; gap: 12px; }
+.bottom-band.shop { gap: 10px; }
+.band-build { display: flex; align-items: center; gap: 12px; }
+.band-label { font-size: 10px; font-weight: 750; letter-spacing: 1.45px; color: #8d9b8d; display: flex; align-items: center; gap: 7px; width: 88px; flex-shrink: 0; }
+.build-strip { display: flex; gap: 7px; }
+.build-icon { position: relative; width: 54px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid #46513a; border-radius: 5px; background: linear-gradient(120deg, #30352380, #222b1e50); color: #b4b779; padding: 3px; }
+.build-icon .item-gem { background: none; border: none; box-shadow: none; width: 100%; height: 100%; }
+.build-icon .item-gem img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; }
+.build-icon:hover { border-color: #9a9d62; background: #303924; }
+.build-icon.empty { border-style: dashed; color: #51674c; background: #1b241935; }
+.build-icon.legendary { border-color: #867044; }
+.band-hand { max-width: 1210px; margin: 0 auto; width: 100%; }
+.bottom-band .hero-art { height: 138px; }
+.bottom-band .hero-card-bottom { min-height: 66px; }
+.bottom-band .hero-card.selected, .bottom-band .hero-card:hover { transform: translateY(-7px); }
+
+/* ---------- battle scene: центр = место принятия решения ---------- */
+.battle-scene { position: relative; isolation: isolate; overflow: hidden; border-radius: 8px; border: 1px solid #435039; background: #26352b url('images/battlefield.jpg') center 42% / cover; min-height: 452px; display: flex; flex-direction: column; }
+.battle-scene:after { content: ''; position: absolute; inset: 5px; border: 1px solid #afc8a115; border-radius: 4px; pointer-events: none; }
+.scene-shade { position: absolute; inset: 0; background: linear-gradient(90deg, #0d1a12e6 0%, #0d1a12c0 42%, #0d1a1266 72%, #14261d99 100%), linear-gradient(0deg, #0f1d14d5, transparent 52%); z-index: -1; }
+.scene-inner { padding: 20px 24px 22px; position: relative; z-index: 2; display: flex; flex-direction: column; gap: 13px; flex: 1; }
+.scene-target { display: flex; align-items: center; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid #afc8a116; }
+.scene-emblem { width: 46px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #d1ae6f; background: linear-gradient(140deg, #3d42263b, #2b312123); border: 1px solid #695e3344; border-radius: 9px; transform: rotate(45deg); }
+.scene-emblem > svg { transform: rotate(-45deg); filter: drop-shadow(0 2px 8px #d8bb5438); }
+.scene-emblem.boss { color: var(--danger); border-color: #6b4038; }
+.scene-title { min-width: 0; }
+.scene-title .section-label { justify-content: flex-start; }
+.scene-title h2 { font-size: 23px; font-weight: 750; letter-spacing: -.7px; color: #e2e8d8; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-hp { margin-left: auto; }
+.scene-hp-num { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; color: #9aae8d; font-size: 13px; }
+.scene-hp-num svg { align-self: center; }
+.scene-hp-num strong { font-family: 'Oswald', sans-serif; font-size: 37px; line-height: 1; font-weight: 600; color: #d9e2cf; letter-spacing: -.5px; }
+.scene-hp-num > span { color: #6d7f66; font-size: 13px; }
+.scene-hp .health-track { width: 236px; margin: 8px 0 0 auto; }
+.health-track { height: 7px; border-radius: 3px; background: #31372d; overflow: hidden; }
+.health-track > div { height: 100%; background: linear-gradient(90deg, #7c9a70, #a5b78c); border-radius: 3px; transition: width .7s; }
+.scene-reward { text-align: right; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; padding-left: 16px; border-left: 1px solid #afc8a116; align-self: stretch; justify-content: center; }
+.scene-reward > span { font-size: 10px; letter-spacing: 1px; color: #828976; font-weight: 700; }
+.scene-reward b { display: flex; align-items: center; gap: 5px; font-size: 17px; color: var(--gold); }
+
+/* правила волны — чипы, читаются перед каждым боем */
+.rule-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.rule-chip { font-size: 11px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 5px; border: 1px solid #3a4a30; background: #141d15d0; color: #a9b8a0; }
+.rule-chip svg { color: #8fae82; flex-shrink: 0; }
+.rule-chip.danger { color: #d99281; border-color: #5a3a30; }
+.rule-chip.danger svg { color: #d1806c; }
+.rule-chip.done { color: #5e6d58; text-decoration: line-through; border-color: #2c382b; }
+.rule-chip.done svg { color: #5e6d58; }
+.rule-chip.elite { color: #e0b478; border-color: #6b5430; }
+.rule-chip.elite svg { color: #d3b06a; }
+.rule-chip.pulse { animation: chipPulse 1.8s ease-in-out infinite alternate; }
+@keyframes chipPulse { from { box-shadow: 0 0 0 #d1806c00; } to { box-shadow: 0 0 14px #d1806c38; } }
+
+/* сцена: слева формация + формула, справа приговор + CTA */
+.scene-stage { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 22px; align-items: end; flex: 1; padding-top: 4px; }
+.scene-play { display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+.scene-formation { display: flex; gap: 14px; align-items: center; }
+.formation-cards { display: flex; gap: 8px; }
+.formation-slot { width: 52px; height: 62px; display: flex; align-items: center; justify-content: center; border: 1px dashed #9ab48045; border-radius: 5px; background: #18271d73; position: relative; color: #6a855c; }
+.formation-slot .slot-idx { position: absolute; top: 3px; left: 5px; color: #a9bd90; font-size: 9px; z-index: 2; font-weight: 800; text-shadow: 0 1px 3px #000; }
 .formation-slot.occupied { border: 1px solid #a7b68d77; box-shadow: 0 3px 12px #0003; background: #29332a; }
-.formation-slot .hero-art { position: absolute; inset: 0; height: 100%; }
+.formation-slot .hero-art { position: absolute; inset: 0; height: 100%; border-radius: 4px; }
 .formation-slot .hero-art .sigil { opacity: .5; }
-.formation-slot.occupied > span { background: #111b13c4; padding: 0 3px; border-radius: 2px; bottom: 2px; left: 2px; }
-.formation-note { font-size: 9px; line-height: 1.8; color: #7f9474; }
-.arena-label { position: absolute; bottom: 17px; right: 21px; display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: 1.45px; color: #c3cbb0; text-shadow: 0 1px 5px #000; }
+.formation-slot .slot-name { position: absolute; bottom: 0; left: 0; right: 0; padding: 2px 4px 3px; background: #111b13d4; color: #dfe7d2; font-size: 8.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+.formation-note { font-size: 10px; line-height: 1.8; color: #7f9474; }
+.arena-label { position: absolute; top: 18px; right: 21px; display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: 1.45px; color: #c3cbb099; text-shadow: 0 1px 5px #000; }
 .radial-dot { width: 6px; height: 6px; border: 1px solid #c3cbb0; border-radius: 50%; }
-.enemy-mark { position: absolute; top: 57px; right: 19%; color: #becb9399; }
 .attacking { animation: shake .35s; }
-.damage-burst { position: absolute; top: 52px; right: 15%; color: #f1d79e; font-size: 60px; font-family: 'Oswald', sans-serif; font-weight: 600; text-shadow: 0 3px 5px #10160c, 0 0 22px #ebc47770; animation: damage 1s ease-out forwards; z-index: 4; }
+.damage-burst { position: absolute; top: 46%; right: 24%; color: #f1d79e; font-size: 58px; font-family: 'Oswald', sans-serif; font-weight: 600; text-shadow: 0 3px 5px #10160c, 0 0 22px #ebc47770; animation: damage 1s ease-out forwards; z-index: 4; pointer-events: none; }
 .damage-burst small { display: block; font-family: 'Manrope', sans-serif; font-size: 9px; letter-spacing: 3px; text-align: center; }
 
-/* ---------- hand & hero cards ---------- */
-.hand-section { padding-top: 1px; min-width: 0; }
-.hand-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 1px 23px; gap: 12px; }
+/* ---------- рука в нижней полосе ---------- */
+.hand-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 1px 12px; gap: 12px; }
 .hand-heading > div:first-child { display: flex; align-items: center; gap: 14px; }
 .hand-heading h2 { font-size: 16px; font-weight: 750; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .hand-heading h2 > span { font-size: 12px; color: #b1bfa7; border: 1px solid #354431; border-radius: 4px; padding: 2px 5px; font-weight: 600; }
@@ -243,7 +266,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .hero-name { position: absolute; bottom: 8px; left: 7px; right: 3px; font-size: 12px; line-height: 1.3; font-weight: 800; color: #e5e6dc; text-shadow: 0 1px 5px #000; letter-spacing: -.1px; z-index: 2; }
 .hero-card-bottom { background: linear-gradient(var(--card-bg), #1c2420); padding: 1px 7px 5px; min-height: 59px; border-radius: 0 0 5px 5px; }
 .hero-attribute { color: var(--attr); font-size: 8px; display: block; font-weight: 650; }
-.hero-ability { display: block; font-size: 6.8px; margin-top: 6px; color: #a3aaa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero-ability { display: block; font-size: 8.5px; margin-top: 6px; color: #a3aaa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 9px; color: #9da88e; }
 .card-foot > span { display: flex; align-items: center; gap: 2px; }
 .card-foot kbd { font-size: 8px; background: #0e16114f; border-color: #74816b28; min-width: 12px; height: 13px; line-height: 11px; padding: 0; text-align: center; color: #718068; }
@@ -266,10 +289,21 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .hero-hand .hero-card:nth-child(n+6) .hero-tooltip { left: auto; right: 0; transform: none; }
 .hero-hand .hero-card:nth-child(n+6) .hero-tooltip:after { left: auto; right: 26px; margin-left: 0; }
 
+/* универсальный мягкий тултип: контейнер с data-tip + вложенный .pop */
+[data-tip] { position: relative; }
+.pop { display: none; position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); width: 224px; padding: 11px 12px; background: linear-gradient(150deg, #2b352c, #222b24); border: 1px solid #5b6b52; border-radius: 9px; box-shadow: 0 12px 30px #000a; z-index: 60; pointer-events: none; text-align: left; }
+.pop:after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px; border: 6px solid transparent; border-top-color: #5b6b52; }
+[data-tip]:hover .pop { display: block; animation: tooltipIn .16s ease-out; }
+.pop strong { display: block; font-size: 12.5px; font-weight: 750; color: #dfe5d2; }
+.pop p { font-size: 10.5px; line-height: 1.65; color: #b5c2ab; margin-top: 4px; }
+.pop small { display: block; font-size: 8.5px; letter-spacing: .3px; color: #8a987d; margin-top: 7px; padding-top: 6px; border-top: 1px solid #3a4738; }
+.pop.side { left: auto; right: 2px; transform: none; }
+.pop.side:after { left: auto; right: 24px; margin-left: 0; }
+
 /* состояние обновилось без смены коллекции — ничего не «всплывает» заново */
 .no-anim .hero-card, .no-anim .shop-card, .no-anim .item-slot,
 .no-anim .recruit-card, .no-anim .route-card { animation: none !important; }
-.under-hand { display: flex; align-items: center; justify-content: space-between; margin: 14px 2px 0; color: #6b8062; font-size: 9px; gap: 10px; }
+.under-hand { display: flex; align-items: center; justify-content: space-between; margin: 11px 2px 0; color: #6b8062; font-size: 10px; gap: 10px; }
 .under-hand > span { display: flex; align-items: center; gap: 5px; }
 .selection-dot { width: 4px; height: 4px; background: #9eaf88; border-radius: 50%; margin-right: 2px; }
 .under-hand strong { font-weight: 600; color: #b0bea3; }
@@ -277,70 +311,105 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .under-hand button:hover { color: var(--gold); }
 .keyboard-divider { padding: 0 4px; }
 
-/* ---------- play controls ---------- */
-.play-controls { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; gap: 18px; flex-wrap: wrap; background: linear-gradient(100deg, #202b20, #1d271b); border-color: #394b30; min-height: 100px; }
-.combo-preview { text-align: left; min-width: 157px; padding: 0; }
-.combo-preview .section-label { font-size: 8px; letter-spacing: 1.3px; color: #859c78; justify-content: flex-start; }
-.combo-preview > strong { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 750; letter-spacing: -.6px; color: #dde6cd; margin: 8px 0 6px; }
+/* ---------- сцена: формула (главное число экрана), приговор, CTA ---------- */
+.combo-preview { text-align: left; padding: 0; align-self: flex-start; }
+.combo-preview .section-label { font-size: 9px; letter-spacing: 1.3px; color: #859c78; justify-content: flex-start; }
+.combo-preview > strong { display: flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 750; letter-spacing: -.6px; color: #dde6cd; margin: 6px 0 4px; }
 .combo-preview > strong svg { color: #80956b; }
-.combo-preview > small { display: flex; align-items: center; gap: 7px; font-size: 10px; color: #879978; }
-.score-formula { display: flex; align-items: center; gap: 10px; }
-.score-block { width: 65px; height: 57px; border: 1px solid; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
-.score-block strong { font-size: 28px; font-weight: 750; line-height: 1.2; letter-spacing: -1px; }
-.score-block > span { font-size: 8px; letter-spacing: 1px; font-weight: 700; }
+.combo-preview > small { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #879978; }
+.combo-preview:hover > strong { color: #ffffff; }
+.score-formula { display: flex; align-items: center; gap: 12px; }
+.score-block { width: 78px; height: 66px; border: 1px solid; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.score-block strong { font-family: 'Oswald', sans-serif; font-size: 34px; font-weight: 600; line-height: 1.1; letter-spacing: -.5px; }
+.score-block > span { font-size: 9px; letter-spacing: 1.2px; font-weight: 700; }
 .score-block.power { border-color: #4a6a56; background: #344e3f; color: #b5d9b8; }
 .score-block.multiplier { background: #5d422a; border-color: #82633f; color: #efd0a0; }
 .score-formula > svg, .equals { color: #74886a; }
 .times { display: flex; }
-.equals { font-size: 18px; }
-.total-score { text-align: center; min-width: 63px; }
-.total-score strong { font-size: 35px; line-height: 1.1; color: #e3e7ca; font-weight: 800; letter-spacing: -1px; }
-.total-score > span { display: flex; justify-content: center; gap: 3px; font-size: 8px; color: #97a27f; letter-spacing: 1.2px; margin-top: 6px; }
-.commit-row { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 108px; }
-.commit-chip { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #e9c98f; border: 1px solid #7a6437; background: #3c331d; border-radius: 4px; padding: 4px 8px; cursor: help; white-space: nowrap; }
+.equals { font-size: 22px; }
+.total-score { text-align: center; min-width: 96px; }
+.total-score strong { font-family: 'Oswald', sans-serif; font-size: 52px; line-height: 1; color: #e3e7ca; font-weight: 600; letter-spacing: -.5px; }
+.total-score > span { display: flex; justify-content: center; gap: 3px; font-size: 9px; color: #97a27f; letter-spacing: 1.4px; margin-top: 6px; }
+.scene-side { display: flex; flex-direction: column; gap: 10px; min-width: 256px; }
+.scene-verdict { display: flex; flex-direction: column; gap: 4px; padding: 12px 15px; border-radius: 7px; border: 1px solid #3a4a30; background: #1d2719d9; }
+.scene-verdict > b { display: flex; align-items: center; gap: 8px; font-family: 'Oswald', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: 1.1px; color: #b7c2ab; }
+.scene-verdict > small { font-size: 10.5px; line-height: 1.55; color: #7d8b72; }
+.scene-verdict.kill { border-color: #4d6a3b; background: #26371fd9; }
+.scene-verdict.kill > b { color: #a9d29d; }
+.scene-verdict.kill > small { color: #93a67f; }
+.scene-verdict.harass { border-color: #7a6437; background: #322a17d9; }
+.scene-verdict.harass > b { color: #e9c98f; }
+.scene-verdict.harass > small { color: #a8946a; }
+.scene-verdict.blocked { border-color: #6b4038; background: #33221dd9; }
+.scene-verdict.blocked > b { color: #d99281; }
+.scene-verdict.blocked > small { color: #a97f70; }
+.scene-verdict.idle { border-style: dashed; background: #1a231bd0; }
+.scene-verdict.idle > b { color: #6d7f66; }
+.commit-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.commit-chip { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #e9c98f; border: 1px solid #7a6437; background: #3c331d; border-radius: 4px; padding: 4px 8px; white-space: nowrap; }
 .commit-chip.neutral { color: #9aa88b; border-color: #3d4a35; background: #242d20; }
 .commit-chip.momentum { color: #e0a470; border-color: #7d5230; background: #38281a; }
-.action-buttons { display: flex; flex-direction: column; gap: 7px; min-width: 164px; }
+.action-buttons { display: flex; flex-direction: column; gap: 7px; }
 .primary-button { background: linear-gradient(120deg, #e3be83, #d7aa72); color: #312b1d; border: 1px solid #edcd98; border-bottom: 3px solid #9c7748; border-radius: 5px; padding: 11px 19px; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 9px; box-shadow: 0 3px 12px #060d0640; }
 .primary-button:hover:not(:disabled) { background: linear-gradient(120deg, #f0cf9b, #e6bb85); box-shadow: 0 4px 14px #d2b37617; }
 .primary-button:disabled { opacity: .5; }
-.attack-button { padding: 9px 14px; font-size: 16px; }
+.attack-button { padding: 12px 14px; font-size: 17px; }
 .attack-button kbd { border-color: #5a4b293d; color: #685336; margin-left: 16px; font-size: 12px; }
-.discard-button { display: flex; justify-content: center; align-items: center; gap: 8px; color: #a7b09a; font-size: 12px; padding: 2px 10px; }
-.discard-button kbd { font-size: 8px; margin-left: 15px; color: #99a185; }
+.discard-button { display: flex; justify-content: center; align-items: center; gap: 8px; color: #a7b09a; font-size: 12.5px; padding: 4px 10px; }
+.discard-button kbd { font-size: 9px; margin-left: 15px; color: #99a185; }
 .discard-button:hover:not(:disabled) { color: #d6e4cb; }
-.strategy-tip { display: flex; align-items: center; gap: 9px; color: #8da17b; padding: 0 3px; margin-top: -1px; }
-.strategy-tip > svg { color: #b4b089; }
-.strategy-tip p { font-size: 10px; line-height: 1.7; flex: 1; color: #7d9471; }
-.strategy-tip strong { font-weight: 650; color: #a6b095; margin-right: 4px; }
-.strategy-tip button { font-size: 9px; white-space: nowrap; color: #a8af88; display: flex; gap: 7px; align-items: center; padding: 3px; }
-.strategy-tip button:hover { color: var(--gold); }
 
-/* ---------- combos panel (правая колонка) ---------- */
-.combos-panel { min-width: 0; display: flex; flex-direction: column; gap: 13px; position: sticky; top: 14px; }
-.combos-panel-inner { padding: 14px 13px; }
+/* ---------- context panel (правая колонка: контекст решения) ---------- */
+.context-panel { min-width: 0; display: flex; flex-direction: column; gap: 13px; position: sticky; top: 14px; }
+.context-inner { padding: 14px 13px; }
+.context-inner .section-label { font-size: 9.5px; }
+.active-formation { padding-top: 12px; }
+.active-formation strong { display: block; font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .4px; color: #e6edcf; }
+.active-formation > small { display: block; font-size: 10.5px; color: #879978; margin-top: 5px; line-height: 1.6; }
+.active-value { display: flex; align-items: baseline; gap: 6px; margin-top: 10px; }
+.active-value b { font-family: 'Oswald', sans-serif; font-size: 25px; font-weight: 600; line-height: 1; }
+.active-value b.mint { color: var(--mint); }
+.active-value b.gold { color: var(--gold); }
+.active-value > span { color: #6a7c60; font-size: 13px; }
+.active-value em { font-style: normal; margin-left: auto; font-size: 12px; color: #97a27f; }
+.inner-label { margin-top: 14px; font-size: 9px; letter-spacing: 1.1px; }
+.bond-rows { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.bond-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; background: #33422a66; border: 1px solid #7a916055; border-radius: 5px; padding: 7px 9px; }
+.bond-row strong { color: #d5dec1; font-weight: 650; }
+.bond-row span { color: #b8ca96; white-space: nowrap; }
+.context-empty { padding: 14px 4px 8px; display: flex; flex-direction: column; gap: 9px; align-items: flex-start; color: #6d7f66; }
+.context-empty svg { color: #55674d; }
+.context-empty p { font-size: 11px; line-height: 1.7; }
+.context-all { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border: 1px solid #30392c; border-radius: 7px; background: #1a2018; color: #a9b39a; font-size: 12px; font-weight: 650; }
+.context-all:hover { border-color: #6d7553; color: #dde6cd; }
+.next-target { padding-top: 12px; display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+.next-emblem { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; color: #d1ae6f; background: linear-gradient(140deg, #3d42263b, #2b312123); border: 1px solid #695e3344; border-radius: 8px; }
+.next-emblem.boss { color: var(--danger); border-color: #6b4038; }
+.next-target strong { font-family: 'Oswald', sans-serif; font-size: 19px; font-weight: 600; color: #e6edcf; letter-spacing: .3px; }
+.next-hp { display: flex; align-items: baseline; gap: 5px; }
+.next-hp b { font-family: 'Oswald', sans-serif; font-size: 23px; font-weight: 600; }
+.next-hp span { font-size: 11px; color: #6d7f66; }
+.next-target small { font-size: 10.5px; line-height: 1.7; color: #8fa085; }
 .combo-rows { display: flex; flex-direction: column; margin-top: 10px; }
-.combo-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 9px; border-radius: 5px; border: 1px solid transparent; border-left: 2px solid #2c382b; margin-bottom: 3px; transition: background .15s, border-color .15s; }
+.combo-row { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 9px; border-radius: 5px; border: 1px solid transparent; border-left: 2px solid #2c382b; margin-bottom: 3px; transition: background .15s, border-color .15s; }
 .combo-row:nth-child(odd) { background: #1d261c66; }
 .combo-row.hit { background: #33422a; border-color: #7a9160; border-left: 2px solid #c9d8a0; box-shadow: 0 0 12px #a5c17a22; }
 .combo-row.ready { border-left-color: #5c7a4d; }
-.combo-row-name strong { display: block; font-size: 10.5px; font-weight: 750; color: #ccd5bd; letter-spacing: -.1px; }
+.combo-row-name strong { display: block; font-size: 11px; font-weight: 750; color: #ccd5bd; letter-spacing: -.1px; }
 .combo-row.hit .combo-row-name strong { color: #e6edcf; }
-.combo-row-name small { display: block; font-size: 7.5px; color: #7d8b72; margin-top: 2px; }
-.combo-row-rule { grid-column: 1 / -1; font-size: 7.5px; color: #6d7f66; }
-.combo-row.hit .combo-row-rule { color: #93a67f; }
-.combo-row-value { display: flex; align-items: center; gap: 4px; font-size: 8px; color: #6a7c60; align-self: start; }
+.combo-row-name small { display: block; font-size: 8.5px; color: #7d8b72; margin-top: 2px; }
+.combo-row-value { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #6a7c60; align-self: start; }
 .combo-row-value b { font-size: 15px; font-weight: 800; }
 .combo-row-value .mint { color: var(--mint); }
 .combo-row-value .gold { color: var(--gold); }
-.combo-legend { display: flex; gap: 14px; margin-top: 11px; padding-top: 10px; border-top: 1px solid #2a352a; font-size: 7.5px; color: #6d7f66; }
+.combo-legend { display: flex; gap: 14px; margin-top: 11px; padding-top: 10px; border-top: 1px solid #2a352a; font-size: 9px; color: #6d7f66; }
 .combo-legend > span { display: flex; align-items: center; gap: 5px; }
 .combo-legend .dot { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
 .combo-legend .dot.hit { background: #a9c284; }
 .combo-legend .dot.ready { background: #556b47; }
 
 /* ---------- footer ---------- */
-.footer { border-top: 1px solid #2b3926; margin-top: 25px; padding: 16px 0 21px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.footer { border-top: 1px solid #2b3926; margin-top: 25px; padding: 16px 0 21px; display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: auto; }
 .act-progress { display: flex; gap: 12px; align-items: center; }
 .act-progress > span { display: flex; align-items: center; gap: 5px; color: #4d6145; font-size: 9px; font-weight: 750; letter-spacing: .3px; }
 .act-progress .current { color: #b3bb8d; }
@@ -380,9 +449,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .shop-card.legendary .rarity { color: #d1ae71; }
 .empty-shop { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; color: #aab497; font-size: 14px; }
 .shop-bottom { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 23px; }
-.shop-bottom strong { display: block; font-size: 14px; margin-top: 6px; }
-.shop-bottom strong > span { font-weight: 500; font-size: 12px; color: #8c9c7e; }
-.shop-bottom small { display: block; font-size: 10px; color: #7f9172; margin-top: 4px; }
+.shop-hint-row { font-size: 10.5px; color: #738566; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .shop-hint { text-align: center; font-size: 9px; color: #738566; margin-top: 18px; }
 
 /* ---------- end screen ---------- */
@@ -605,176 +672,135 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 @media (min-width: 1500px) {
   .topbar { padding-left: max(3.2%, calc((100vw - 1440px) / 2)); padding-right: max(3.2%, calc((100vw - 1440px) / 2)); }
   .game-layout { grid-template-columns: 250px minmax(0, 1fr) 264px; gap: 26px; }
-  .hero-art { height: 129px; }
-  .hero-name { font-size: 13px; }
-  .hero-card-bottom { min-height: 67px; }
-  .hero-attribute { font-size: 9px; }
-  .hero-ability { font-size: 9px; }
-  .battlefield { height: 244px; }
-  .battlefield-content { padding: 26px 30px; }
-  .battlefield h2 { font-size: 39px; }
-  .formation { margin-top: 24px; }
-  .formation-slot { height: 57px; width: 47px; }
+  .game-layout.two { grid-template-columns: 250px minmax(0, 1fr); }
+  .scene-inner { padding: 24px 28px 26px; }
+  .scene-title h2 { font-size: 26px; }
+  .scene-hp-num strong { font-size: 42px; }
+  .scene-hp .health-track { width: 280px; }
+  .formation-slot { width: 56px; height: 66px; }
+  .score-block { width: 86px; height: 72px; }
+  .score-block strong { font-size: 38px; }
+  .total-score strong { font-size: 58px; }
+  .combo-preview > strong { font-size: 23px; }
+  .scene-side { min-width: 284px; }
+  .bottom-band .hero-art { height: 152px; }
+  .bottom-band .hero-name { font-size: 13px; }
+  .bottom-band .hero-ability { font-size: 9px; }
   .item-slot { height: 58px; }
   .item-slot strong { font-size: 12px; }
-  .item-slot small { font-size: 9px; }
-  .hand-section { margin-top: 4px; }
-  .play-controls { padding: 18px 22px; }
-  .action-buttons { min-width: 190px; }
-  .score-block { width: 76px; }
-  .combo-preview > strong { font-size: 22px; }
-  .target-health strong { font-size: 33px; }
-  .encounter-panel h2 { font-size: 23px; margin-bottom: 23px; }
-  .tower-emblem { margin-top: 24px; margin-bottom: 22px; }
-  .encounter-panel { padding-top: 20px; }
-  .resource-panel { padding: 18px 0; }
-  .economy-panel > div { padding: 15px 0; }
+  .item-slot small { font-size: 9.5px; }
 }
 @media (max-width: 1420px) {
+  .brand-caption { display: none; }
   .game-layout { grid-template-columns: 210px minmax(0, 1fr) 224px; gap: 15px; }
-  .combos-panel-inner { padding: 11px 10px; }
+  .game-layout.two { grid-template-columns: 210px minmax(0, 1fr); }
+  .context-inner { padding: 11px 10px; }
   .combo-row { padding: 7px 7px; }
-  .combo-row-rule { display: none; }
+  .scene-stage { gap: 15px; }
+  .scene-side { min-width: 232px; }
+  .score-block { width: 68px; height: 60px; }
+  .score-block strong { font-size: 30px; }
+  .total-score strong { font-size: 46px; }
+  .scene-hp .health-track { width: 180px; }
+  .scene-hp-num strong { font-size: 33px; }
 }
 @media (max-width: 1180px) {
-  .topbar { gap: 15px; }
+  .topbar { gap: 15px; padding: 0 2.5%; }
   .brand-caption { font-size: 8px; }
   .main-nav { gap: 20px; }
   .header-right { gap: 10px; }
-  .page-shell { padding: 0 2.5%; }
-  .topbar { padding: 0 2.5%; }
+  .run-meta { gap: 6px; }
+  .page-shell { padding: 16px 2.5% 0; }
   .game-layout { grid-template-columns: 210px minmax(0, 1fr); }
-  .combos-panel { grid-column: 1 / -1; position: static; }
+  .game-layout.two { grid-template-columns: 210px minmax(0, 1fr); }
+  .context-panel { grid-column: 1 / -1; position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; align-items: start; }
   .combo-rows { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   .combo-row { margin-bottom: 0; }
-  .combo-row-rule { display: block; }
   .combo-legend { display: none; }
-  .hand-heading > div:first-child { gap: 8px; }
+  .scene-stage { grid-template-columns: 1fr; }
+  .scene-side { min-width: 0; }
+  .scene-verdict { flex-direction: row; align-items: center; gap: 12px; }
+  .scene-verdict > small { flex: 1; }
   .hand-instruction { display: none; }
   .inventory-help { font-size: 9px; }
   .item-slot { gap: 3px; padding: 5px; }
   .item-art { width: 34px; height: 31px; }
-  .item-slot strong { font-size: 9px; }
+  .item-slot strong { font-size: 9.5px; }
   .item-slot small { font-size: 8px; }
   .inventory-slots { gap: 7px; }
   .hero-hand { gap: 6px; }
-  .hero-art { height: 99px; }
+  .bottom-band .hero-art { height: 104px; }
   .hero-name { font-size: 10px; left: 5px; }
-  .hero-card-bottom { padding-left: 5px; padding-right: 5px; min-height: 58px; }
+  .bottom-band .hero-card-bottom { min-height: 58px; }
   .hero-ability { font-size: 7px; }
   .hero-attribute { font-size: 6.5px; }
   .hero-rank { font-size: 29px; left: 5px; }
-  .play-controls { gap: 11px; padding: 13px; }
-  .combo-preview { min-width: 137px; }
-  .combo-preview > strong { font-size: 16px; }
-  .score-formula { gap: 7px; }
-  .score-block { width: 51px; height: 52px; }
-  .score-block strong { font-size: 25px; }
-  .score-block > span { font-size: 7px; }
-  .total-score { min-width: 47px; }
-  .total-score strong { font-size: 30px; }
-  .action-buttons { min-width: 139px; }
-  .attack-button { font-size: 14px; }
-  .strategy-tip p { font-size: 9px; }
-  .strategy-tip button { display: none; }
-  .under-hand > span:last-child { font-size: 8px; }
   .footer-tagline { font-size: 9px; }
-  .journal-panel { min-height: 117px; }
-  .encounter-panel h2 { font-size: 20px; }
-  .tower-emblem { margin-top: 15px; margin-bottom: 13px; }
   .shop { padding: 20px; }
   .shop-items { gap: 9px; }
   .shop-card { padding: 10px; }
   .shop-card h3 { font-size: 12px; }
   .shop-card p { font-size: 9px; }
   .shop-banner p { max-width: 330px; }
-  .battlefield { height: 202px; }
-  .battlefield-content { padding: 19px; }
-  .battlefield h2 { font-size: 32px; margin-top: 9px; }
-  .formation { margin-top: 17px; }
-  .formation-slot { height: 46px; width: 39px; }
-  .hero-card-bottom { min-height: 57px; }
-  .hand-heading { margin-bottom: 20px; }
-  .under-hand { margin-top: 12px; }
-  .play-controls { min-height: 94px; padding-top: 12px; padding-bottom: 12px; }
-  .tower-emblem { height: 68px; width: 68px; }
-  .emblem-ring { width: 82px; height: 82px; }
-  .encounter-panel h2 { max-width: none; margin-bottom: 12px; }
-  .resource-panel { padding-top: 13px; padding-bottom: 13px; }
-  .resource-stat > strong { margin-top: 5px; margin-bottom: 8px; font-size: 32px; }
-  .economy-panel > div { padding: 10px 0; }
+  .formation-slot { width: 44px; height: 54px; }
 }
 @media (max-width: 980px) {
   .brand-caption, .brand-divider { display: none; }
   .topbar { height: 70px; }
   .main-nav { gap: 25px; }
-  .run-bar { min-height: 70px; }
+  .run-meta .autosave, .run-meta .run-id { display: none; }
   .game-layout { grid-template-columns: 185px minmax(0, 1fr); gap: 14px; }
+  .game-layout.two { grid-template-columns: 185px minmax(0, 1fr); }
   .sidebar { gap: 11px; }
   .play-area { gap: 14px; }
   .combo-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .encounter-panel { padding: 13px 12px 0; }
-  .encounter-panel .section-label { font-size: 9px; letter-spacing: .8px; }
-  .reward-row { margin: 0 -12px; padding: 12px; }
-  .reward-row > span { font-size: 10px; }
-  .encounter-panel h2 { font-size: 18px; margin-top: 6px; margin-bottom: 15px; }
-  .tower-emblem { transform: scale(.9); margin-top: 10px; margin-bottom: 10px; }
-  .resource-stat { padding: 0 10px; }
-  .resource-stat > span { font-size: 9px; }
-  .resource-stat > strong { font-size: 31px; }
-  .economy-panel { padding: 2px 10px; }
-  .economy-panel > div > span { font-size: 10px; }
-  .lives { gap: 1px; }
-  .lives svg { width: 11px; }
-  .economy-panel strong { font-size: 22px; }
-  .journal-panel { padding: 12px 10px; }
-  .journal-panel .section-label { font-size: 8px; letter-spacing: .7px; }
+  .scene-inner { padding: 16px 16px 18px; gap: 11px; }
+  .scene-target { gap: 12px; }
+  .scene-title h2 { font-size: 19px; }
+  .scene-emblem { width: 40px; height: 42px; }
+  .scene-hp-num strong { font-size: 29px; }
+  .scene-hp .health-track { width: 150px; }
+  .scene-reward { display: none; }
+  .rule-chip { font-size: 10px; padding: 4px 7px; }
+  .scene-stage { grid-template-columns: 1fr; gap: 14px; }
+  .scene-verdict { flex-direction: row; align-items: center; gap: 12px; }
+  .scene-verdict > small { flex: 1; }
+  .formation-slot { width: 40px; height: 49px; }
+  .formation-note { font-size: 9px; }
+  .score-formula { gap: 9px; }
+  .score-block { width: 60px; height: 54px; }
+  .score-block strong { font-size: 27px; }
+  .total-score { min-width: 60px; }
+  .total-score strong { font-size: 38px; }
+  .action-buttons { flex-direction: row; }
+  .action-buttons .primary-button { flex: 1; }
+  .discard-button { flex: 1; border: 1px solid #526243; border-radius: 4px; padding: 9px 10px; }
+  .band-build { flex-wrap: wrap; }
+  .band-hand { max-width: none; }
+  .hand-heading h2 { font-size: 14px; }
+  .hand-tools > span { display: none; }
+  .bottom-band .hero-art { height: 92px; }
+  .hero-name { font-size: 9px; bottom: 6px; line-height: 1.4; }
+  .hero-rank { font-size: 26px; }
+  .attribute-icon { font-size: 13px; right: 4px; }
+  .bottom-band .hero-card-bottom { min-height: 52px; padding: 1px 4px 5px; }
+  .hero-attribute { font-size: 7px; }
+  .hero-ability { font-size: 6.5px; margin-top: 5px; }
+  .card-foot { margin-top: 6px; font-size: 8px; }
+  .hero-hand { gap: 5px; }
+  .under-hand { font-size: 9px; }
+  .footer-tagline { display: none; }
   .journal-entries p { font-size: 10px; }
   .combo-guide { padding: 11px 9px; gap: 7px; }
   .guide-icon { width: 28px; }
   .combo-guide strong { font-size: 10px; }
   .combo-guide small { font-size: 9px; }
-  .inventory-panel { padding: 11px; }
   .inventory-help { display: none; }
-  .inventory-slots { gap: 6px; }
   .item-slot { height: 47px; }
   .item-art { width: 32px; }
   .item-slot > span:not(.item-slot-dot) { display: none; }
   .item-slot { justify-content: center; }
   .empty-slot > span { display: none; }
-  .battlefield { height: 211px; }
-  .battlefield-content { padding: 22px; }
-  .battlefield h2 { font-size: 29px; }
-  .battlefield p { font-size: 10px; }
-  .formation { margin-top: 21px; }
-  .formation-slot { width: 36px; height: 45px; }
-  .formation-note { font-size: 8px; }
-  .hand-heading h2 { font-size: 14px; }
-  .hand-tools > span { display: none; }
-  .hero-art { height: 87px; }
-  .hero-name { font-size: 9px; bottom: 6px; line-height: 1.4; }
-  .hero-rank { font-size: 26px; }
-  .attribute-icon { font-size: 13px; right: 4px; }
-  .hero-card-bottom { padding: 1px 4px 5px; min-height: 51px; }
-  .hero-attribute { font-size: 7px; }
-  .hero-ability { font-size: 5.5px; margin-top: 5px; }
-  .card-foot { margin-top: 6px; font-size: 8px; }
-  .hero-hand { gap: 5px; }
-  .play-controls { flex-wrap: wrap; padding: 13px 14px; gap: 12px; }
-  .combo-preview { flex: 1; min-width: 120px; }
-  .score-block { width: 49px; height: 44px; }
-  .score-block strong { font-size: 24px; }
-  .total-score strong { font-size: 28px; }
-  .action-buttons { flex-direction: row; width: 100%; gap: 12px; }
-  .action-buttons .primary-button { flex: 1; }
-  .discard-button { flex: 1; border: 1px solid #526243; border-radius: 4px; }
-  .attack-button { padding: 7px 12px; }
-  .under-hand > span:last-child { display: none; }
-  .footer-tagline { display: none; }
-  .run-id { font-size: 10px; }
-  .run-tools { gap: 14px; }
-  .autosave { font-size: 9px; }
-  .subtle-button { font-size: 10px; }
   .shop { padding: 17px; }
   .shop-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .shop-card { min-height: 210px; }
@@ -809,108 +835,92 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .header-right { gap: 3px; margin-left: 4px; }
   .version { display: none; }
   .header-right .icon-button { width: 28px; }
-  .page-shell { padding: 0 16px; }
-  .run-bar { min-height: 66px; }
-  .run-heading { gap: 8px; }
-  .run-heading h1 { font-size: 17px; }
-  .run-id, .run-divider, .act-name, .autosave { display: none; }
-  .run-heading .live-dot { width: 5px; height: 5px; }
-  .act-pill { font-size: 9px; padding: 3px 5px; margin-left: 4px; }
-  .subtle-button { font-size: 9px; gap: 5px; }
-  .game-layout { display: flex; flex-direction: column; gap: 15px; }
-  .sidebar { display: grid; grid-template-columns: 1.35fr 1fr; gap: 10px; }
-  .encounter-panel { grid-row: span 2; text-align: left; padding: 12px; display: grid; grid-template-columns: 1fr; position: relative; }
-  .encounter-panel .section-label { font-size: 8px; width: 100%; z-index: 1; }
-  .tower-emblem { position: absolute; top: 31px; right: 9px; width: 40px; height: 43px; transform: scale(.65); transform-origin: right top; margin: 0; opacity: .5; }
-  .tower-emblem .emblem-ring { display: none; }
-  .enemy-faction { font-size: 7px; letter-spacing: 1px; margin-top: 11px; }
-  .encounter-panel h2 { font-size: 15px; line-height: 1.4; margin: 4px 38px 8px 0; max-width: none; }
-  .target-health { justify-content: flex-start; gap: 4px; }
-  .target-health strong { font-size: 25px; }
-  .target-health > span { font-size: 10px; }
-  .target-health svg { width: 11px; }
-  .health-track { margin: 8px 0; height: 4px; }
-  .wave-rule { justify-content: flex-start; font-size: 8px; margin-bottom: 8px; min-height: 12px; }
-  .wave-rule svg { width: 10px; }
-  .reward-row { padding: 8px 12px; margin: 0 -12px -12px; }
-  .reward-row > span { font-size: 9px; }
-  .reward-row b { font-size: 14px; }
-  .reward-row svg { width: 12px; }
-  .resource-panel { padding: 11px 0; align-self: stretch; }
-  .resource-stat { padding: 0 10px; }
-  .resource-stat > span { font-size: 8px; gap: 4px; }
-  .resource-stat > span svg { width: 11px; }
-  .resource-stat > strong { font-size: 29px; margin: 5px 0 7px; }
-  .resource-stat small { font-size: 12px; }
-  .resource-pips { gap: 3px; }
-  .economy-panel { padding: 1px 11px; }
-  .economy-panel > div { padding: 9px 0; }
-  .economy-panel > div > span { font-size: 9px; gap: 5px; }
-  .economy-panel > div > span svg { width: 12px; }
-  .economy-panel strong { font-size: 21px; }
-  .economy-panel strong small { font-size: 9px; }
-  .lives svg { width: 10px; }
-  .journal-panel, .combo-guide { display: none; }
-  .play-area { gap: 15px; }
-  .inventory-panel { padding: 11px 12px; }
-  .inventory-heading { margin-bottom: 9px; }
-  .inventory-heading .section-label { font-size: 9px; }
-  .inventory-slots { gap: 7px; }
-  .item-slot { height: 45px; }
-  .item-art { width: 39px; height: 34px; }
-  .battlefield { height: 203px; background-position: 57% center; }
-  .battlefield-content { padding: 20px; }
-  .battlefield h2 { font-size: 29px; margin-top: 10px; }
-  .battlefield p { font-size: 9px; }
-  .battlefield-eyebrow { font-size: 8px; letter-spacing: 1.1px; }
-  .formation { gap: 11px; margin-top: 20px; }
-  .formation-slot { width: 33px; height: 42px; }
+  .header-right .subtle-button { font-size: 0; gap: 0; }
+  .header-right .subtle-button svg { width: 15px; height: 15px; }
+  .page-shell { padding: 0 14px; min-height: calc(100vh - 66px); }
+  .run-meta { margin-top: 10px; }
+  .game-layout, .game-layout.two { display: flex; flex-direction: column; gap: 14px; }
+  .sidebar { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; }
+  .run-panel { grid-row: span 2; }
+  .journal-panel, .effects-panel { grid-column: 1 / -1; }
+  .combo-guide { display: none; }
+  .scene-inner { padding: 14px; gap: 10px; }
+  .scene-target { flex-wrap: wrap; gap: 10px; }
+  .scene-title { flex: 1; min-width: 130px; }
+  .scene-title h2 { font-size: 16px; white-space: normal; }
+  .scene-emblem { width: 34px; height: 36px; }
+  .scene-emblem svg { width: 18px; height: 18px; }
+  .scene-hp { margin-left: 0; width: 100%; }
+  .scene-hp-num strong { font-size: 26px; }
+  .scene-hp .health-track { width: 100%; margin-top: 6px; }
+  .rule-chip { font-size: 9.5px; padding: 4px 7px; }
+  .scene-stage { grid-template-columns: 1fr; gap: 12px; }
+  .scene-formation { gap: 10px; }
+  .formation-slot { width: 36px; height: 45px; }
   .formation-cards { gap: 6px; }
-  .arena-label { font-size: 6px; letter-spacing: 1px; right: 12px; bottom: 12px; }
-  .enemy-mark { right: 17%; top: 60px; }
-  .hand-heading { margin-bottom: 20px; gap: 8px; }
+  .combo-preview > strong { font-size: 17px; }
+  .score-formula { gap: 7px; }
+  .score-block { width: 52px; height: 48px; }
+  .score-block strong { font-size: 24px; }
+  .total-score { min-width: 54px; }
+  .total-score strong { font-size: 34px; }
+  .scene-verdict { padding: 10px 12px; }
+  .scene-verdict > b { font-size: 16px; }
+  .arena-label { display: none; }
+  .band-label { width: 100%; }
+  .build-strip { flex-wrap: wrap; }
+  .hand-heading { flex-wrap: wrap; gap: 8px; }
   .hand-heading h2 { font-size: 15px; gap: 8px; }
   .hand-heading h2 > span { font-size: 10px; }
   .sort-button { font-size: 9px; padding: 4px 5px; }
   .deck-button { padding-left: 8px; margin-left: 4px; font-size: 10px; }
   .deck-button svg { width: 15px; }
-  .hero-hand { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 9px; }
-  .hero-art { height: 99px; }
+  .hero-hand { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+  .bottom-band .hero-art { height: 99px; }
   .hero-rank { font-size: 29px; left: 7px; }
   .attribute-icon { font-size: 14px; right: 7px; }
   .hero-name { font-size: 10px; left: 7px; bottom: 7px; }
-  .hero-card-bottom { min-height: 53px; padding: 0 7px 5px; }
+  .bottom-band .hero-card-bottom { min-height: 53px; padding: 0 7px 5px; }
   .hero-attribute { font-size: 6.5px; }
   .hero-ability { font-size: 7px; }
   .card-foot { font-size: 9px; margin-top: 6px; }
-  .hero-card.selected { transform: translateY(-6px); }
-  .hero-card:hover { transform: translateY(-6px); }
-  .hero-card.selected:hover { transform: translateY(-8px); }
+  .hero-card.selected, .hero-card:hover { transform: translateY(-5px); }
   .selection-order { height: 18px; font-size: 8px; min-width: 28px; top: -9px; right: -4px; }
   .under-hand { margin-top: 12px; font-size: 9px; }
-  .play-controls { padding: 15px; gap: 15px; }
-  .combo-preview { min-width: 115px; }
-  .combo-preview > strong { font-size: 17px; }
-  .combo-preview .section-label { font-size: 7px; letter-spacing: 1px; }
-  .combo-preview > small { font-size: 9px; }
-  .score-formula { gap: 7px; }
-  .score-block { width: 43px; height: 45px; }
-  .score-block strong { font-size: 25px; }
-  .score-block > span { font-size: 7px; }
-  .score-formula > svg { width: 11px; }
-  .total-score { min-width: 43px; }
-  .total-score strong { font-size: 28px; }
-  .total-score > span { font-size: 7px; }
-  .action-buttons { gap: 10px; }
-  .attack-button { padding: 9px 10px; font-size: 15px; }
-  .discard-button { font-size: 12px; }
-  .strategy-tip { padding: 0 3px; }
-  .strategy-tip p { font-size: 9px; line-height: 1.8; }
-  .strategy-tip strong { display: block; }
   .footer { margin-top: 20px; padding: 16px 0 22px; }
   .act-progress { gap: 7px; }
   .act-progress > span { font-size: 8px; gap: 4px; }
   .act-progress i { width: 10px; margin-left: 4px; }
+  .route-screen { padding: 20px 16px 24px; }
+  .route-cards { grid-template-columns: 1fr; }
+  .shop { padding: 17px 14px; }
+  .shop-banner { padding-bottom: 18px; gap: 10px; position: relative; }
+  .shop-banner h2 { font-size: 26px; }
+  .shop-banner p { font-size: 9px; max-width: 200px; }
+  .shop-banner .section-label { font-size: 8px; letter-spacing: 1px; }
+  .shop-gold { font-size: 23px; gap: 5px; align-self: flex-start; margin-top: 6px; }
+  .shop-gold svg { width: 15px; }
+  .shop-emblem { width: 38px; height: 43px; }
+  .shop-banner > div:nth-child(2) { flex: 1; }
+  .shop-section-title { margin: 17px 0 13px; }
+  .shop-section-title h3 { font-size: 12px; }
+  .shop-section-title .secondary-button { font-size: 9px; padding: 7px 9px; }
+  .shop-card { padding: 12px; min-height: 223px; }
+  .shop-card h3 { font-size: 13px; }
+  .shop-card p { font-size: 10px; }
+  .shop-hint-row { display: none; }
+  .recruit-row { grid-template-columns: 1fr; }
+  .end-screen { min-height: 465px; padding: 25px 20px; }
+  .end-screen h2 { font-size: 28px; }
+  .end-screen p { font-size: 13px; }
+  .end-stats { gap: 25px; margin: 26px 0; }
+  .end-stats strong { font-size: 26px; }
+  .end-stats span { font-size: 9px; }
+  .toast { font-size: 12px; padding: 12px; bottom: 16px; }
+  .breakdown-total > span { font-size: 10px; }
+  .breakdown-total strong { font-size: 28px; }
+  .onboarding-modal { width: 100%; }
+  .demo-risk { grid-template-columns: 1fr; }
   .modal-backdrop { padding: 12px; }
   .modal { padding: 26px 19px; max-height: 93vh; border-radius: 9px; }
   .modal h2 { font-size: 26px; max-width: 95%; }
@@ -938,36 +948,6 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .collection-item > div .collection-item-art { width: 76px; }
   .deck-summary { gap: 12px; font-size: 10px; justify-content: center; padding: 11px; }
   .deck-summary b { margin-left: 3px; }
-  .shop { padding: 17px 14px; }
-  .shop-banner { padding-bottom: 18px; gap: 10px; position: relative; }
-  .shop-banner h2 { font-size: 26px; }
-  .shop-banner p { font-size: 9px; max-width: 200px; }
-  .shop-banner .section-label { font-size: 8px; letter-spacing: 1px; }
-  .shop-gold { font-size: 23px; gap: 5px; align-self: flex-start; margin-top: 6px; }
-  .shop-gold svg { width: 15px; }
-  .shop-emblem { width: 38px; height: 43px; }
-  .shop-banner > div:nth-child(2) { flex: 1; }
-  .shop-section-title { margin: 17px 0 13px; }
-  .shop-section-title h3 { font-size: 12px; }
-  .shop-section-title .secondary-button { font-size: 9px; padding: 7px 9px; }
-  .shop-card { padding: 12px; min-height: 223px; }
-  .shop-card h3 { font-size: 13px; }
-  .shop-card p { font-size: 10px; }
-  .shop-bottom { margin-top: 19px; gap: 16px; }
-  .shop-bottom .section-label { font-size: 9px; }
-  .shop-bottom strong { font-size: 13px; }
-  .shop-hint { font-size: 9px; line-height: 1.8; }
-  .end-screen { min-height: 465px; padding: 25px 20px; }
-  .end-screen h2 { font-size: 28px; }
-  .end-screen p { font-size: 13px; }
-  .end-stats { gap: 25px; margin: 26px 0; }
-  .end-stats strong { font-size: 26px; }
-  .end-stats span { font-size: 9px; }
-  .toast { font-size: 12px; padding: 12px; bottom: 16px; }
-  .breakdown-total > span { font-size: 10px; }
-  .breakdown-total strong { font-size: 28px; }
-  .onboarding-modal { width: 100%; }
-  .demo-risk { grid-template-columns: 1fr; }
 }
 /* ---------- v0.4: развилка маршрутов ---------- */
 .route-screen { padding: 26px 28px 30px; text-align: center; }
@@ -4149,9 +4129,11 @@ const Art = (function () {
 
 </script>
   <script>
-// Dalatro — UI v3 ("lane" edition). Reads state, renders DOM, dispatches
+// Dalatro — UI v4 ("decision" edition). Reads state, renders DOM, dispatches
 // actions via data-attributes. Never a source of truth: State -> Render.
-// Layout: topbar → run-bar → [sidebar | play-area | combos panel] → footer.
+// Layout: topbar (with run meta) → [sidebar | battle scene | context] →
+// bottom band (hand full-width / build) → footer.
+// Центр — место принятия решения: цель + формула + приговор + CTA.
 const UI = (function () {
   const FIGHTS = Game.FIGHTS_PER_WAVE;
   const DISCARDS = Game.DISCARDS_PER_WAVE;
@@ -4239,6 +4221,7 @@ const UI = (function () {
     onboardingStep: 0,
     motion: true,
     debugOpen: false,
+    journalOpen: false,
     toast: "",
     tipIndex: Math.floor(Date.now() / 86400000) % TIPS.length,
     // Входные анимации играют только когда коллекция реально обновилась
@@ -4258,6 +4241,10 @@ const UI = (function () {
 
   function esc(str) {
     return String(str).replace(/"/g, "&quot;");
+  }
+
+  function fmt(n) {
+    return Number(n).toLocaleString("ru");
   }
 
   function icon(name, size) {
@@ -4290,6 +4277,22 @@ const UI = (function () {
     if (!state.combat.selectedUids.length || state.player.fightsLeft <= 0) return null;
     const clone = Sim.simulate(state, { type: "CONFIRM_FIGHT" });
     return clone ? clone.combat.lastResolution : null;
+  }
+
+  // Лучший харас из руки: какой урон нанесёт самая сильная одиночная карта.
+  // Порог для состояния приговора «ЕЩЁ 1 УДАР» — только он, без субъективности.
+  function computeHarass(state) {
+    if (state.phase !== "wave" || state.combat.outcome || state.player.fightsLeft <= 0) return 0;
+    const mined = state.combat.minedUids || [];
+    let best = 0;
+    for (const uid of state.player.handUids) {
+      if (mined.includes(uid)) continue;
+      const probe = { ...state, combat: { ...state.combat, selectedUids: [uid] } };
+      const clone = Sim.simulate(probe, { type: "CONFIRM_FIGHT" });
+      const res = clone && clone.combat.lastResolution;
+      if (res && !res.blocked) best = Math.max(best, res.damage);
+    }
+    return best;
   }
 
   // Which combos the CURRENT HAND could assemble (not just the selection).
@@ -4383,88 +4386,116 @@ const UI = (function () {
     </button>`;
   }
 
-  function waveRuleRows(state) {
+  // Правила текущей цели — чипы в шапке сцены (читаются перед каждым боем).
+  function waveRuleChips(state) {
     const wave = state.combat.wave;
     const disarmed = state.player.items.includes("sentry") || state.player.items.includes("bkb");
-    const rows = [];
+    const bkb = state.player.items.includes("bkb");
+    const chips = [];
     for (const m of wave.modifiers || []) {
       const def = Content.modifiers.byId[m.id];
       if (!def) continue;
       let text = "";
       let used = false;
+      let danger = false;
       if (m.id === "armor") text = state.rules === "formation" ? "Укрепления: первый бой ×0.5" : "Броня: первый бой ×0.5";
       else if (m.id === "glyph") text = "Глиф: каждый 3-й бой = 0";
       else if (m.id === "mines") {
         used = disarmed;
+        danger = !disarmed;
         text = disarmed ? "Мины обезврежены Sentry/BKB" : "Мины: 2 карты руки закрыты";
-      } else if (m.id === "aegis") text = wave.aegisUsed ? "Aegis потрачен" : "Aegis: возрождение с 50% HP";
-      else if (def.curse) {
-        used = state.player.items.includes("bkb");
+      } else if (m.id === "aegis") {
+        used = wave.aegisUsed;
+        text = wave.aegisUsed ? "Aegis потрачен" : "Aegis: возрождение с 50% HP";
+      } else if (def.curse) {
+        used = bkb;
+        danger = !bkb;
         text = used ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
       }
-      rows.push(`<div class="wave-rule ${used ? "done" : ""} ${def.curse && !used ? "danger" : ""}">${icon("shield", 13)}<span>${text}</span></div>`);
+      chips.push(`<span class="rule-chip ${used ? "done" : ""} ${danger ? "danger" : ""}">${icon("shield", 12)}<span>${text}</span></span>`);
     }
     if (state.rules === "formation") {
-      // Третья ось: числовая защита цели — телеграфируется до боя.
       const d = Content.towerDefense.byId[wave.towerId];
       if (d && (d.armor || d.mr)) {
-        const bkb = state.player.items.includes("bkb");
         const parts = [];
         if (d.armor) parts.push(`броня ${d.armor}`);
         if (d.mr) parts.push(`сопротивление ${Math.round(d.mr * 100)}%`);
-        rows.push(`<div class="wave-rule ${bkb ? "done" : ""}">${icon("shield", 13)}<span>Защита: ${parts.join(" · ")}${bkb ? " — снимает BKB" : ""}</span></div>`);
+        chips.push(`<span class="rule-chip ${bkb ? "done" : ""}">${icon("shield", 12)}<span>Защита: ${parts.join(" · ")}${bkb ? " — снимает BKB" : ""}</span></span>`);
       }
     }
     if (wave.elite) {
-      rows.push(`<div class="wave-rule momentum">${icon("sparkles", 13)}<span>Элитная добыча: золото ×1.5, эпик в лавке</span></div>`);
+      chips.push(`<span class="rule-chip elite">${icon("sparkles", 12)}<span>Элитная добыча: золото ×1.5, эпик в лавке</span></span>`);
     }
     if ((wave.enemyItems || []).includes("rapier")) {
-      rows.push(`<div class="wave-rule danger">${icon("zap", 13)}<span>Враг держит Рапиру: твой урон ×0.5</span></div>`);
+      chips.push(`<span class="rule-chip danger">${icon("zap", 12)}<span>Враг держит Рапиру: твой урон ×0.5</span></span>`);
     }
-    const mom = state.run.momentum || 0;
-    if (mom > 0) {
-      const mult = (1 + Math.min(mom, Combat.MOMENTUM_CAP) * Combat.MOMENTUM_STEP).toFixed(2).replace(/0$/, "");
-      rows.push(`<div class="wave-rule momentum">${icon("flame", 13)}<span>Импульс ×${mult} — серия ${mom} волн</span></div>`);
+    if ((wave.modifiers || []).some((m) => m.id === "glyph") && state.combat.fightIndex % 3 === 2 && !bkb) {
+      chips.push(`<span class="rule-chip danger pulse">${icon("skull", 12)}<span>Этот бой блокирует глиф — играй минимальный отряд</span></span>`);
     }
-    if ((wave.modifiers || []).some((m) => m.id === "glyph") && state.combat.fightIndex % 3 === 2 && !state.player.items.includes("bkb")) {
-      rows.push(`<div class="wave-rule danger">${icon("skull", 13)}<span>Этот бой заблокирует глиф — играй минимальный отряд!</span></div>`);
-    }
-    return rows.join("");
+    return chips.join("");
   }
 
-  function sidebarHtml(state) {
-    const wave = state.combat.wave;
-    const hpPct = Math.max(0, Math.round((wave.hp / wave.maxHp) * 100));
-    const isBoss = !!wave.isBoss;
-    const ruleText = wave.isBoss ? "Aegis: возрождение с 50% HP" : "Постройка Света";
-    void ruleText;
-    const faction = isBoss || wave.miniBoss ? "БОСС АКТА" : "ПОСТРОЙКА СВЕТА";
+  function momentumInfo(state) {
+    const mom = state.run.momentum || 0;
+    const mult = (1 + Math.min(mom, Combat.MOMENTUM_CAP) * Combat.MOMENTUM_STEP).toFixed(2).replace(/0$/, "");
+    return { mom, mult };
+  }
+
+  // Шаги акта: в волне «текущая» = сражаемая; в лавке/развилке пройденная
+  // закрыта, а «текущая» — следующая (на границе акта весь акт закрыт).
+  function actStepsHtml(state) {
+    const meta = state.phase === "shop" || state.phase === "route";
+    const pos = state.run.waveIndex + (meta ? 1 : 0);
+    const slot = pos % 5;
+    const actClosed = meta && slot === 0;
+    return [1, 2, 3, 4, 5].map((n, i) => {
+      const cls = i === slot && !actClosed ? "current" : i < slot || actClosed ? "complete" : "";
+      const ico = i === 4 ? icon("skull", 12) : cls === "complete" ? icon("check", 11) : icon("castle", 12);
+      return `<span class="${cls}">${ico}<span>${n}</span>${i < 4 ? "<i></i>" : ""}</span>`;
+    }).join("");
+  }
+
+  function runPosition(state) {
+    const meta = state.phase === "shop" || state.phase === "route";
+    const idx = Math.min(state.run.waveIndex + (meta ? 1 : 0), Content.waves.order.length);
+    return {
+      act: Math.min(Math.floor(idx / 5) + 1, 3),
+      wave: idx % 5 + 1,
+      cleared: idx,
+    };
+  }
+
+  // mode: "wave" — с ресурсами боя; "meta" — только состояние забега (лавка/развилка).
+  function sidebarHtml(state, mode) {
+    const waveMode = mode === "wave";
+    const { mom, mult } = momentumInfo(state);
+    const pos = runPosition(state);
+    const journalEntries = (UIState.journalOpen ? state.log.slice(-6) : state.log.slice(-1)).slice().reverse();
     return `
-    <section class="encounter-panel panel">
-      <div class="section-label"><span>ТЕКУЩАЯ ЦЕЛЬ</span><span class="wave-badge">АКТ ${state.run.act || 1} · волна ${state.run.waveIndex % 5 + 1}/5</span></div>
-      <div class="tower-emblem ${isBoss ? "boss" : ""}">${isBoss || wave.miniBoss ? icon("skull", 37) : icon("castle", 37)}<span class="emblem-ring"></span></div>
-      <span class="enemy-faction">${faction}</span>
-      <h2>${wave.name}${wave.miniBoss ? " — мини-босс" : ""}</h2>
-      <div class="target-health">${icon("heart", 13)}<strong>${Math.max(0, wave.hp).toLocaleString("ru")}</strong><span>/ ${wave.maxHp.toLocaleString("ru")}</span></div>
-      <div class="health-track"><div style="width:${hpPct}%"></div></div>
-      ${waveRuleRows(state)}
-      <div class="reward-row"><span>Награда за победу</span><b>${icon("coins", 14)}${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}+</b></div>
-    </section>
-    <section class="resource-panel panel">
-      <div class="resource-stat"><span>${icon("swords", 13)}Тимфайты</span><strong class="mint">${state.player.fightsLeft}<small> / ${FIGHTS}</small></strong>
-        <div class="resource-pips">${Array.from({ length: FIGHTS }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
-      <div class="resource-stat"><span>${icon("rotate", 13)}ТП-сбросы</span><strong class="blue">${state.player.discardsLeft}<small> / ${DISCARDS}</small></strong>
-        <div class="resource-pips">${Array.from({ length: DISCARDS }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>
-    </section>
-    <section class="economy-panel panel">
-      <div><span>${icon("coins", 15)}Твоё золото</span><strong class="gold">${state.run.gold}<small> G</small></strong></div>
-      <div><span>${icon("castle", 15)}Казармы</span><div class="lives">${Array.from({ length: BARRACKS }, (_, i) =>
+    <section class="panel run-panel">
+      <div class="section-label"><span>${icon("leaf", 13)}ЗАБЕГ</span><span class="wave-badge">АКТ ${pos.act} · волна ${pos.wave}/5</span></div>
+      <div class="act-steps">${actStepsHtml(state)}</div>
+      <div class="run-row"><span>${icon("coins", 14)}Золото</span><strong class="gold">${state.run.gold}<small> G</small></strong></div>
+      <div class="run-row"><span>${icon("castle", 14)}Казармы</span><div class="lives">${Array.from({ length: BARRACKS }, (_, i) =>
       `<span class="${i < state.run.barracks ? "alive" : ""}" title="Казармы: ${BARRACKS} жизней забега">${icon("shield", 13)}</span>`).join("")}</div></div>
+      ${waveMode ? `
+      <div class="run-row"><span>${icon("swords", 14)}Тимфайты</span><div class="resource-pips">${Array.from({ length: FIGHTS }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
+      <div class="run-row"><span>${icon("rotate", 14)}ТП-сбросы</span><div class="resource-pips">${Array.from({ length: DISCARDS }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>` : ""}
     </section>
-    <section class="journal-panel panel">
-      <div class="section-label"><span>${icon("history", 13)}ЖУРНАЛ БОЯ</span><button class="icon-button small" data-action="open-modal" data-modal="history" title="Весь журнал">${icon("maximize", 12)}</button></div>
-      <div class="journal-entries">${state.log.slice(-3).reverse().map((entry, i) =>
-      `<div class="${i === 0 ? "latest" : ""}"><span class="log-dot"></span><p>${esc(entry)}</p></div>`).join("")}</div>
+    <section class="panel effects-panel">
+      <div class="section-label"><span>${icon("flame", 13)}ЭФФЕКТЫ</span></div>
+      ${mom > 0
+      ? `<div class="effect-row momentum">${icon("flame", 13)}<span>Импульс ×${mult}<small>серия ${mom} волн подряд</small></span></div>`
+      : `<div class="effect-row none">Серия не начата — зачищай волны подряд</div>`}
+    </section>
+    <section class="panel journal-panel ${UIState.journalOpen ? "open" : ""}">
+      <div class="section-label"><span>${icon("history", 13)}ЖУРНАЛ</span>
+        <span class="journal-tools">
+          <button class="icon-button small" data-action="show-tip" title="Совет дня">${icon("sparkles", 12)}</button>
+          <button class="icon-button small chevron-btn" data-action="toggle-journal" title="${UIState.journalOpen ? "Свернуть журнал" : "Развернуть журнал"}">${icon("chevron", 12)}</button>
+        </span></div>
+      <div class="journal-entries">${journalEntries.map((entry, i) =>
+      `<div class="${i === 0 ? "latest" : ""}"><span class="log-dot"></span><p>${esc(entry)}</p></div>`).join("") || '<div class="effect-row none">Пока тихо.</div>'}</div>
       <button class="text-button" data-action="open-modal" data-modal="history">Вся история ${icon("arrow", 12)}</button>
     </section>
     <button class="combo-guide" data-action="open-modal" data-modal="help">
@@ -4473,7 +4504,252 @@ const UI = (function () {
     </button>`;
   }
 
-  function inventoryHtml(state) {
+  // ---------- battle scene (центр = решение) ----------
+
+  function verdictHtml(state, preview, harass) {
+    if (!preview || state.combat.outcome) {
+      return `<div class="scene-verdict idle"><b>${icon("eye", 15)} ПРИГОВОР</b><small>Выбери героев — игра скажет, падает ли башня этим ударом</small></div>`;
+    }
+    const hp = Math.max(0, state.combat.wave.hp);
+    if (preview.blocked) {
+      return `<div class="scene-verdict blocked"><b>${icon("skull", 15)} ГЛИФ: УРОН = 0</b><small>Бой заблокирован глифом — играй минимальный отряд</small></div>`;
+    }
+    if (preview.damage >= hp && hp > 0) {
+      return `<div class="scene-verdict kill"><b>${icon("check", 15)} БАШНЯ ПАДАЕТ</b><small>${fmt(preview.damage)} урона при ${fmt(hp)} HP цели</small></div>`;
+    }
+    const remain = hp - preview.damage;
+    if (harass >= remain && remain > 0) {
+      return `<div class="scene-verdict harass"><b>${icon("zap", 15)} ЕЩЁ 1 УДАР</b><small>Лучший харас из руки (${fmt(harass)}) добьёт остаток ${fmt(remain)} HP — не трать коммит</small></div>`;
+    }
+    return `<div class="scene-verdict remain"><b>${icon("shield", 15)} ОСТАНЕТСЯ ${fmt(remain)} HP</b><small>До добивания не хватает — усиль отряд или найди формацию побольше</small></div>`;
+  }
+
+  function commitInfoHtml(state, preview) {
+    const chips = [];
+    const n = preview ? preview.playedCount || state.combat.selectedUids.length : 0;
+    const tier = Combat.COMMIT_TIERS[n];
+    if (tier) {
+      chips.push(tier.finalMult !== 1
+        ? `<span class="commit-chip">СТАВКА ×${tier.finalMult}</span>`
+        : `<span class="commit-chip neutral">ХАРАС +${tier.gold}G</span>`);
+    }
+    const { mom, mult } = momentumInfo(state);
+    if (mom > 0) {
+      chips.push(`<span class="commit-chip momentum">ИМПУЛЬС ×${mult}</span>`);
+    }
+    return chips.length ? `<div class="commit-row">${chips.join("")}</div>` : "";
+  }
+
+  function battleSceneHtml(state, preview, harass) {
+    const wave = state.combat.wave;
+    const max = Game.maxSlots(state);
+    const hp = Math.max(0, wave.hp);
+    const hpPct = Math.max(0, Math.round((hp / wave.maxHp) * 100));
+    const isBoss = !!wave.isBoss;
+    const faction = isBoss || wave.miniBoss ? "БОСС АКТА" : "ПОСТРОЙКА СВЕТА";
+    const slots = Array.from({ length: max }, (_, i) => {
+      const uid = state.combat.selectedUids[i];
+      const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
+      if (hero) {
+        return `<div class="formation-slot occupied" data-tip>${Art.heroArt(hero)}
+          <span class="slot-idx">${i + 1}</span><span class="slot-name">${hero.name}</span>
+          <span class="pop"><strong>${hero.name}</strong><p>${esc(heroDesc(hero))}</p><small>Слот ${i + 1} · порядок выбора = позиция в бою</small></span>
+        </div>`;
+      }
+      return `<div class="formation-slot">${icon("plus", 14)}<span class="slot-idx">${i + 1}</span></div>`;
+    }).join("");
+    const combo = preview ? preview.combo : null;
+    const canFight = preview && !state.combat.outcome && state.player.fightsLeft > 0;
+    const canDiscard = state.combat.selectedUids.length > 0 && state.player.discardsLeft > 0 && !state.combat.outcome;
+    const power = preview ? preview.power : 0;
+    const mult = preview ? Math.round(preview.mult * 100) / 100 : 0;
+    const damage = preview ? preview.damage : 0;
+    return `<section class="battle-scene" id="battlefield">
+      <div class="scene-shade"></div>
+      <div class="scene-inner">
+        <header class="scene-target">
+          <div class="scene-emblem ${isBoss ? "boss" : ""}">${isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30)}</div>
+          <div class="scene-title">
+            <span class="section-label">${faction} · ВОЛНА ${state.run.waveIndex % 5 + 1}/5</span>
+            <h2>${wave.name}${wave.miniBoss ? " — мини-босс" : ""}</h2>
+          </div>
+          <div class="scene-hp">
+            <div class="scene-hp-num">${icon("heart", 14)}<strong>${fmt(hp)}</strong><span>/ ${fmt(wave.maxHp)}</span></div>
+            <div class="health-track"><div style="width:${hpPct}%"></div></div>
+          </div>
+          <div class="scene-reward"><span>Награда</span><b>${icon("coins", 13)}${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}+</b></div>
+        </header>
+        <div class="rule-chips">${waveRuleChips(state)}</div>
+        <div class="scene-stage">
+          <div class="scene-play">
+            <div class="scene-formation">
+              <div class="formation-cards">${slots}</div>
+              <span class="formation-note">Порядок выбора —<br>порядок в бою</span>
+            </div>
+            <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
+              <span class="section-label">${combo ? (combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
+              <strong>${combo ? combo.name : "Собери тимфайт"} ${icon("chevron", 14)}</strong>
+              <small>${combo ? comboSubtitle(combo) : "Сила героев × множитель"}</small>
+            </button>
+            <div class="scene-formula">
+              <div class="score-formula">
+                <div class="score-block power"><strong>${power}</strong><span>СИЛА</span></div>
+                <span class="times">${icon("x", 14)}</span>
+                <div class="score-block multiplier"><strong>${mult}</strong><span>МНОЖ.</span></div>
+                <span class="equals">=</span>
+                <div class="total-score"><strong>${fmt(damage)}</strong><span>УРОНА</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="scene-side">
+            ${verdictHtml(state, preview, harass)}
+            ${commitInfoHtml(state, preview)}
+            <div class="action-buttons">
+              <button class="primary-button attack-button" ${canFight ? "" : "disabled"} data-action="fight">${icon("swords", 17)}В бой<kbd>↵</kbd></button>
+              <button class="discard-button" ${canDiscard ? "" : "disabled"} data-action="discard">${icon("rotate", 14)}ТП-сброс<kbd>R</kbd></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="arena-label"><span class="radial-dot"></span><span>ТЕРРИТОРИЯ СВЕТА</span></div>
+    </section>`;
+  }
+
+  // ---------- right context panel ----------
+
+  function activeScoreBlock(state, preview) {
+    return `<div class="active-formation">
+      <strong>${preview.combo.name}</strong>
+      <small>${comboSubtitle(preview.combo)}</small>
+      <div class="active-value"><b class="mint">${preview.power}</b><span>×</span><b class="gold">${Math.round(preview.mult * 100) / 100}</b><em>= ${fmt(preview.damage)}</em></div>
+    </div>`;
+  }
+
+  function contextEmptyHtml(text) {
+    return `<div class="context-empty">${icon("target", 20)}<p>${text}</p></div>`;
+  }
+
+  function formationContextHtml(state, preview) {
+    const dtName = (dt) => Content.damageTypeNames[dt] || dt;
+    const combo = preview ? preview.combo : null;
+    let active;
+    if (combo) {
+      const bonds = (combo.bonds || []).map((b) => {
+        const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
+        return `<div class="bond-row"><strong>${b.trait}</strong><span>${val}</span></div>`;
+      }).join("");
+      active = activeScoreBlock(state, preview)
+        + (bonds ? `<div class="section-label inner-label">${icon("sparkles", 12)}АКТИВНЫЕ СВЯЗКИ</div><div class="bond-rows">${bonds}</div>` : "");
+    } else {
+      active = contextEmptyHtml("Выбери героев — собранная формация и её связки появятся здесь.");
+    }
+    let alts = "";
+    if (combo && combo.alternatives && combo.alternatives.length > 1) {
+      const rows = combo.alternatives.slice().sort((a, b) => b.damage - a.damage).slice(0, 5).map((f) =>
+        `<div class="combo-row ${f.id === combo.type ? "hit" : ""}" data-tip>
+          <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}${f.positional ? " · порядок" : ""}</small></div>
+          <div class="combo-row-value"><b class="gold">${fmt(f.damage)}</b><span>урона</span></div>
+          <span class="pop side"><strong>${f.name}</strong><p>${esc(f.rule)}</p><small>${dtName(f.damageType)} урон против защиты этой башни</small></span>
+        </div>`).join("");
+      alts = `<section class="panel context-inner">
+        <div class="section-label"><span>${icon("swords", 13)}ПРОТИВ ЭТОЙ ЦЕЛИ</span></div>
+        <div class="combo-rows">${rows}</div>
+        <div class="combo-legend"><span>Базы формаций — без способностей и ставки, сравнивай их между собой</span><span>Переставляй героев — урон меняется</span></div>
+      </section>`;
+    }
+    return `<aside class="context-panel">
+      <section class="panel context-inner">
+        <div class="section-label"><span>${icon("target", 13)}ТВОЯ ФОРМАЦИЯ</span></div>
+        ${active}
+      </section>
+      ${alts}
+      <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Все формации ${icon("chevron", 13)}</button>
+    </aside>`;
+  }
+
+  function comboContextHtml(state, preview) {
+    const current = preview ? preview.combo.type : null;
+    const ready = handComboState(state);
+    const rows = Content.combos.list.map((c) => {
+      const meta = COMBO_META[c.id];
+      const cls = c.id === current ? "hit" : ready[c.id] ? "ready" : "";
+      return `<div class="combo-row ${cls}" data-tip>
+        <div class="combo-row-name"><strong>${c.name}</strong><small>${meta.poker}</small></div>
+        <div class="combo-row-value"><b class="mint">${c.basePower}</b><span>×</span><b class="gold">${c.baseMult}</b></div>
+        <span class="pop side"><strong>${c.name}</strong><p>${esc(meta.rule)}</p><small>${c.basePower} силы × ${c.baseMult} множитель</small></span>
+      </div>`;
+    }).join("");
+    const active = preview
+      ? activeScoreBlock(state, preview)
+      : contextEmptyHtml("Выбери героев — собранная комбинация появится здесь.");
+    return `<aside class="context-panel">
+      <section class="panel context-inner">
+        <div class="section-label"><span>${icon("zap", 13)}ТВОЯ КОМБИНАЦИЯ</span></div>
+        ${active}
+      </section>
+      <section class="panel context-inner">
+        <div class="section-label"><span>${icon("book", 13)}КОМБИНАЦИИ</span></div>
+        <div class="combo-rows">${rows}</div>
+        <div class="combo-legend">
+          <span><i class="dot hit"></i>собрано</span>
+          <span><i class="dot ready"></i>есть в руке</span>
+        </div>
+      </section>
+      <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Справочник ${icon("chevron", 13)}</button>
+    </aside>`;
+  }
+
+  function shopContextHtml(state) {
+    const nextId = Content.waves.order[state.run.waveIndex + 1];
+    const next = nextId ? Content.waves.byId[nextId] : null;
+    const isBoss = next && (next.isBoss || next.miniBoss);
+    return `<aside class="context-panel">
+      <section class="panel context-inner">
+        <div class="section-label"><span>${icon("target", 13)}СЛЕДУЮЩАЯ ЦЕЛЬ</span></div>
+        <div class="next-target">
+          <div class="next-emblem ${isBoss ? "boss" : ""}">${isBoss ? icon("skull", 26) : icon("castle", 26)}</div>
+          <strong>${next ? next.name : "Финал забега"}</strong>
+          ${next ? `<div class="next-hp"><b class="mint">${fmt(next.hp)}</b><span>HP</span></div>` : ""}
+          ${next ? `<small>${waveRuleText(next)}</small>` : ""}
+        </div>
+        <div class="effect-row none">${icon("rotate", 12)}<span>Товары обновятся, если не залочены</span></div>
+      </section>
+      <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Справочник ${icon("chevron", 13)}</button>
+    </aside>`;
+  }
+
+  function contextPanelHtml(state, preview) {
+    if (state.phase === "shop") return shopContextHtml(state);
+    if (state.phase !== "wave") return "";
+    return state.rules === "formation" ? formationContextHtml(state, preview) : comboContextHtml(state, preview);
+  }
+
+  // ---------- bottom band: build + рука во всю ширину ----------
+
+  function buildStripHtml(state) {
+    const items = state.player.items;
+    const slots = [];
+    for (let i = 0; i < Math.max(5, items.length); i++) {
+      const id = items[i];
+      if (id) {
+        const item = Content.items.byId[id];
+        slots.push(`<button class="build-icon ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" data-tip>
+          ${Art.itemIcon(item)}
+          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
+        </button>`);
+      } else {
+        slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 14)}
+          <span class="pop"><strong>Пустой слот</strong><p>Новые предметы появятся в лавке после зачистки волны.</p></span>
+        </button>`);
+      }
+    }
+    return `<div class="band-build">
+      <span class="band-label">${icon("bag", 13)}БИЛД</span>
+      <div class="build-strip ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>
+    </div>`;
+  }
+
+  function inventoryInnerHtml(state) {
     const slots = [];
     const items = state.player.items;
     for (let i = 0; i < Math.max(5, items.length); i++) {
@@ -4489,195 +4765,48 @@ const UI = (function () {
         slots.push(`<button class="item-slot empty-slot" data-action="item-hint"><span>${icon("plus", 18)}</span><span>Слот предмета</span></button>`);
       }
     }
-    return `<section class="inventory-panel panel">
-      <div class="inventory-heading">
-        <div class="section-label"><span>${icon("bag", 14)}ТВОЙ БИЛД</span><span class="slot-count">${items.length} <span>слотов</span></span></div>
-        <span class="inventory-help">Предметы меняют правила игры ${icon("sparkles", 11)}</span>
-      </div>
-      <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>
-    </section>`;
+    return `<div class="inventory-heading">
+      <div class="section-label"><span>${icon("bag", 14)}ТВОЙ БИЛД</span><span class="slot-count">${items.length} <span>слотов</span></span></div>
+      <span class="inventory-help">Клик по предмету — разбор и продажа за половину цены ${icon("coins", 11)}</span>
+    </div>
+    <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>`;
   }
 
-  function battlefieldHtml(state, preview) {
-    const max = Game.maxSlots(state);
-    const slots = Array.from({ length: max }, (_, i) => {
-      const uid = state.combat.selectedUids[i];
-      const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
-      return `<div class="formation-slot ${hero ? "occupied" : ""}" ${uid ? `title="${esc(hero.name)} — слот ${i + 1}"` : ""}>${hero ? Art.heroArt(hero) : icon("plus", 14)}<span>${i + 1}</span></div>`;
-    }).join("");
-    return `<section class="battlefield" id="battlefield">
-      <div class="battlefield-shade"></div>
-      <div class="battlefield-content">
-        <div class="battlefield-eyebrow"><span class="live-dot"></span>БОЕВОЕ ПОЛЕ <span>/</span> ВОЛНА ${state.run.waveIndex + 1}</div>
-        <h2>Сломай их оборону.</h2>
-        <p>Не просто герои. Твоя победная комбинация.</p>
-        <div class="formation"><div class="formation-cards">${slots}</div>
-          <span class="formation-note">Порядок выбора —<br/>порядок в бою</span></div>
-      </div>
-      <div class="arena-label"><span class="radial-dot"></span><span>ТЕРРИТОРИЯ СВЕТА</span></div>
-      <div class="enemy-mark">${icon("target", 17)}</div>
-    </section>`;
-  }
-
-  function handSectionHtml(state) {
+  function bottomBandHtml(state) {
+    if (state.phase === "shop") {
+      return `<section class="bottom-band shop">${inventoryInnerHtml(state)}</section>`;
+    }
+    if (state.phase !== "wave") return "";
     const order = handOrder(state);
     const sortBtn = (mode, label) =>
       `<button class="sort-button ${UIState.sort === mode ? "active" : ""}" data-action="sort" data-mode="${mode}">${label}</button>`;
-    return `<section class="hand-section">
-      <div class="hand-heading">
-        <div><h2>Твоя рука <span>${state.player.handUids.length}<small> / ${DeckSys.HAND_SIZE}</small></span></h2>
-          <span class="hand-instruction">Выбери до ${Game.maxSlots(state)} героев для тимфайта</span></div>
-        <div class="hand-tools"><span>Сортировка</span>
-          ${sortBtn("rank", `${icon("sort", 12)}Сила`)}${sortBtn("attr", "Атрибут")}${sortBtn("deal", "Раздача")}
-          <button class="deck-button" data-action="open-collection-deck" title="Посмотреть колоду">${icon("layers", 17)}<span>${state.player.deckUids.length}</span></button>
+    return `<section class="bottom-band">
+      ${buildStripHtml(state)}
+      <div class="band-hand">
+        <div class="hand-heading">
+          <div><h2>Твоя рука <span>${state.player.handUids.length}<small> / ${DeckSys.HAND_SIZE}</small></span></h2>
+            <span class="hand-instruction">Выбери до ${Game.maxSlots(state)} героев для тимфайта</span></div>
+          <div class="hand-tools"><span>Сортировка</span>
+            ${sortBtn("rank", `${icon("sort", 12)}Сила`)}${sortBtn("attr", "Атрибут")}${sortBtn("deal", "Раздача")}
+            <button class="deck-button" data-action="open-collection-deck" title="Посмотреть колоду">${icon("layers", 17)}<span>${state.player.deckUids.length}</span></button>
+          </div>
         </div>
-      </div>
-      <div class="hero-hand ${UIState.animHand ? "" : "no-anim"}">${order.map((uid, i) => heroCardHtml(state, uid, i)).join("")}</div>
-      <div class="under-hand">
-        <span><span class="selection-dot"></span>Выбрано <strong>${state.combat.selectedUids.length} / ${Combat.MAX_SLOTS}</strong>
-          ${state.combat.selectedUids.length ? '<button data-action="clear-selection">Снять выбор</button>' : ""}</span>
-        <span><kbd>1</kbd>–<kbd>${DeckSys.HAND_SIZE}</kbd> выбрать героя <span class="keyboard-divider">·</span> наведи, чтобы узнать способность</span>
+        <div class="hero-hand ${UIState.animHand ? "" : "no-anim"}">${order.map((uid, i) => heroCardHtml(state, uid, i)).join("")}</div>
+        <div class="under-hand">
+          <span><span class="selection-dot"></span>Выбрано <strong>${state.combat.selectedUids.length} / ${Combat.MAX_SLOTS}</strong>
+            ${state.combat.selectedUids.length ? '<button data-action="clear-selection">Снять выбор</button>' : ""}</span>
+          <span><kbd>1</kbd>–<kbd>${DeckSys.HAND_SIZE}</kbd> выбрать героя <span class="keyboard-divider">·</span> наведи, чтобы узнать способность</span>
+        </div>
       </div>
     </section>`;
-  }
-
-  function commitInfoHtml(state, preview) {
-    const chips = [];
-    const n = preview ? preview.playedCount || state.combat.selectedUids.length : 0;
-    const tier = Combat.COMMIT_TIERS[n];
-    if (tier) {
-      chips.push(tier.finalMult !== 1
-        ? `<span class="commit-chip">СТАВКА ×${tier.finalMult}</span>`
-        : `<span class="commit-chip neutral">ХАРАС +${tier.gold}G</span>`);
-    }
-    const mom = state.run.momentum || 0;
-    if (mom > 0) {
-      const mult = (1 + Math.min(mom, Combat.MOMENTUM_CAP) * Combat.MOMENTUM_STEP).toFixed(2).replace(/0$/, "");
-      chips.push(`<span class="commit-chip momentum">ИМПУЛЬС ×${mult}</span>`);
-    }
-    return chips.length ? `<div class="commit-row">${chips.join("")}</div>` : "";
-  }
-
-  function playControlsHtml(state, preview) {
-    const combo = preview ? preview.combo : null;
-    const power = preview ? preview.power : 0;
-    const mult = preview ? Math.round(preview.mult * 100) / 100 : 0;
-    const damage = preview ? preview.damage : 0;
-    const canFight = preview && !state.combat.outcome && state.player.fightsLeft > 0;
-    const canDiscard = state.combat.selectedUids.length > 0 && state.player.discardsLeft > 0 && !state.combat.outcome;
-    return `<section class="play-controls panel">
-      <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
-        <span class="section-label">${preview ? (combo && combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
-        <strong>${combo ? combo.name : "Собери тимфайт"} ${icon("chevron", 14)}</strong>
-        <small>${combo ? comboSubtitle(combo) : "Сила героев × множитель"}</small>
-      </button>
-      <div class="score-formula">
-        <div class="score-block power"><strong>${power}</strong><span>СИЛА</span></div>
-        <span class="times">${icon("x", 14)}</span>
-        <div class="score-block multiplier"><strong>${mult}</strong><span>МНОЖ.</span></div>
-        <span class="equals">=</span>
-        <div class="total-score"><strong>${damage.toLocaleString("ru")}</strong><span>УРОНА</span></div>
-      </div>
-      ${commitInfoHtml(state, preview)}
-      <div class="action-buttons">
-        <button class="primary-button attack-button" ${canFight ? "" : "disabled"} data-action="fight">${icon("swords", 17)}В бой<kbd>↵</kbd></button>
-        <button class="discard-button" ${canDiscard ? "" : "disabled"} data-action="discard">${icon("rotate", 14)}ТП-сброс<kbd>R</kbd></button>
-      </div>
-    </section>`;
-  }
-
-  function strategyTipHtml() {
-    const tip = TIPS[UIState.tipIndex];
-    return `<div class="strategy-tip">${icon("sparkles", 14)}<p><strong>${tip.t}</strong> ${tip.p}</p>
-      <button data-action="next-tip">Ещё совет ${icon("arrow", 12)}</button></div>`;
-  }
-
-  function combosPanelHtml(state) {
-    if (state.rules === "formation") return formationsPanelHtml(state);
-    const preview = state.phase === "wave" ? computePreview(state) : null;
-    const current = preview ? preview.combo.type : null;
-    const ready = state.phase === "wave" ? handComboState(state) : {};
-    const rows = Content.combos.list.map((c) => {
-      const meta = COMBO_META[c.id];
-      const cls = c.id === current ? "hit" : ready[c.id] ? "ready" : "";
-      return `<div class="combo-row ${cls}" title="${esc(meta.rule + " · " + c.basePower + " силы × " + c.baseMult + " множитель")}">
-        <div class="combo-row-name"><strong>${c.name}</strong><small>${meta.poker}</small></div>
-        <div class="combo-row-rule">${meta.rule}</div>
-        <div class="combo-row-value"><b class="mint">${c.basePower}</b><span>×</span><b class="gold">${c.baseMult}</b></div>
-      </div>`;
-    }).join("");
-    return `<aside class="combos-panel">
-      <section class="panel combos-panel-inner">
-        <div class="section-label"><span>${icon("book", 13)}КОМБИНАЦИИ</span>
-          <button class="icon-button small" data-action="open-modal" data-modal="help" title="Справочник: что дают цифры и атрибуты">${icon("help", 13)}</button></div>
-        <div class="combo-rows">${rows}</div>
-        <div class="combo-legend">
-          <span><i class="dot hit"></i>собрано</span>
-          <span><i class="dot ready"></i>есть в руке</span>
-        </div>
-      </section>
-    </aside>`;
-  }
-
-  // rules: "formation" — список формаций + активные связки + альтернативы
-  // текущего выбора с итоговым уроном (панель заменяет покерные комбинации).
-  function formationsPanelHtml(state) {
-    const preview = state.phase === "wave" ? computePreview(state) : null;
-    const combo = preview ? preview.combo : null;
-    const dtName = (dt) => Content.damageTypeNames[dt] || dt;
-    const rows = Content.formations.list.map((f) => {
-      const cls = combo && combo.type === f.id ? "hit" : "";
-      return `<div class="combo-row ${cls}" title="${esc(f.rule + " · " + dtName(f.damageType) + " урон")}">
-        <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}${f.positional ? " · порядок" : ""}</small></div>
-        <div class="combo-row-rule">${f.rule}</div>
-        <div class="combo-row-value"><b class="mint">${f.basePower}</b><span>×</span><b class="gold">${f.baseMult}</b></div>
-      </div>`;
-    }).join("");
-    let bondsHtml = "";
-    if (combo && combo.bonds && combo.bonds.length) {
-      bondsHtml = `<div class="section-label" style="margin-top:12px"><span>${icon("sparkles", 13)}АКТИВНЫЕ СВЯЗКИ</span></div>
-        <div class="combo-rows">${combo.bonds.map((b) => {
-        const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
-        return `<div class="combo-row hit"><div class="combo-row-name"><strong>${b.trait}</strong></div><div class="combo-row-rule">${val}</div></div>`;
-      }).join("")}</div>`;
-    }
-    let altHtml = "";
-    if (combo && combo.alternatives && combo.alternatives.length > 1) {
-      altHtml = `<div class="section-label" style="margin-top:12px"><span>${icon("target", 13)}АЛЬТЕРНАТИВЫ ПРОТИВ ЦЕЛИ</span></div>
-        <div class="combo-rows">${combo.alternatives.slice(0, 4).map((f) =>
-        `<div class="combo-row ${f.id === combo.type ? "hit" : ""}">
-            <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}</small></div>
-            <div class="combo-row-value"><b class="gold">${f.damage}</b><span>урона</span></div>
-          </div>`).join("")}</div>
-        <div class="combo-legend"><span>Переставляй героев — формация и урон меняются</span></div>`;
-    }
-    return `<aside class="combos-panel">
-      <section class="panel combos-panel-inner">
-        <div class="section-label"><span>${icon("book", 13)}ФОРМАЦИИ</span>
-          <button class="icon-button small" data-action="open-modal" data-modal="help" title="Справочник: формации, связки, типы урона">${icon("help", 13)}</button></div>
-        <div class="combo-rows">${rows}</div>
-        <div class="combo-legend">
-          <span><i class="dot hit"></i>собрано</span>
-          <span>связки складываются все</span>
-        </div>
-        ${bondsHtml}
-        ${altHtml}
-      </section>
-    </aside>`;
   }
 
   function footerHtml(state) {
-    const act = state.run.act || 1;
-    const slot = state.run.waveIndex % 5;
-    const steps = [1, 2, 3, 4, 5].map((n, i) => {
-      const cls = i === slot ? "current" : i < slot ? "complete" : "";
-      const ico = i === 4 ? icon("skull", 12) : i < slot ? icon("check", 11) : icon("castle", 12);
-      return `<span class="${cls}">${ico}<span>${n}</span>${i < 4 ? "<i></i>" : ""}</span>`;
-    }).join("");
+    const pos = runPosition(state);
     return `<footer class="footer">
-      <div class="act-progress">${steps}</div>
-      <span class="footer-tagline">АКТ ${act}/3 · ${Content.actNames[act]} · волна ${slot + 1} из 5 · всего ${state.run.waveIndex + (state.phase === "victory" ? 1 : 0)}/15</span>
-      <span class="footer-ver">DALATRO <span>v0.7</span></span>
+      <div class="act-progress">${actStepsHtml(state)}</div>
+      <span class="footer-tagline">АКТ ${pos.act}/3 · ${Content.actNames[pos.act]} · волна ${pos.wave} из 5 · всего ${pos.cleared}/15</span>
+      <span class="footer-ver">DALATRO <span>v0.8</span></span>
     </footer>`;
   }
 
@@ -4697,19 +4826,34 @@ const UI = (function () {
     </div>`;
   }
 
-  function runBarHtml(state) {
-    return `<section class="run-bar">
-      <div class="run-heading"><span class="live-dot"></span><h1>Твой забег</h1>
-        <span class="run-id">#DL–${esc(state.seedCode)}</span><span class="run-divider"></span>
-        <span class="act-pill ${state.rules === "formation" ? "rules-formation" : ""}" title="Ядро скоринга этого забега">${state.rules === "formation" ? icon("target", 12) : icon("leaf", 12)} ${state.rules === "formation" ? "ФОРМАЦИИ" : "КЛАССИКА"}</span>
-        <span class="act-pill">${icon("leaf", 12)} АКТ ${state.run.act || 1}</span>
-        <span class="act-name">${Content.actNames[state.run.act || 1] || "На линии"}</span></div>
-      <div class="run-tools">
-        <span class="autosave">${icon("check", 12)}Прогресс сохранён</span>
+  function topbarHtml(state) {
+    const inModal = UIState.modal !== null;
+    const inRun = state.phase !== "title";
+    const formation = state.rules === "formation";
+    return `<header class="topbar">
+      <a class="brand" data-action="nav-play">${brandMark()}<span>DALATRO<span class="brand-dot">.</span></span></a>
+      <div class="brand-divider"></div>
+      <span class="brand-caption">DOTA В КАРТАХ.<br/>ВЕЗЕНИЕ — В ТВОИХ РУКАХ.</span>
+      <nav class="main-nav">
+        <button class="${!inModal ? "active" : ""}" data-action="nav-play">${icon("swords", 16)}Играть</button>
+        <button class="${UIState.modal === "collection" ? "active" : ""}" data-action="open-collection">${icon("layers", 16)}Коллекция</button>
+        <button class="${UIState.modal === "help" ? "active" : ""}" data-action="open-modal" data-modal="help">${icon("book", 16)}Как играть</button>
+      </nav>
+      ${inRun ? `<div class="run-meta">
+        <span class="act-pill ${formation ? "rules-formation" : ""}" title="Ядро скоринга этого забега">${formation ? icon("target", 12) : icon("leaf", 12)} ${formation ? "ФОРМАЦИИ" : "КЛАССИКА"}</span>
+        <span class="act-pill" title="${Content.actNames[state.run.act || 1] || ""}">${icon("leaf", 12)} АКТ ${state.run.act || 1}</span>
+        <span class="run-id">#DL–${esc(state.seedCode)}</span>
+        <span class="autosave">${icon("check", 12)}Сохранено</span>
+      </div>` : ""}
+      <div class="header-right">
+        ${inRun ? `
         <button class="subtle-button" data-action="open-modal" data-modal="new">${icon("rotate", 13)}Новый забег</button>
-        <button class="subtle-button" data-action="debug-toggle" title="Debug-песочница (клавиша D)">⚙</button>
+        <button class="icon-button" data-action="debug-toggle" title="Debug-песочница (клавиша D)">⚙</button>` : ""}
+        <span class="version">BETA <span>0.8</span></span>
+        <button class="icon-button" data-action="toggle-sound" title="${Sfx.isMuted() ? "Включить звук" : "Выключить звук"}">${Sfx.isMuted() ? icon("mute", 18) : icon("volume", 18)}</button>
+        <button class="icon-button" data-action="open-modal" data-modal="settings" title="Настройки">${icon("settings", 18)}</button>
       </div>
-    </section>`;
+    </header>`;
   }
 
   // ---------- screens ----------
@@ -4763,9 +4907,8 @@ const UI = (function () {
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
-        ${runBarHtml(state)}
-        <div class="game-layout">
-          <aside class="sidebar">${sidebarHtml(state)}</aside>
+        <div class="game-layout two">
+          <aside class="sidebar">${sidebarHtml(state, "meta")}</aside>
           <div class="play-area">
             <section class="route-screen panel">
               <span class="section-label mint">${icon("target", 15)}РАЗВИЛКА · ВОЛНА ${nextIndex + 1} ИЗ ${Content.waves.order.length}</span>
@@ -4776,22 +4919,21 @@ const UI = (function () {
                   `${nextDef.name} · ${nextDef.hp} HP`,
                   baseRules,
                   "Полный темп забега",
-                ], "Честный бой")}
+                ], "Честный бой <kbd>1</kbd>")}
                 ${routeCardHtml(state, "elite", "elite", "💀", "Элитная башня", [
                   `HP ×1.5 → ${Math.round(nextDef.hp * 1.5)} HP`,
                   `Проклятие: ${curse ? curse.name : "—"} — ${curse ? curse.desc : ""}`,
                   "Награда: золото ×1.5 и эпик в лавке",
-                ], "Риск · награда")}
+                ], "Риск · награда <kbd>2</kbd>")}
                 ${routeCardHtml(state, "camp", "camp", "🏕️", "Крип-лагерь", [
                   "Бой пропускается",
                   "+6 золота и привал: +1 казарма",
                   "Бесплатное увольнение героя в лавке",
-                ], campDisabled ? "Лагерь уже зачищен" : "Безопасный темп", campDisabled)}
+                ], campDisabled ? "Лагерь уже зачищен" : "Безопасный темп <kbd>3</kbd>", campDisabled)}
               </div>
               ${curse ? `<div class="route-curse">Проклятие элитки выбрано заранее: <b>${curse.name}</b> — ${esc(curse.desc)} BKB игнорирует любые проклятия.</div>` : ""}
             </section>
           </div>
-          ${combosPanelHtml(state)}
         </div>
         ${footerHtml(state)}
       </main>
@@ -4804,21 +4946,16 @@ const UI = (function () {
 
   function renderWave(state) {
     const preview = computePreview(state);
+    const harass = preview ? computeHarass(state) : 0;
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
-        ${runBarHtml(state)}
         <div class="game-layout">
-          <aside class="sidebar">${sidebarHtml(state)}</aside>
-          <div class="play-area">
-            ${inventoryHtml(state)}
-            ${battlefieldHtml(state, preview)}
-            ${handSectionHtml(state)}
-            ${playControlsHtml(state, preview)}
-            ${strategyTipHtml()}
-          </div>
-          ${combosPanelHtml(state)}
+          <aside class="sidebar">${sidebarHtml(state, "wave")}</aside>
+          ${battleSceneHtml(state, preview, harass)}
+          ${contextPanelHtml(state, preview)}
         </div>
+        ${bottomBandHtml(state)}
         ${footerHtml(state)}
       </main>
       ${debugPanelHtml(state)}
@@ -4831,9 +4968,6 @@ const UI = (function () {
   }
 
   function renderShop(state) {
-    const nextId = Content.waves.order[state.run.waveIndex + 1];
-    const next = nextId ? Content.waves.byId[nextId] : null;
-    const nextRule = next ? waveRuleText(next) : "";
     const offers = state.shop.offers.map((o) => {
       const item = Content.items.byId[o.id];
       const afford = state.run.gold >= item.cost;
@@ -4853,32 +4987,29 @@ const UI = (function () {
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
-        ${runBarHtml(state)}
         <div class="game-layout">
-          <aside class="sidebar">${sidebarHtml(state)}</aside>
-          <div class="play-area">
-            ${inventoryHtml(state)}
-            <section class="shop panel">
-              <div class="shop-banner">
-                <div class="shop-emblem">${icon("bag", 30)}</div>
-                <div><span class="section-label gold">ЛИНИЯ ЗАЧИЩЕНА</span><h2>Тайная лавка</h2>
-                  <p>Хороший предмет усиливает руку. Отличный — меняет весь билд.</p></div>
-                <span class="shop-gold">${icon("coins", 24)}${state.run.gold}</span>
+          <aside class="sidebar">${sidebarHtml(state, "meta")}</aside>
+          <section class="shop panel">
+            <div class="shop-banner">
+              <div class="shop-emblem">${icon("bag", 30)}</div>
+              <div><span class="section-label gold">ЛИНИЯ ЗАЧИЩЕНА</span><h2>Тайная лавка</h2>
+                <p>Хороший предмет усиливает руку. Отличный — меняет весь билд.</p></div>
+              <span class="shop-gold">${icon("coins", 24)}${state.run.gold}</span>
+            </div>
+            <div class="shop-section-title"><h3>Предметы торговца</h3>
+              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Economy.REROLL_COST ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Economy.REROLL_COST} ${icon("coins", 12)}</span></button></div>
+            <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
+            <div class="shop-lab">
+              <div class="shop-lab-head">
+                <h3>${icon("layers", 14)} Лаборатория колоды</h3>
+                <button class="secondary-button" data-action="open-collection-deck" title="Увольнение и тренировка героев">${state.run.campBoon ? "Уволить бесплатно 🏕️" : `Уволить героя · ${Game.EXILE_COST} ${icon("coins", 12)}`}</button>
               </div>
-              <div class="shop-section-title"><h3>Предметы торговца</h3>
-                <button class="secondary-button" data-action="reroll" ${state.run.gold >= Economy.REROLL_COST ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Economy.REROLL_COST} ${icon("coins", 12)}</span></button></div>
-              <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
-              <div class="shop-lab">
-                <div class="shop-lab-head">
-                  <h3>${icon("layers", 14)} Лаборатория колоды</h3>
-                  <button class="secondary-button" data-action="open-collection-deck" title="Увольнение и тренировка героев">${state.run.campBoon ? "Уволить бесплатно 🏕️" : `Уволить героя · ${Game.EXILE_COST} ${icon("coins", 12)}`}</button>
-                </div>
-                <div class="recruit-row ${UIState.animLab ? "" : "no-anim"}">
-                  ${(state.shop.recruits || []).length ? state.shop.recruits.map((heroId) => {
+              <div class="recruit-row ${UIState.animLab ? "" : "no-anim"}">
+                ${(state.shop.recruits || []).length ? state.shop.recruits.map((heroId) => {
       const hr = Content.heroes.byId[heroId];
       const price = Game.recruitPrice(heroId);
       const afford = state.run.gold >= price;
-      return `<div class="recruit-card ${hr.attr}" title="${esc(`${hr.name} — ${ATTR_NAMES[hr.attr]}, сила ${hr.power}. ${heroDesc(hr)}`)}">
+      return `<div class="recruit-card ${hr.attr}" data-tip>
                       <div class="recruit-portrait">${Art.heroArt(hr)}<b>${hr.power}</b></div>
                       <div class="recruit-info"><strong>${hr.name}</strong>
                         <span class="hero-attribute">${ATTR_SYMBOLS[hr.attr]} ${ATTR_NAMES[hr.attr]}</span>
@@ -4886,22 +5017,20 @@ const UI = (function () {
                       <button class="buy-button recruit-buy" ${afford ? "" : "disabled"} data-action="buy-recruit" data-id="${heroId}">
                         <span>Нанять</span><span>${price} ${icon("coins", 13)}</span>
                       </button>
+                      <span class="pop"><strong>${hr.name}</strong><p>${esc(heroDesc(hr))}</p><small>${ATTR_NAMES[hr.attr]}, сила ${hr.power} · попадёт в колоду</small></span>
                     </div>`;
     }).join("") : '<span class="muted-note">Таверна пуста — все ростерные герои уже у тебя.</span>'}
-                </div>
-                <small class="shop-hint left">Нанятые герои попадают в колоду. В коллекции (вкладка «Колода») можно тренировать героев: +1 ранг за ${Game.TRAIN_COST} 💰.</small>
               </div>
-              <div class="shop-bottom">
-                <div><span class="section-label">СЛЕДУЮЩАЯ ЦЕЛЬ</span>
-                  <strong>${next ? next.name : "—"} ${next ? `<span>· ${next.hp} HP</span>` : ""}</strong>
-                  <small>${nextRule}</small></div>
-                <button class="primary-button" data-action="leave-shop">Следующая волна ${icon("arrow", 17)}</button>
-              </div>
-              <p class="shop-hint">Нажми на свой предмет в билде сверху, чтобы продать его за половину цены.</p>
-            </section>
-          </div>
-          ${combosPanelHtml(state)}
+              <small class="shop-hint left">Нанятые герои попадают в колоду. В коллекции (вкладка «Колода») можно тренировать героев: +1 ранг за ${Game.TRAIN_COST} 💰.</small>
+            </div>
+            <div class="shop-bottom">
+              <span class="shop-hint-row"><kbd>1</kbd>–<kbd>5</kbd> купить <span class="keyboard-divider">·</span> <kbd>R</kbd> обновить <span class="keyboard-divider">·</span> <kbd>↵</kbd> следующая волна</span>
+              <button class="primary-button" data-action="leave-shop">Следующая волна ${icon("arrow", 17)}</button>
+            </div>
+          </section>
+          ${contextPanelHtml(state, null)}
         </div>
+        ${bottomBandHtml(state)}
         ${footerHtml(state)}
       </main>
       ${debugPanelHtml(state)}
@@ -4936,9 +5065,8 @@ const UI = (function () {
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
-        ${runBarHtml(state)}
-        <div class="game-layout">
-          <aside class="sidebar">${sidebarHtml(state)}</aside>
+        <div class="game-layout two">
+          <aside class="sidebar">${sidebarHtml(state, "meta")}</aside>
           <div class="play-area">
             <section class="end-screen panel">
               <div class="end-emblem">${won ? icon("crown", 64) : icon("skull", 64)}</div>
@@ -4955,32 +5083,12 @@ const UI = (function () {
               <button class="primary-button" data-action="open-modal" data-modal="new">${icon("rotate", 16)}Ещё один забег</button>
             </section>
           </div>
-          ${combosPanelHtml(state)}
         </div>
         ${footerHtml(state)}
       </main>
       ${overlayHtml(state)}
       ${toastHtml()}
     `;
-  }
-
-  function topbarHtml(state) {
-    const inModal = UIState.modal !== null;
-    return `<header class="topbar">
-      <a class="brand" data-action="nav-play">${brandMark()}<span>DALATRO<span class="brand-dot">.</span></span></a>
-      <div class="brand-divider"></div>
-      <span class="brand-caption">DOTA В КАРТАХ.<br/>ВЕЗЕНИЕ — В ТВОИХ РУКАХ.</span>
-      <nav class="main-nav">
-        <button class="${!inModal ? "active" : ""}" data-action="nav-play">${icon("swords", 16)}Играть</button>
-        <button class="${UIState.modal === "collection" ? "active" : ""}" data-action="open-collection">${icon("layers", 16)}Коллекция</button>
-        <button class="${UIState.modal === "help" ? "active" : ""}" data-action="open-modal" data-modal="help">${icon("book", 16)}Как играть</button>
-      </nav>
-      <div class="header-right">
-        <span class="version">BETA <span>0.7</span></span>
-        <button class="icon-button" data-action="toggle-sound" title="${Sfx.isMuted() ? "Включить звук" : "Выключить звук"}">${Sfx.isMuted() ? icon("mute", 18) : icon("volume", 18)}</button>
-        <button class="icon-button" data-action="open-modal" data-modal="settings" title="Настройки">${icon("settings", 18)}</button>
-      </div>
-    </header>`;
   }
 
   // ---------- overlays: outcome / modals / onboarding / toast ----------
@@ -5012,7 +5120,7 @@ const UI = (function () {
         <div><span>Осталось казарм</span><b>${state.run.barracks} / ${BARRACKS}</b></div>
         <div><span>Импульс</span><b class="lose-text">серия сброшена</b></div>
         ${state.player.items.includes("rapier") || (state.combat.wave.enemyItems || []).includes("rapier")
-        ? `<div><span>Divine Rapier</span><b class="lose-text">у врага: урон ×0.5</b></div>` : ""}
+      ? `<div><span>Divine Rapier</span><b class="lose-text">у врага: урон ×0.5</b></div>` : ""}
       </div>
       <button class="primary-button full-width" data-action="retry">Новая попытка ${icon("rotate", 15)}</button>
     </section></div>`;
@@ -5263,6 +5371,8 @@ const UI = (function () {
         <p><span>Выбрать героя</span><kbd>1 – ${DeckSys.HAND_SIZE}</kbd></p>
         <p><span>Начать тимфайт</span><kbd>Enter</kbd></p>
         <p><span>ТП-сброс</span><kbd>R</kbd></p>
+        <p><span>Лавка: купить / обновить / дальше</span><kbd>1–5 · R · ↵</kbd></p>
+        <p><span>Развилка: выбрать тропу</span><kbd>1 – 3</kbd></p>
         <p><span>Debug-песочница</span><kbd>D</kbd></p>
         <p><span>Закрыть / снять выбор</span><kbd>Esc</kbd></p></div>
       <div class="muted-note">${icon("check", 13)} Забег автоматически сохраняется в этом браузере.</div>`;
@@ -5398,7 +5508,7 @@ const UI = (function () {
     }
   }
 
-  return { render, UIState, handOrder, playFightAnimation, toast };
+  return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
 })();
 
 </script>
@@ -5637,9 +5747,13 @@ const UI = (function () {
         savePrefs();
         rerender();
         break;
-      case "next-tip":
-        UI.UIState.tipIndex = (UI.UIState.tipIndex + 1) % 6;
+      case "toggle-journal":
+        UI.UIState.journalOpen = !UI.UIState.journalOpen;
         rerender();
+        break;
+      case "show-tip":
+        UI.toast(state, "Совет: " + UI.tipText(UI.UIState.tipIndex));
+        UI.UIState.tipIndex = (UI.UIState.tipIndex + 1) % 6;
         break;
       case "close-toast": UI.UIState.toast = ""; rerender(); break;
       case "onboard-start":
@@ -5714,6 +5828,36 @@ const UI = (function () {
     if (e.key === "Enter" && state.phase === "wave" && !state.combat.outcome) {
       e.preventDefault();
       if (state.combat.selectedUids.length) dispatchAndRender({ type: "CONFIRM_FIGHT" });
+    }
+    // Лавка: 1–5 купить предложение, R — реролл, Enter — следующая волна.
+    if (state.phase === "shop") {
+      if (/^[1-5]$/.test(e.key)) {
+        const offer = (state.shop.offers || [])[Number(e.key) - 1];
+        if (offer) {
+          const item = Content.items.byId[offer.id];
+          if (state.run.gold >= item.cost) {
+            Sfx.play("buy");
+            dispatchAndRender({ type: "BUY_ITEM", itemId: offer.id });
+          } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${item.cost}.`);
+        }
+      }
+      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Economy.REROLL_COST) {
+        dispatchAndRender({ type: "REROLL_SHOP" });
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        Sfx.play("click");
+        dispatchAndRender({ type: "LEAVE_SHOP" });
+      }
+      return;
+    }
+    // Развилка: 1/2/3 — выбор тропы.
+    if (state.phase === "route" && /^[1-3]$/.test(e.key)) {
+      const kinds = ["normal", "elite", "camp"];
+      const kind = kinds[Number(e.key) - 1];
+      if (kind === "camp" && state.combat.campTaken) return;
+      Sfx.play("path");
+      dispatchAndRender({ type: "TAKE_ROUTE", kind });
     }
     if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.phase === "wave" && !state.combat.outcome) {
       if (state.combat.selectedUids.length && state.player.discardsLeft > 0) {
