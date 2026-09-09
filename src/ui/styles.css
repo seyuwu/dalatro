@@ -1033,3 +1033,8 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #405038; border-ra
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* --- rules toggle на титульном экране (state.rules: classic | formation) --- */
+.title-rules { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0 0 14px; }
+.title-rules .active-rule { outline: 2px solid rgba(110, 210, 160, 0.75); outline-offset: -1px; }
+.title-rules .rule-beta { opacity: 0.65; font-size: 11px; margin-left: 6px; }

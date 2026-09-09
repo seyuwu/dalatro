@@ -106,7 +106,9 @@
   }
 
   function startRun(seedCode) {
-    state = Game.dispatch(state, { type: "START_RUN", seedCode });
+    // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
+    const urlRules = new URLSearchParams(location.search).get("rules");
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft });
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
       UI.UIState.onboarding = true;
@@ -126,6 +128,10 @@
         break;
       }
       case "select": Sfx.play("select"); dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
+      case "toggle-rules":
+        UI.UIState.rulesDraft = el.dataset.rules;
+        rerender();
+        break;
       case "fight": dispatchAndRender({ type: "CONFIRM_FIGHT" }); break;
       case "discard": Sfx.play("discard"); dispatchAndRender({ type: "DISCARD", uids: state.combat.selectedUids.slice() }); break;
       case "clear-selection": clearSelection(); break;

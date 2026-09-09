@@ -155,6 +155,17 @@ const UI = (function () {
     };
   }
 
+  // Подзаголовок под названием комбо/формации. У формаций нет покерного
+  // эквивалента — читаем правило и тип урона (rules: "formation").
+  function comboSubtitle(combo) {
+    if (combo && combo.tier != null) {
+      const dt = Content.damageTypeNames[combo.damageType] || combo.damageType;
+      return `${combo.rule || ""} · ${dt} урон`;
+    }
+    const meta = combo ? COMBO_META[combo.type] : null;
+    return meta ? `${meta.poker} · ${meta.rule}` : "Сила героев × множитель";
+  }
+
   function toast(state, text) {
     UIState.toast = text;
     clearTimeout(UIState._toastTimer);
@@ -217,7 +228,7 @@ const UI = (function () {
       if (!def) continue;
       let text = "";
       let used = false;
-      if (m.id === "armor") text = "Броня: первый бой ×0.5";
+      if (m.id === "armor") text = state.rules === "formation" ? "Укрепления: первый бой ×0.5" : "Броня: первый бой ×0.5";
       else if (m.id === "glyph") text = "Глиф: каждый 3-й бой = 0";
       else if (m.id === "mines") {
         used = disarmed;
@@ -228,6 +239,17 @@ const UI = (function () {
         text = used ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
       }
       rows.push(`<div class="wave-rule ${used ? "done" : ""} ${def.curse && !used ? "danger" : ""}">${icon("shield", 13)}<span>${text}</span></div>`);
+    }
+    if (state.rules === "formation") {
+      // Третья ось: числовая защита цели — телеграфируется до боя.
+      const d = Content.towerDefense.byId[wave.towerId];
+      if (d && (d.armor || d.mr)) {
+        const bkb = state.player.items.includes("bkb");
+        const parts = [];
+        if (d.armor) parts.push(`броня ${d.armor}`);
+        if (d.mr) parts.push(`сопротивление ${Math.round(d.mr * 100)}%`);
+        rows.push(`<div class="wave-rule ${bkb ? "done" : ""}">${icon("shield", 13)}<span>Защита: ${parts.join(" · ")}${bkb ? " — снимает BKB" : ""}</span></div>`);
+      }
     }
     if (wave.elite) {
       rows.push(`<div class="wave-rule momentum">${icon("sparkles", 13)}<span>Элитная добыча: золото ×1.5, эпик в лавке</span></div>`);
@@ -381,9 +403,9 @@ const UI = (function () {
     const canDiscard = state.combat.selectedUids.length > 0 && state.player.discardsLeft > 0 && !state.combat.outcome;
     return `<section class="play-controls panel">
       <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
-        <span class="section-label">${preview ? "ТВОЯ КОМБИНАЦИЯ" : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
+        <span class="section-label">${preview ? (combo && combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
         <strong>${combo ? combo.name : "Собери тимфайт"} ${icon("chevron", 14)}</strong>
-        <small>${combo ? COMBO_META[combo.type].poker + ` · ${COMBO_META[combo.type].rule}` : "Сила героев × множитель"}</small>
+        <small>${combo ? comboSubtitle(combo) : "Сила героев × множитель"}</small>
       </button>
       <div class="score-formula">
         <div class="score-block power"><strong>${power}</strong><span>СИЛА</span></div>
@@ -407,6 +429,7 @@ const UI = (function () {
   }
 
   function combosPanelHtml(state) {
+    if (state.rules === "formation") return formationsPanelHtml(state);
     const preview = state.phase === "wave" ? computePreview(state) : null;
     const current = preview ? preview.combo.type : null;
     const ready = state.phase === "wave" ? handComboState(state) : {};
@@ -432,6 +455,53 @@ const UI = (function () {
     </aside>`;
   }
 
+  // rules: "formation" — список формаций + активные связки + альтернативы
+  // текущего выбора с итоговым уроном (панель заменяет покерные комбинации).
+  function formationsPanelHtml(state) {
+    const preview = state.phase === "wave" ? computePreview(state) : null;
+    const combo = preview ? preview.combo : null;
+    const dtName = (dt) => Content.damageTypeNames[dt] || dt;
+    const rows = Content.formations.list.map((f) => {
+      const cls = combo && combo.type === f.id ? "hit" : "";
+      return `<div class="combo-row ${cls}" title="${esc(f.rule + " · " + dtName(f.damageType) + " урон")}">
+        <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}${f.positional ? " · порядок" : ""}</small></div>
+        <div class="combo-row-rule">${f.rule}</div>
+        <div class="combo-row-value"><b class="mint">${f.basePower}</b><span>×</span><b class="gold">${f.baseMult}</b></div>
+      </div>`;
+    }).join("");
+    let bondsHtml = "";
+    if (combo && combo.bonds && combo.bonds.length) {
+      bondsHtml = `<div class="section-label" style="margin-top:12px"><span>${icon("sparkles", 13)}АКТИВНЫЕ СВЯЗКИ</span></div>
+        <div class="combo-rows">${combo.bonds.map((b) => {
+        const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
+        return `<div class="combo-row hit"><div class="combo-row-name"><strong>${b.trait}</strong></div><div class="combo-row-rule">${val}</div></div>`;
+      }).join("")}</div>`;
+    }
+    let altHtml = "";
+    if (combo && combo.alternatives && combo.alternatives.length > 1) {
+      altHtml = `<div class="section-label" style="margin-top:12px"><span>${icon("target", 13)}АЛЬТЕРНАТИВЫ ПРОТИВ ЦЕЛИ</span></div>
+        <div class="combo-rows">${combo.alternatives.slice(0, 4).map((f) =>
+        `<div class="combo-row ${f.id === combo.type ? "hit" : ""}">
+            <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}</small></div>
+            <div class="combo-row-value"><b class="gold">${f.damage}</b><span>урона</span></div>
+          </div>`).join("")}</div>
+        <div class="combo-legend"><span>Переставляй героев — формация и урон меняются</span></div>`;
+    }
+    return `<aside class="combos-panel">
+      <section class="panel combos-panel-inner">
+        <div class="section-label"><span>${icon("book", 13)}ФОРМАЦИИ</span>
+          <button class="icon-button small" data-action="open-modal" data-modal="help" title="Справочник: формации, связки, типы урона">${icon("help", 13)}</button></div>
+        <div class="combo-rows">${rows}</div>
+        <div class="combo-legend">
+          <span><i class="dot hit"></i>собрано</span>
+          <span>связки складываются все</span>
+        </div>
+        ${bondsHtml}
+        ${altHtml}
+      </section>
+    </aside>`;
+  }
+
   function footerHtml(state) {
     const names = ["T1", "T2", "T3", "TECHIES", "ROSHAN"];
     const steps = names.map((n, i) => {
@@ -442,7 +512,7 @@ const UI = (function () {
     return `<footer class="footer">
       <div class="act-progress">${steps}</div>
       <span class="footer-tagline">Немного Dota. Немного покера. Ещё один забег.</span>
-      <span class="footer-ver">DALATRO <span>v0.4</span></span>
+      <span class="footer-ver">DALATRO <span>v0.5</span></span>
     </footer>`;
   }
 
@@ -463,6 +533,7 @@ const UI = (function () {
   // ---------- screens ----------
 
   function renderTitle(state) {
+    const rules = UIState.rulesDraft === "formation" ? "formation" : "classic";
     app().innerHTML = `
     <div class="title-screen">
       <div class="title-bg"></div>
@@ -476,6 +547,10 @@ const UI = (function () {
           <span class="equals">=</span>
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
+        <div class="title-rules">
+          <button class="subtle-button ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">Классика: покерные комбо</button>
+          <button class="subtle-button ${rules === "formation" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="formation" title="Формации + связки + типы урона. Экспериментальное ядро скоринга (state.rules)">Формации: порядок решает <span class="rule-beta">эксперимент</span></button>
+        </div>
         <div class="seed-row">
           <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
           <button class="primary-button" data-action="start">Начать забег ${icon("arrow", 15)}</button>
@@ -483,7 +558,7 @@ const UI = (function () {
         <div class="title-links">
           <button class="subtle-button" data-action="onboard-start">${icon("book", 13)}Как играть — 5 шагов</button>
           <span class="keyboard-divider">·</span>
-          <span class="title-hint">Собирай покерные комбинации из героев Dota и сноси башни</span>
+          <span class="title-hint">${rules === "formation" ? "Собирай формации из героев Dota: порядок слотов решает" : "Собирай покерные комбинации из героев Dota и сноси башни"}</span>
         </div>
       </div>
     </div>`;
@@ -722,7 +797,7 @@ const UI = (function () {
         <button class="${UIState.modal === "help" ? "active" : ""}" data-action="open-modal" data-modal="help">${icon("book", 16)}Как играть</button>
       </nav>
       <div class="header-right">
-        <span class="version">BETA <span>0.4</span></span>
+        <span class="version">BETA <span>0.5</span></span>
         <button class="icon-button" data-action="toggle-sound" title="${Sfx.isMuted() ? "Включить звук" : "Выключить звук"}">${Sfx.isMuted() ? icon("mute", 18) : icon("volume", 18)}</button>
         <button class="icon-button" data-action="open-modal" data-modal="settings" title="Настройки">${icon("settings", 18)}</button>
       </div>
@@ -904,14 +979,24 @@ const UI = (function () {
 
   function helpModalHtml(state) {
     const steps = onboardingSteps();
-    const comboRows = Content.combos.list.map((c) => {
-      const meta = COMBO_META[c.id];
-      return `<div><span><strong>${c.name}</strong><small>${meta.poker}</small></span><span>${meta.rule}</span>
-        <span><b class="mint">${c.basePower}</b><span class="table-x">✕</span><b class="gold">${c.baseMult}</b></span></div>`;
-    }).join("");
+    const formationMode = state.rules === "formation";
+    const comboRows = formationMode
+      ? Content.formations.list.map((f) => `<div><span><strong>${f.name}</strong><small>${Content.damageTypeNames[f.damageType] || f.damageType}${f.positional ? " · порядок" : ""}</small></span><span>${f.rule}</span>
+          <span><b class="mint">${f.basePower}</b><span class="table-x">✕</span><b class="gold">${f.baseMult}</b></span></div>`).join("")
+      + Content.bonds.list.map((b) => {
+        const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
+        return `<div><span><strong>Связка «${b.trait}»</strong><small>складывается</small></span><span>${val || "—"}</span>
+          <span><b class="gold">${val}</b></span></div>`;
+      }).join("")
+      : Content.combos.list.map((c) => {
+        const meta = COMBO_META[c.id];
+        return `<div><span><strong>${c.name}</strong><small>${meta.poker}</small></span><span>${meta.rule}</span>
+          <span><b class="mint">${c.basePower}</b><span class="table-x">✕</span><b class="gold">${c.baseMult}</b></span></div>`;
+      }).join("");
     return `<span class="section-label mint">${icon("book", 15)}СПРАВОЧНИК</span>
-      <h2>Покерные правила. Дотовские привычки.</h2>
-      <p class="modal-description">Собери до ${Combat.MAX_SLOTS} героев: ранг даёт силу и собирает комбо, атрибут (цвет) собирает флеш, порядок клика — позиции. Сила × множитель = урон по башне.</p>
+      <h2>${formationMode ? "Формации. Порядок решает." : "Покерные правила. Дотовские привычки."}</h2>
+      ${formationMode ? `<p class="modal-description">Формация — одна лучшая по итоговому урону против цели: часть правил читает порядок слотов. Связки активны все сразу и складываются. Тип урона встречается с защитой башни: физический — минус броня, магический — минус сопротивление, чистый — игнорирует всё. Альтернативы и связки видны в панели справа.</p>` : `
+      <p class="modal-description">Собери до ${Combat.MAX_SLOTS} героев: ранг даёт силу и собирает комбо, атрибут (цвет) собирает флеш, порядок клика — позиции. Сила × множитель = урон по башне.</p>`}
       <div class="help-steps">${steps.map((s, i) => `<div><span>0${i + 1}</span><strong>${s.title}</strong><p>${s.body}</p></div>`).join("")}</div>
       <div class="combo-table">
         <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>

@@ -9,6 +9,33 @@ const Cond = (function () {
     return combo ? combo.rank : -1;
   }
 
+  // Ранг карты для детекции (паритет с poker.js valueOf): wild/иллюзии меняют
+  // только его. Используется условиями, читающими ранги сыгранных карт.
+  function rankOfCard(c) {
+    return c.detectPower != null ? c.detectPower : c.power;
+  }
+
+  // Режим формаций определяется самим комбо: у формаций есть tier, у покерных
+  // комбо — нет. Классические условия в classic-режиме не затронуты.
+  function isFormationCtx(ctx) {
+    return !!ctx.combo && ctx.combo.tier != null;
+  }
+
+  // Миграция покерных условий на формациях (docs/REDESIGN_ANTI_BALATRO.md §7).
+  // Данные героев/предметов не меняем — семантику подменяет слой алиасов.
+  const FORMATION_ALIASES = {
+    three: { type: "SAME_RANK_GROUP", size: 3 }, // Axe: Counter Helix — 3 одинаковых ранга
+    pair: { type: "TIER_MAX", value: 2 },        // Satanic: страховка слабой руки → tier ≤ 2
+    two_pair: { type: "TIER_MAX", value: 2 },
+  };
+  // COMBO_MIN X в формациях: «пара и выше» → tier ≥ 1 и т.д. (PA, Legion).
+  const FORMATION_MIN_TIER = { high_card: 0, pair: 1, two_pair: 1, three: 2, straight: 2, flush: 3, full_house: 3 };
+
+  function tierOf(ctx) {
+    if (!ctx.combo) return -1;
+    return ctx.combo.tier != null ? ctx.combo.tier : comboRank(ctx.combo.type);
+  }
+
   function evaluate(condition, ctx) {
     if (!condition) return true;
     if (condition.all) return condition.all.every((c) => evaluate(c, ctx));
@@ -19,9 +46,29 @@ const Cond = (function () {
       case "ALWAYS":
         return true;
       case "COMBO_IS":
+        if (isFormationCtx(ctx) && FORMATION_ALIASES[condition.value]) {
+          return evaluate(FORMATION_ALIASES[condition.value], ctx);
+        }
         return !!ctx.combo && ctx.combo.type === condition.value;
       case "COMBO_MIN":
+        if (isFormationCtx(ctx)) {
+          const minTier = FORMATION_MIN_TIER[condition.value];
+          return tierOf(ctx) >= (minTier != null ? minTier : comboRank(condition.value));
+        }
         return !!ctx.combo && comboRank(ctx.combo.type) >= comboRank(condition.value);
+      case "TIER_MIN":
+        return tierOf(ctx) >= condition.value;
+      case "TIER_MAX":
+        return tierOf(ctx) >= 0 && tierOf(ctx) <= condition.value;
+      case "SAME_RANK_GROUP": {
+        if (!ctx.playedCards) return false;
+        const counts = new Map();
+        for (const c of ctx.playedCards) {
+          const rank = rankOfCard(c);
+          counts.set(rank, (counts.get(rank) || 0) + 1);
+        }
+        return Array.from(counts.values()).some((n) => n >= condition.size);
+      }
       case "SLOT_IS":
         return ctx.slotIndex === condition.value;
       case "SLOT_IS_LAST":

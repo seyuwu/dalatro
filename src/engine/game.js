@@ -22,6 +22,8 @@ const Game = (function () {
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
+      // Ядро скоринга: "classic" (покерные комбо) | "formation" (формации+связки+броня).
+      rules: "classic",
       simulate: false,
     };
   }
@@ -130,11 +132,12 @@ const Game = (function () {
       case "START_RUN": {
         const code = Rng.normalizeSeedCode(action.seedCode) || Rng.randomSeedCode();
         const fresh = createInitialState(code);
+        fresh.rules = action.rules === "formation" ? "formation" : "classic";
         fresh.phase = "wave";
         Rng.setActive(Rng.create(code));
         DeckSys.createFromHeroes(fresh, Content.heroes.startingIds);
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}`);
+        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""}`);
         return fresh;
       }
 

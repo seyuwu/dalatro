@@ -23,6 +23,7 @@ const SRC_FILES = [
   "src/engine/game.js",
   "src/engine/simulator.js",
   "src/systems/poker.js",
+  "src/systems/formation.js",
   "src/systems/deck.js",
   "src/systems/combat.js",
   "src/systems/economy.js",

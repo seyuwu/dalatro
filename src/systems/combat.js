@@ -160,10 +160,13 @@ const Combat = (function () {
       }
     }
     let best = null;
+    const formationMode = state.rules === "formation";
     for (const candidate of candidates) {
-      const combo = PokerSys.evaluate(candidate);
+      const combo = formationMode
+        ? FormationSys.evaluate(candidate, { defense: towerDefenseOf(state) })
+        : PokerSys.evaluate(candidate);
       if (!combo) continue;
-      if (!best || betterCombo(combo, best.combo)) {
+      if (!best || (formationMode ? betterFormation(combo, best.combo) : betterCombo(combo, best.combo))) {
         best = { combo, cards: candidate, meta: candidate[0].meta };
       }
     }
@@ -190,6 +193,21 @@ const Combat = (function () {
     const rb = Content.combos.byId[b.type].rank;
     if (ra !== rb) return ra > rb;
     return a.basePower > b.basePower;
+  }
+
+  // Формации: кандидат детекции выбирается по итоговому урону против башни
+  // (docs/REDESIGN_ANTI_BALATRO.md §12), ничья — позиционность/тир.
+  function betterFormation(a, b) {
+    if (a.damage !== b.damage) return a.damage > b.damage;
+    if (a.tier !== b.tier) return a.tier > b.tier;
+    return a.basePower * a.baseMult > b.basePower * b.baseMult;
+  }
+
+  // Числовая защита цели (formation): TOWER_DEFENSE по id башни. BKB обнуляет —
+  // он и так выключает волновые модификаторы и проклятия.
+  function towerDefenseOf(state) {
+    if (state.combat.scoring && state.combat.scoring.flags.bkbBlocksMods) return { armor: 0, mr: 0 };
+    return Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
   }
 
   function towerDamageMult(state, resolution) {
@@ -247,11 +265,27 @@ const Combat = (function () {
     // 1-2. Pre-detect + detection.
     const { effective, combo, copyLog } = buildEffectiveSet(state, played, resolution);
     resolution.combo = combo;
-    Resolver.pushStep(resolution, {
-      icon: "🃏",
-      label: `Комбо: ${combo.name} (база ${combo.basePower} × ${combo.baseMult})`,
-      kind: "combo",
-    });
+    if (state.rules === "formation") {
+      Resolver.pushStep(resolution, {
+        icon: "🧩",
+        label: `Формация «${combo.name}» (тир ${combo.tier}): ${combo.formPower} × ${combo.formMult}, ${Content.damageTypeNames[combo.damageType]} урон`,
+        kind: "combo",
+      });
+      for (const bond of combo.bonds) {
+        const parts = [];
+        if (bond.power) parts.push("+" + bond.power + " силы");
+        if (bond.mult) parts.push("+" + bond.mult + " к множителю");
+        if (parts.length) {
+          Resolver.pushStep(resolution, { icon: "🔗", label: `Связка «${bond.trait}»: ${parts.join(", ")}`, kind: "bond" });
+        }
+      }
+    } else {
+      Resolver.pushStep(resolution, {
+        icon: "🃏",
+        label: `Комбо: ${combo.name} (база ${combo.basePower} × ${combo.baseMult})`,
+        kind: "combo",
+      });
+    }
 
     // 3. Base power + played card powers (туман: ранг ≤4 не даёт силы).
     const fog = curses.includes("fog");
@@ -309,7 +343,7 @@ const Combat = (function () {
       curseMultiplier *= 0.5;
       Resolver.pushStep(resolution, { icon: "☠", label: "Адаптация: повтор комбинации ×0.5", kind: "modifier" });
     }
-    if (curses.includes("bastion") && Content.combos.byId[combo.type].rank <= 2) {
+    if (curses.includes("bastion") && (state.rules === "formation" ? combo.tier <= 1 : Content.combos.byId[combo.type].rank <= 2)) {
       curseMultiplier *= 0.5;
       Resolver.pushStep(resolution, { icon: "☠", label: "Фортификация: малое комбо ×0.5", kind: "modifier" });
     }
@@ -318,7 +352,27 @@ const Combat = (function () {
 
     // 8. Damage.
     const s = state.combat.scoring;
-    const damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    let damage;
+    if (state.rules === "formation") {
+      // Третья ось: тип урона против числовой защиты цели (до волновых модов).
+      const raw = s.power * s.mult * s.finalMult;
+      const defense = towerDefenseOf(state);
+      const mitigated = FormationSys.mitigate(raw, combo.damageType, defense, 0);
+      if (state.combat.scoring.flags.bkbBlocksMods) {
+        Resolver.pushStep(resolution, { icon: "🛡", label: "BKB: числовая защита башни игнорируется", kind: "modifier" });
+      } else if (combo.damageType === "pure") {
+        Resolver.pushStep(resolution, { icon: "✦", label: "Чистый урон: броня и сопротивление игнорируются", kind: "info" });
+      } else if (combo.damageType === "magical" && defense.mr) {
+        Resolver.pushStep(resolution, { icon: "✺", label: `Сопротивление ${Math.round(defense.mr * 100)}%: ${Math.round(raw)} → ${mitigated}`, kind: "modifier" });
+      } else if (defense.armor) {
+        const absorbed = Math.min(defense.armor, raw * 0.5);
+        Resolver.pushStep(resolution, { icon: "🛡", label: `Броня башни ${defense.armor}: −${Math.round(absorbed)} (${Math.round(raw)} → ${mitigated})`, kind: "modifier" });
+      }
+      damage = Math.round(mitigated * towerMult);
+    } else {
+      damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    }
+    resolution.damageType = combo.damageType || null;
     resolution.power = s.power;
     resolution.mult = s.mult;
     resolution.damage = damage;

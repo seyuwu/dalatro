@@ -1045,6 +1045,11 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #405038; border-ra
   * { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
+/* --- rules toggle на титульном экране (state.rules: classic | formation) --- */
+.title-rules { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0 0 14px; }
+.title-rules .active-rule { outline: 2px solid rgba(110, 210, 160, 0.75); outline-offset: -1px; }
+.title-rules .rule-beta { opacity: 0.65; font-size: 11px; margin-left: 6px; }
+
 </style>
 </head>
 <body>
@@ -1529,6 +1534,50 @@ const MODIFIERS_DATA = [
 
 const CURSES = ["adaptation", "bastion", "fog", "silence", "disarm"];
 
+// --- Формации и связки: альтернативное ядро скоринга (state.rules = "formation").
+// Классика ("classic") эти таблицы не читает. Дизайн и миграция —
+// docs/REDESIGN_ANTI_BALATRO.md §12–13; правило выбора формации — максимум
+// итогового урона, ничья — позиционная. Часть формаций читает ПОРЯДОК слотов.
+const FORMATIONS_DATA = [
+  { id: "skirmish", name: "Харас", tier: 0, basePower: 6, baseMult: 1, damageType: "physical", rule: "1 герой в бою", gold: 1, when: { type: "PLAYED_COUNT_IS", value: 1 } },
+  { id: "duel", name: "Дуэль на линии", tier: 1, basePower: 12, baseMult: 1.5, damageType: "physical", rule: "2 героя", when: { type: "PLAYED_COUNT_IS", value: 2 } },
+  // Фолбэк: любой отряд 3+ всегда что-то наносит (аналог «старшей карты»).
+  { id: "squad", name: "Отряд", tier: 1, basePower: 14, baseMult: 1.5, damageType: "physical", rule: "3+ героя без выраженной формации", when: { type: "PLAYED_COUNT_ABOVE", value: 2 } },
+  { id: "triangle", name: "Треугольник", tier: 2, basePower: 18, baseMult: 2, damageType: "magical", rule: "3+ героя, минимум 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
+  { id: "wall", name: "Стена", tier: 2, positional: true, basePower: 20, baseMult: 2, damageType: "physical", rule: "3+ героя, слоты 1–2 — Сила ранга ≥6", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "FRONT_IS", attr: "str", minPower: 6 }] } },
+  { id: "wedge", name: "Клин", tier: 3, positional: true, basePower: 18, baseMult: 2.25, damageType: "pure", rule: "3+ героя, сильнейший стоит в центре (не на фланге)", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "PEAK_IN_CENTER" }] } },
+  { id: "ramp", name: "Рампа", tier: 3, positional: true, basePower: 18, baseMult: 2.25, damageType: "physical", rule: "3+ героя, ранги строго растут от слота 1 к последнему", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "RANKS_ASCENDING" }] } },
+  { id: "phalanx", name: "Фаланга", tier: 3, basePower: 24, baseMult: 2.5, damageType: "byAttribute", rule: "4+ героя одного атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 3 }] } },
+  // margin 4, а не 3 — ручка из §10: при margin 3 формация перехватывает почти
+  // любую руку с пиком в центре и убивает A/B-тест гипотезы.
+  { id: "protect", name: "4 Protect 1", tier: 5, positional: true, basePower: 26, baseMult: 3.5, damageType: "pure", rule: "5 героев, кэрри в центре и на +4 ранга выше остальных", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "CARRY_PROTECTED", margin: 4 }] } },
+  { id: "teamwipe", name: "Тимвайп", tier: 5, basePower: 28, baseMult: 4, damageType: "magical", rule: "5 героев, 5 рангов подряд и 3+ атрибута", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "RANK_RUN", value: 5 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
+];
+
+// Связки — пороги признаков, все активные складываются. Одна ступень на связку,
+// без ролей (роли вернутся после разметки hero.roles, ROADMAP акт 3).
+const BONDS_DATA = [
+  { id: "str2", trait: "Сила", when: { type: "COUNT_ATTR", attr: "str", min: 2 }, power: 6, mult: 0 },
+  { id: "agi2", trait: "Ловкость", when: { type: "COUNT_ATTR", attr: "agi", min: 2 }, power: 5, mult: 0.25 },
+  { id: "int2", trait: "Интеллект", when: { type: "COUNT_ATTR", attr: "int", min: 2 }, power: 0, mult: 0.5 },
+  { id: "gang2", trait: "Ганг", when: { type: "SAME_RANK_GROUP", size: 2 }, power: 8, mult: 0 },
+  { id: "chain3", trait: "Цепочка", when: { type: "RANK_RUN", value: 3 }, power: 8, mult: 0 },
+  { id: "front", trait: "Фронт", when: { type: "FRONT_IS", attr: "str", minPower: 5 }, power: 5, mult: 0 },
+  { id: "back", trait: "Тыл", when: { type: "BACK_IS", attr: "int", minPower: 0 }, power: 0, mult: 0.25 },
+];
+
+// Третья ось: числовая защита башен. physical −armor (плоско, но не больше
+// половины удара), magical ×(1−mr), pure игнорирует. BKB обнуляет (как проклятия).
+const TOWER_DEFENSE = {
+  t1: { armor: 0, mr: 0 },
+  t2: { armor: 10, mr: 0 },
+  t3: { armor: 18, mr: 0.25 },
+  techies: { armor: 8, mr: 0 },
+  roshan: { armor: 34, mr: 0.35 },
+};
+
+const DAMAGE_TYPE_NAMES = { physical: "физический", magical: "магический", pure: "чистый" };
+
 </script>
   <script>
 // Dalatro — content registry. The engine only ever talks to Content.
@@ -1549,11 +1598,15 @@ const Content = (function () {
   const waves = { list: WAVES_DATA, byId: byId(WAVES_DATA), order: WAVES_DATA.map((w) => w.id) };
   const modifiers = { list: MODIFIERS_DATA, byId: byId(MODIFIERS_DATA) };
   const curses = CURSES.filter((id) => modifiers.byId[id]);
+  // Альтернативное ядро скоринга (state.rules = "formation").
+  const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
+  const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
+  const towerDefense = { byId: TOWER_DEFENSE };
 
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, attrNames, attrShort };
 })();
 
 </script>
@@ -1598,6 +1651,33 @@ const Cond = (function () {
     return combo ? combo.rank : -1;
   }
 
+  // Ранг карты для детекции (паритет с poker.js valueOf): wild/иллюзии меняют
+  // только его. Используется условиями, читающими ранги сыгранных карт.
+  function rankOfCard(c) {
+    return c.detectPower != null ? c.detectPower : c.power;
+  }
+
+  // Режим формаций определяется самим комбо: у формаций есть tier, у покерных
+  // комбо — нет. Классические условия в classic-режиме не затронуты.
+  function isFormationCtx(ctx) {
+    return !!ctx.combo && ctx.combo.tier != null;
+  }
+
+  // Миграция покерных условий на формациях (docs/REDESIGN_ANTI_BALATRO.md §7).
+  // Данные героев/предметов не меняем — семантику подменяет слой алиасов.
+  const FORMATION_ALIASES = {
+    three: { type: "SAME_RANK_GROUP", size: 3 }, // Axe: Counter Helix — 3 одинаковых ранга
+    pair: { type: "TIER_MAX", value: 2 },        // Satanic: страховка слабой руки → tier ≤ 2
+    two_pair: { type: "TIER_MAX", value: 2 },
+  };
+  // COMBO_MIN X в формациях: «пара и выше» → tier ≥ 1 и т.д. (PA, Legion).
+  const FORMATION_MIN_TIER = { high_card: 0, pair: 1, two_pair: 1, three: 2, straight: 2, flush: 3, full_house: 3 };
+
+  function tierOf(ctx) {
+    if (!ctx.combo) return -1;
+    return ctx.combo.tier != null ? ctx.combo.tier : comboRank(ctx.combo.type);
+  }
+
   function evaluate(condition, ctx) {
     if (!condition) return true;
     if (condition.all) return condition.all.every((c) => evaluate(c, ctx));
@@ -1608,9 +1688,29 @@ const Cond = (function () {
       case "ALWAYS":
         return true;
       case "COMBO_IS":
+        if (isFormationCtx(ctx) && FORMATION_ALIASES[condition.value]) {
+          return evaluate(FORMATION_ALIASES[condition.value], ctx);
+        }
         return !!ctx.combo && ctx.combo.type === condition.value;
       case "COMBO_MIN":
+        if (isFormationCtx(ctx)) {
+          const minTier = FORMATION_MIN_TIER[condition.value];
+          return tierOf(ctx) >= (minTier != null ? minTier : comboRank(condition.value));
+        }
         return !!ctx.combo && comboRank(ctx.combo.type) >= comboRank(condition.value);
+      case "TIER_MIN":
+        return tierOf(ctx) >= condition.value;
+      case "TIER_MAX":
+        return tierOf(ctx) >= 0 && tierOf(ctx) <= condition.value;
+      case "SAME_RANK_GROUP": {
+        if (!ctx.playedCards) return false;
+        const counts = new Map();
+        for (const c of ctx.playedCards) {
+          const rank = rankOfCard(c);
+          counts.set(rank, (counts.get(rank) || 0) + 1);
+        }
+        return Array.from(counts.values()).some((n) => n >= condition.size);
+      }
       case "SLOT_IS":
         return ctx.slotIndex === condition.value;
       case "SLOT_IS_LAST":
@@ -1986,6 +2086,8 @@ const Game = (function () {
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
+      // Ядро скоринга: "classic" (покерные комбо) | "formation" (формации+связки+броня).
+      rules: "classic",
       simulate: false,
     };
   }
@@ -2094,11 +2196,12 @@ const Game = (function () {
       case "START_RUN": {
         const code = Rng.normalizeSeedCode(action.seedCode) || Rng.randomSeedCode();
         const fresh = createInitialState(code);
+        fresh.rules = action.rules === "formation" ? "formation" : "classic";
         fresh.phase = "wave";
         Rng.setActive(Rng.create(code));
         DeckSys.createFromHeroes(fresh, Content.heroes.startingIds);
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}`);
+        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""}`);
         return fresh;
       }
 
@@ -2469,6 +2572,257 @@ const PokerSys = (function () {
 
 </script>
   <script>
+// FormationSys — альтернативное ядро скоринга (state.rules = "formation").
+// Тот же контракт evaluate(cards), что у PokerSys, но детекция читает ПОРЯДОК
+// слотов через detectPower-ранги, а формация выбирается по максимальному
+// ИТОГОВОМУ урону, а не по приоритету тира. Все правила — данные из
+// content/world.js (FORMATIONS_DATA / BONDS_DATA / TOWER_DEFENSE).
+//
+// Правило выбора (docs/REDESIGN_ANTI_BALATRO.md §12):
+//   1. найти все валидные формации;
+//   2. для каждой посчитать полный ожидаемый результат — итоговый урон
+//      (связки + Σ сил карт + тип урона + защита цели);
+//   3. выбрать максимум;
+//   4. ничья — предпочесть позиционную формацию (порядок требует навыка).
+//
+// Контракт совместим с боевым пайплайном:
+//   evaluate(cards, opts?) -> { id, name, tier, basePower, baseMult,
+//                               damageType, damage, bonds[], alternatives[] }
+// где cards = [{ power, attr, detectPower?, slotIndex }] в порядке слотов, а
+// opts = { defense: {armor, mr}, armorPen, commit } — контекст цели и ставка.
+const FormationSys = (function () {
+  // Ранг для детекции — паритет с poker.js valueOf: Butterfly/Manta/Shadow
+  // Blade меняют только его; реальная сила карт в Σ сил считает combat.
+  function valueOf(card) {
+    return card.detectPower != null ? card.detectPower : card.power;
+  }
+
+  function buildCtx(cards) {
+    const bySlot = cards.slice().sort((a, b) => a.slotIndex - b.slotIndex);
+    const powers = bySlot.map(valueOf);
+    const attrs = bySlot.map((c) => c.attr);
+    const counts = (arr) => {
+      const m = new Map();
+      for (const v of arr) m.set(v, (m.get(v) || 0) + 1);
+      return m;
+    };
+    return {
+      cards: bySlot,
+      playedCards: bySlot,
+      powers,
+      attrs,
+      attrCounts: counts(attrs),
+      rankCounts: counts(powers),
+      // Σ РЕАЛЬНЫХ сил (не detectPower) — combat.js добавляет её к базе на шаге 3.
+      // Нужна здесь, потому что «полный ожидаемый результат» для выбора формации
+      // обязан включать её: броня вычитается плоско, и константа меняет рейтинг.
+      cardPower: bySlot.reduce((a, c) => a + (c.power || 0), 0),
+      n: bySlot.length,
+      maxPower: Math.max(...powers),
+      minPower: Math.min(...powers),
+    };
+  }
+
+  // Наибольшая длина подряд идущих рангов (для «Цепочки» и «Тимвайпа»).
+  function longestRun(ctx) {
+    const distinct = Array.from(new Set(ctx.powers)).sort((a, b) => a - b);
+    let best = 1, run = 1;
+    for (let i = 1; i < distinct.length; i++) {
+      run = distinct[i] === distinct[i - 1] + 1 ? run + 1 : 1;
+      if (run > best) best = run;
+    }
+    return distinct.length ? best : 0;
+  }
+
+  function ascending(ctx) {
+    for (let i = 1; i < ctx.powers.length; i++) if (ctx.powers[i] <= ctx.powers[i - 1]) return false;
+    return ctx.powers.length >= 3;
+  }
+
+  // Сильнейший герой стоит В ЦЕНТРЕ формации: для нечётного n — средний слот,
+  // для чётного — один из двух средних.
+  function peakInCenter(ctx) {
+    if (ctx.n < 3) return false;
+    const idx = ctx.powers.indexOf(ctx.maxPower);
+    const mid = Math.floor((ctx.n - 1) / 2);
+    return ctx.n % 2 === 1 ? idx === mid : idx === mid || idx === mid + 1;
+  }
+
+  // Кэрри в центре и заметно выше остальных — «4 protect 1».
+  function carryProtected(ctx, margin) {
+    if (ctx.n < 5) return false;
+    const center = Math.floor(ctx.n / 2);
+    const carry = ctx.powers[center];
+    if (carry !== ctx.maxPower) return false;
+    const others = ctx.powers.filter((_, i) => i !== center);
+    const avgOthers = others.reduce((a, b) => a + b, 0) / others.length;
+    return carry >= avgOthers + margin;
+  }
+
+  function frontIs(ctx, attr, minPower) {
+    const front = ctx.cards.slice(0, 2);
+    return front.length === 2 && front.every((c) => valueOf(c) >= minPower && c.attr === attr);
+  }
+
+  function backIs(ctx, attr, minPower) {
+    const back = ctx.cards.slice(-2);
+    return ctx.n >= 4 && back.every((c) => valueOf(c) >= minPower && c.attr === attr);
+  }
+
+  // Собственный eval-слой условий: новые типы читают ctx формации,
+  // остальные отдаём существующему Cond (ctx.playedCards уже подставлен).
+  function evalWhen(when, ctx) {
+    if (!when) return true;
+    if (when.all) return when.all.every((w) => evalWhen(w, ctx));
+    if (when.any) return when.any.some((w) => evalWhen(w, ctx));
+    if (when.not) return !evalWhen(when.not, ctx);
+
+    switch (when.type) {
+      case "PLAYED_COUNT_IS": return ctx.n === when.value;
+      case "PLAYED_COUNT_ABOVE": return ctx.n > when.value;
+      case "PLAYED_COUNT_BELOW": return ctx.n < when.value;
+      case "DISTINCT_ATTRIBUTES_ABOVE": return new Set(ctx.attrs).size > when.value;
+      case "SAME_ATTRIBUTE_COUNT_ABOVE":
+        return Array.from(ctx.attrCounts.values()).some((n) => n > when.value);
+      case "FRONT_IS": return frontIs(ctx, when.attr, when.minPower || 0);
+      case "BACK_IS": return backIs(ctx, when.attr, when.minPower || 0);
+      case "PEAK_IN_CENTER": return peakInCenter(ctx);
+      case "RANKS_ASCENDING": return ascending(ctx);
+      case "RANK_RUN": return longestRun(ctx) >= when.value;
+      case "CARRY_PROTECTED": return carryProtected(ctx, when.margin || 0);
+      case "COUNT_ATTR": return (ctx.attrCounts.get(when.attr) || 0) >= when.min;
+      case "SAME_RANK_GROUP": return Array.from(ctx.rankCounts.values()).some((n) => n >= when.size);
+      case "ALL_RANKS_DISTINCT":
+        return ctx.n >= when.min && new Set(ctx.powers).size === ctx.n;
+      default:
+        // Делегируем в боевой Cond (COMBO_IS и пр. там уже умеют работать).
+        if (typeof Cond !== "undefined") return Cond.evaluate(when, { playedCards: ctx.cards, card: null, slotIndex: -1 });
+        return false;
+    }
+  }
+
+  function resolveDamageType(def, ctx) {
+    if (def.damageType !== "byAttribute") return def.damageType;
+    const dominant = Array.from(ctx.attrCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+    return { str: "physical", agi: "physical", int: "magical", uni: "pure" }[dominant[0]] || "physical";
+  }
+
+  // Все активные связки (в отличие от формации — складываются все).
+  function computeBonds(ctx) {
+    const active = [];
+    for (const bond of BONDS_DATA) {
+      if (evalWhen(bond.when, ctx)) active.push(bond);
+    }
+    return active;
+  }
+
+  // Броня/сопротивление: третья ось. pure игнорирует защиту.
+  function mitigate(rawDamage, damageType, defense, armorPen) {
+    const pen = armorPen || 0;
+    if (damageType === "pure") return Math.max(1, Math.round(rawDamage));
+    if (damageType === "magical") {
+      const mr = Math.max(0, (defense.mr || 0) - pen / 200);
+      return Math.max(1, Math.round(rawDamage * (1 - mr)));
+    }
+    // Плоская броня, но не больше половины удара: мелкая рука не обнуляется.
+    const armor = Math.max(0, (defense.armor || 0) - pen);
+    const absorbed = Math.min(armor, rawDamage * 0.5);
+    return Math.max(1, Math.round(rawDamage - absorbed));
+  }
+
+  // Строгий порядок «кто лучше»: урон → позиционность → база.
+  function better(a, b) {
+    if (a.damage !== b.damage) return a.damage > b.damage;
+    if (!!a.positional !== !!b.positional) return !!a.positional;
+    return a.basePower * a.baseMult > b.basePower * b.baseMult;
+  }
+
+  function scoreFormation(def, ctx, opts) {
+    const bonds = computeBonds(ctx);
+    const bondPower = bonds.reduce((a, b) => a + (b.power || 0), 0);
+    const bondMult = bonds.reduce((a, b) => a + (b.mult || 0), 0);
+    const basePower = def.basePower + bondPower;
+    const baseMult = def.baseMult + bondMult;
+    const damageType = resolveDamageType(def, ctx);
+    // «Полный ожидаемый результат»: база + связки + Σ сил карт (реальных),
+    // ставка (finalMult) до защиты — как в combat.js (шаги 3 → 6.5 → 7 → 8).
+    // basePower в ответе остаётся БЕЗ Σ — её добавит combat (контракт PokerSys).
+    const raw = (basePower + ctx.cardPower) * baseMult * (opts.commit || 1);
+    const damage = opts.defense ? mitigate(raw, damageType, opts.defense, opts.armorPen) : raw;
+    return { def, bonds, bondPower, bondMult, basePower, baseMult, damageType, raw, damage };
+  }
+
+  // Все валидные формации, отсортированные по итоговому урону.
+  // Это данные для панели альтернатив: «Клин 347 / Фаланга 284 / Рампа 251».
+  function rankFormations(cards, opts = {}) {
+    const withSlots = cards.map((c, i) => ({ ...c, slotIndex: c.slotIndex != null ? c.slotIndex : i }));
+    const ctx = buildCtx(withSlots);
+    const list = [];
+    for (const def of FORMATIONS_DATA) {
+      if (!evalWhen(def.when, ctx)) continue;
+      const s = scoreFormation(def, ctx, opts);
+      list.push({
+        id: s.def.id, name: s.def.name, tier: s.def.tier, rule: s.def.rule,
+        positional: !!s.def.positional, damageType: s.damageType,
+        formPower: s.def.basePower, formMult: s.def.baseMult,
+        basePower: s.basePower, baseMult: s.baseMult,
+        bonds: s.bonds, bondPower: s.bondPower, bondMult: s.bondMult,
+        raw: s.raw, damage: s.damage,
+      });
+    }
+    list.sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0));
+    return { ctx, list };
+  }
+
+  function evaluate(cards, opts = {}) {
+    if (!cards || !cards.length) return null;
+    const { list } = rankFormations(cards, opts);
+    if (!list.length) return null;
+    const best = list[0];
+    return {
+      // Совместимость со старым контрактом PokerSys.
+      type: best.id, name: best.name, basePower: best.basePower, baseMult: best.baseMult,
+      // Новый слой.
+      id: best.id, tier: best.tier, rule: best.rule, positional: best.positional,
+      damageType: best.damageType, raw: best.raw, damage: best.damage,
+      formPower: best.formPower, formMult: best.formMult,
+      bonds: best.bonds, bondPower: best.bondPower, bondMult: best.bondMult,
+      alternatives: list,
+    };
+  }
+
+  // Подсказка перестановки: обмен двух слотов, дающий лучший итоговый урон.
+  // Это и есть gameplay loop v2: «переставь Sven в центр → Клин 150 (+17)».
+  // Возвращает { swap: [i, j], id, name, damage, gain } или null.
+  function bestSwap(cards, opts = {}) {
+    if (!cards || cards.length < 2) return null;
+    const base = evaluate(cards, opts);
+    if (!base) return null;
+    // Позиции нормализуем сами: вызывающий может передать карты без slotIndex.
+    const positioned = cards.map((c, i) => ({ ...c, slotIndex: c.slotIndex != null ? c.slotIndex : i }));
+    let best = null;
+    for (let i = 0; i < positioned.length; i++) {
+      for (let j = i + 1; j < positioned.length; j++) {
+        const swapped = positioned.map((c) => ({ ...c }));
+        const ti = swapped[i].slotIndex, tj = swapped[j].slotIndex;
+        swapped[i].slotIndex = tj;
+        swapped[j].slotIndex = ti;
+        const r = evaluate(swapped, opts);
+        if (r && r.damage > (best ? best.damage : base.damage)) {
+          best = { swap: [i, j], id: r.id, name: r.name, damage: r.damage };
+        }
+      }
+    }
+    if (!best || best.damage <= base.damage) return null;
+    best.gain = best.damage - base.damage;
+    return best;
+  }
+
+  return { evaluate, rankFormations, bestSwap, mitigate, computeBonds, buildCtx, evalWhen, better, longestRun };
+})();
+
+</script>
+  <script>
 // Dalatro — deck system: deck / hand / discard as uid arrays + card registry.
 const DeckSys = (function () {
   let uidCounter = 0;
@@ -2695,10 +3049,13 @@ const Combat = (function () {
       }
     }
     let best = null;
+    const formationMode = state.rules === "formation";
     for (const candidate of candidates) {
-      const combo = PokerSys.evaluate(candidate);
+      const combo = formationMode
+        ? FormationSys.evaluate(candidate, { defense: towerDefenseOf(state) })
+        : PokerSys.evaluate(candidate);
       if (!combo) continue;
-      if (!best || betterCombo(combo, best.combo)) {
+      if (!best || (formationMode ? betterFormation(combo, best.combo) : betterCombo(combo, best.combo))) {
         best = { combo, cards: candidate, meta: candidate[0].meta };
       }
     }
@@ -2725,6 +3082,21 @@ const Combat = (function () {
     const rb = Content.combos.byId[b.type].rank;
     if (ra !== rb) return ra > rb;
     return a.basePower > b.basePower;
+  }
+
+  // Формации: кандидат детекции выбирается по итоговому урону против башни
+  // (docs/REDESIGN_ANTI_BALATRO.md §12), ничья — позиционность/тир.
+  function betterFormation(a, b) {
+    if (a.damage !== b.damage) return a.damage > b.damage;
+    if (a.tier !== b.tier) return a.tier > b.tier;
+    return a.basePower * a.baseMult > b.basePower * b.baseMult;
+  }
+
+  // Числовая защита цели (formation): TOWER_DEFENSE по id башни. BKB обнуляет —
+  // он и так выключает волновые модификаторы и проклятия.
+  function towerDefenseOf(state) {
+    if (state.combat.scoring && state.combat.scoring.flags.bkbBlocksMods) return { armor: 0, mr: 0 };
+    return Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
   }
 
   function towerDamageMult(state, resolution) {
@@ -2782,11 +3154,27 @@ const Combat = (function () {
     // 1-2. Pre-detect + detection.
     const { effective, combo, copyLog } = buildEffectiveSet(state, played, resolution);
     resolution.combo = combo;
-    Resolver.pushStep(resolution, {
-      icon: "🃏",
-      label: `Комбо: ${combo.name} (база ${combo.basePower} × ${combo.baseMult})`,
-      kind: "combo",
-    });
+    if (state.rules === "formation") {
+      Resolver.pushStep(resolution, {
+        icon: "🧩",
+        label: `Формация «${combo.name}» (тир ${combo.tier}): ${combo.formPower} × ${combo.formMult}, ${Content.damageTypeNames[combo.damageType]} урон`,
+        kind: "combo",
+      });
+      for (const bond of combo.bonds) {
+        const parts = [];
+        if (bond.power) parts.push("+" + bond.power + " силы");
+        if (bond.mult) parts.push("+" + bond.mult + " к множителю");
+        if (parts.length) {
+          Resolver.pushStep(resolution, { icon: "🔗", label: `Связка «${bond.trait}»: ${parts.join(", ")}`, kind: "bond" });
+        }
+      }
+    } else {
+      Resolver.pushStep(resolution, {
+        icon: "🃏",
+        label: `Комбо: ${combo.name} (база ${combo.basePower} × ${combo.baseMult})`,
+        kind: "combo",
+      });
+    }
 
     // 3. Base power + played card powers (туман: ранг ≤4 не даёт силы).
     const fog = curses.includes("fog");
@@ -2844,7 +3232,7 @@ const Combat = (function () {
       curseMultiplier *= 0.5;
       Resolver.pushStep(resolution, { icon: "☠", label: "Адаптация: повтор комбинации ×0.5", kind: "modifier" });
     }
-    if (curses.includes("bastion") && Content.combos.byId[combo.type].rank <= 2) {
+    if (curses.includes("bastion") && (state.rules === "formation" ? combo.tier <= 1 : Content.combos.byId[combo.type].rank <= 2)) {
       curseMultiplier *= 0.5;
       Resolver.pushStep(resolution, { icon: "☠", label: "Фортификация: малое комбо ×0.5", kind: "modifier" });
     }
@@ -2853,7 +3241,27 @@ const Combat = (function () {
 
     // 8. Damage.
     const s = state.combat.scoring;
-    const damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    let damage;
+    if (state.rules === "formation") {
+      // Третья ось: тип урона против числовой защиты цели (до волновых модов).
+      const raw = s.power * s.mult * s.finalMult;
+      const defense = towerDefenseOf(state);
+      const mitigated = FormationSys.mitigate(raw, combo.damageType, defense, 0);
+      if (state.combat.scoring.flags.bkbBlocksMods) {
+        Resolver.pushStep(resolution, { icon: "🛡", label: "BKB: числовая защита башни игнорируется", kind: "modifier" });
+      } else if (combo.damageType === "pure") {
+        Resolver.pushStep(resolution, { icon: "✦", label: "Чистый урон: броня и сопротивление игнорируются", kind: "info" });
+      } else if (combo.damageType === "magical" && defense.mr) {
+        Resolver.pushStep(resolution, { icon: "✺", label: `Сопротивление ${Math.round(defense.mr * 100)}%: ${Math.round(raw)} → ${mitigated}`, kind: "modifier" });
+      } else if (defense.armor) {
+        const absorbed = Math.min(defense.armor, raw * 0.5);
+        Resolver.pushStep(resolution, { icon: "🛡", label: `Броня башни ${defense.armor}: −${Math.round(absorbed)} (${Math.round(raw)} → ${mitigated})`, kind: "modifier" });
+      }
+      damage = Math.round(mitigated * towerMult);
+    } else {
+      damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    }
+    resolution.damageType = combo.damageType || null;
     resolution.power = s.power;
     resolution.mult = s.mult;
     resolution.damage = damage;
@@ -3630,6 +4038,17 @@ const UI = (function () {
     };
   }
 
+  // Подзаголовок под названием комбо/формации. У формаций нет покерного
+  // эквивалента — читаем правило и тип урона (rules: "formation").
+  function comboSubtitle(combo) {
+    if (combo && combo.tier != null) {
+      const dt = Content.damageTypeNames[combo.damageType] || combo.damageType;
+      return `${combo.rule || ""} · ${dt} урон`;
+    }
+    const meta = combo ? COMBO_META[combo.type] : null;
+    return meta ? `${meta.poker} · ${meta.rule}` : "Сила героев × множитель";
+  }
+
   function toast(state, text) {
     UIState.toast = text;
     clearTimeout(UIState._toastTimer);
@@ -3692,7 +4111,7 @@ const UI = (function () {
       if (!def) continue;
       let text = "";
       let used = false;
-      if (m.id === "armor") text = "Броня: первый бой ×0.5";
+      if (m.id === "armor") text = state.rules === "formation" ? "Укрепления: первый бой ×0.5" : "Броня: первый бой ×0.5";
       else if (m.id === "glyph") text = "Глиф: каждый 3-й бой = 0";
       else if (m.id === "mines") {
         used = disarmed;
@@ -3703,6 +4122,17 @@ const UI = (function () {
         text = used ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
       }
       rows.push(`<div class="wave-rule ${used ? "done" : ""} ${def.curse && !used ? "danger" : ""}">${icon("shield", 13)}<span>${text}</span></div>`);
+    }
+    if (state.rules === "formation") {
+      // Третья ось: числовая защита цели — телеграфируется до боя.
+      const d = Content.towerDefense.byId[wave.towerId];
+      if (d && (d.armor || d.mr)) {
+        const bkb = state.player.items.includes("bkb");
+        const parts = [];
+        if (d.armor) parts.push(`броня ${d.armor}`);
+        if (d.mr) parts.push(`сопротивление ${Math.round(d.mr * 100)}%`);
+        rows.push(`<div class="wave-rule ${bkb ? "done" : ""}">${icon("shield", 13)}<span>Защита: ${parts.join(" · ")}${bkb ? " — снимает BKB" : ""}</span></div>`);
+      }
     }
     if (wave.elite) {
       rows.push(`<div class="wave-rule momentum">${icon("sparkles", 13)}<span>Элитная добыча: золото ×1.5, эпик в лавке</span></div>`);
@@ -3856,9 +4286,9 @@ const UI = (function () {
     const canDiscard = state.combat.selectedUids.length > 0 && state.player.discardsLeft > 0 && !state.combat.outcome;
     return `<section class="play-controls panel">
       <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
-        <span class="section-label">${preview ? "ТВОЯ КОМБИНАЦИЯ" : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
+        <span class="section-label">${preview ? (combo && combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
         <strong>${combo ? combo.name : "Собери тимфайт"} ${icon("chevron", 14)}</strong>
-        <small>${combo ? COMBO_META[combo.type].poker + ` · ${COMBO_META[combo.type].rule}` : "Сила героев × множитель"}</small>
+        <small>${combo ? comboSubtitle(combo) : "Сила героев × множитель"}</small>
       </button>
       <div class="score-formula">
         <div class="score-block power"><strong>${power}</strong><span>СИЛА</span></div>
@@ -3882,6 +4312,7 @@ const UI = (function () {
   }
 
   function combosPanelHtml(state) {
+    if (state.rules === "formation") return formationsPanelHtml(state);
     const preview = state.phase === "wave" ? computePreview(state) : null;
     const current = preview ? preview.combo.type : null;
     const ready = state.phase === "wave" ? handComboState(state) : {};
@@ -3907,6 +4338,53 @@ const UI = (function () {
     </aside>`;
   }
 
+  // rules: "formation" — список формаций + активные связки + альтернативы
+  // текущего выбора с итоговым уроном (панель заменяет покерные комбинации).
+  function formationsPanelHtml(state) {
+    const preview = state.phase === "wave" ? computePreview(state) : null;
+    const combo = preview ? preview.combo : null;
+    const dtName = (dt) => Content.damageTypeNames[dt] || dt;
+    const rows = Content.formations.list.map((f) => {
+      const cls = combo && combo.type === f.id ? "hit" : "";
+      return `<div class="combo-row ${cls}" title="${esc(f.rule + " · " + dtName(f.damageType) + " урон")}">
+        <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}${f.positional ? " · порядок" : ""}</small></div>
+        <div class="combo-row-rule">${f.rule}</div>
+        <div class="combo-row-value"><b class="mint">${f.basePower}</b><span>×</span><b class="gold">${f.baseMult}</b></div>
+      </div>`;
+    }).join("");
+    let bondsHtml = "";
+    if (combo && combo.bonds && combo.bonds.length) {
+      bondsHtml = `<div class="section-label" style="margin-top:12px"><span>${icon("sparkles", 13)}АКТИВНЫЕ СВЯЗКИ</span></div>
+        <div class="combo-rows">${combo.bonds.map((b) => {
+        const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
+        return `<div class="combo-row hit"><div class="combo-row-name"><strong>${b.trait}</strong></div><div class="combo-row-rule">${val}</div></div>`;
+      }).join("")}</div>`;
+    }
+    let altHtml = "";
+    if (combo && combo.alternatives && combo.alternatives.length > 1) {
+      altHtml = `<div class="section-label" style="margin-top:12px"><span>${icon("target", 13)}АЛЬТЕРНАТИВЫ ПРОТИВ ЦЕЛИ</span></div>
+        <div class="combo-rows">${combo.alternatives.slice(0, 4).map((f) =>
+        `<div class="combo-row ${f.id === combo.type ? "hit" : ""}">
+            <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}</small></div>
+            <div class="combo-row-value"><b class="gold">${f.damage}</b><span>урона</span></div>
+          </div>`).join("")}</div>
+        <div class="combo-legend"><span>Переставляй героев — формация и урон меняются</span></div>`;
+    }
+    return `<aside class="combos-panel">
+      <section class="panel combos-panel-inner">
+        <div class="section-label"><span>${icon("book", 13)}ФОРМАЦИИ</span>
+          <button class="icon-button small" data-action="open-modal" data-modal="help" title="Справочник: формации, связки, типы урона">${icon("help", 13)}</button></div>
+        <div class="combo-rows">${rows}</div>
+        <div class="combo-legend">
+          <span><i class="dot hit"></i>собрано</span>
+          <span>связки складываются все</span>
+        </div>
+        ${bondsHtml}
+        ${altHtml}
+      </section>
+    </aside>`;
+  }
+
   function footerHtml(state) {
     const names = ["T1", "T2", "T3", "TECHIES", "ROSHAN"];
     const steps = names.map((n, i) => {
@@ -3917,7 +4395,7 @@ const UI = (function () {
     return `<footer class="footer">
       <div class="act-progress">${steps}</div>
       <span class="footer-tagline">Немного Dota. Немного покера. Ещё один забег.</span>
-      <span class="footer-ver">DALATRO <span>v0.4</span></span>
+      <span class="footer-ver">DALATRO <span>v0.5</span></span>
     </footer>`;
   }
 
@@ -3938,6 +4416,7 @@ const UI = (function () {
   // ---------- screens ----------
 
   function renderTitle(state) {
+    const rules = UIState.rulesDraft === "formation" ? "formation" : "classic";
     app().innerHTML = `
     <div class="title-screen">
       <div class="title-bg"></div>
@@ -3951,6 +4430,10 @@ const UI = (function () {
           <span class="equals">=</span>
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
+        <div class="title-rules">
+          <button class="subtle-button ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">Классика: покерные комбо</button>
+          <button class="subtle-button ${rules === "formation" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="formation" title="Формации + связки + типы урона. Экспериментальное ядро скоринга (state.rules)">Формации: порядок решает <span class="rule-beta">эксперимент</span></button>
+        </div>
         <div class="seed-row">
           <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
           <button class="primary-button" data-action="start">Начать забег ${icon("arrow", 15)}</button>
@@ -3958,7 +4441,7 @@ const UI = (function () {
         <div class="title-links">
           <button class="subtle-button" data-action="onboard-start">${icon("book", 13)}Как играть — 5 шагов</button>
           <span class="keyboard-divider">·</span>
-          <span class="title-hint">Собирай покерные комбинации из героев Dota и сноси башни</span>
+          <span class="title-hint">${rules === "formation" ? "Собирай формации из героев Dota: порядок слотов решает" : "Собирай покерные комбинации из героев Dota и сноси башни"}</span>
         </div>
       </div>
     </div>`;
@@ -4197,7 +4680,7 @@ const UI = (function () {
         <button class="${UIState.modal === "help" ? "active" : ""}" data-action="open-modal" data-modal="help">${icon("book", 16)}Как играть</button>
       </nav>
       <div class="header-right">
-        <span class="version">BETA <span>0.4</span></span>
+        <span class="version">BETA <span>0.5</span></span>
         <button class="icon-button" data-action="toggle-sound" title="${Sfx.isMuted() ? "Включить звук" : "Выключить звук"}">${Sfx.isMuted() ? icon("mute", 18) : icon("volume", 18)}</button>
         <button class="icon-button" data-action="open-modal" data-modal="settings" title="Настройки">${icon("settings", 18)}</button>
       </div>
@@ -4379,14 +4862,24 @@ const UI = (function () {
 
   function helpModalHtml(state) {
     const steps = onboardingSteps();
-    const comboRows = Content.combos.list.map((c) => {
-      const meta = COMBO_META[c.id];
-      return `<div><span><strong>${c.name}</strong><small>${meta.poker}</small></span><span>${meta.rule}</span>
-        <span><b class="mint">${c.basePower}</b><span class="table-x">✕</span><b class="gold">${c.baseMult}</b></span></div>`;
-    }).join("");
+    const formationMode = state.rules === "formation";
+    const comboRows = formationMode
+      ? Content.formations.list.map((f) => `<div><span><strong>${f.name}</strong><small>${Content.damageTypeNames[f.damageType] || f.damageType}${f.positional ? " · порядок" : ""}</small></span><span>${f.rule}</span>
+          <span><b class="mint">${f.basePower}</b><span class="table-x">✕</span><b class="gold">${f.baseMult}</b></span></div>`).join("")
+      + Content.bonds.list.map((b) => {
+        const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
+        return `<div><span><strong>Связка «${b.trait}»</strong><small>складывается</small></span><span>${val || "—"}</span>
+          <span><b class="gold">${val}</b></span></div>`;
+      }).join("")
+      : Content.combos.list.map((c) => {
+        const meta = COMBO_META[c.id];
+        return `<div><span><strong>${c.name}</strong><small>${meta.poker}</small></span><span>${meta.rule}</span>
+          <span><b class="mint">${c.basePower}</b><span class="table-x">✕</span><b class="gold">${c.baseMult}</b></span></div>`;
+      }).join("");
     return `<span class="section-label mint">${icon("book", 15)}СПРАВОЧНИК</span>
-      <h2>Покерные правила. Дотовские привычки.</h2>
-      <p class="modal-description">Собери до ${Combat.MAX_SLOTS} героев: ранг даёт силу и собирает комбо, атрибут (цвет) собирает флеш, порядок клика — позиции. Сила × множитель = урон по башне.</p>
+      <h2>${formationMode ? "Формации. Порядок решает." : "Покерные правила. Дотовские привычки."}</h2>
+      ${formationMode ? `<p class="modal-description">Формация — одна лучшая по итоговому урону против цели: часть правил читает порядок слотов. Связки активны все сразу и складываются. Тип урона встречается с защитой башни: физический — минус броня, магический — минус сопротивление, чистый — игнорирует всё. Альтернативы и связки видны в панели справа.</p>` : `
+      <p class="modal-description">Собери до ${Combat.MAX_SLOTS} героев: ранг даёт силу и собирает комбо, атрибут (цвет) собирает флеш, порядок клика — позиции. Сила × множитель = урон по башне.</p>`}
       <div class="help-steps">${steps.map((s, i) => `<div><span>0${i + 1}</span><strong>${s.title}</strong><p>${s.body}</p></div>`).join("")}</div>
       <div class="combo-table">
         <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>
@@ -4718,7 +5211,9 @@ const UI = (function () {
   }
 
   function startRun(seedCode) {
-    state = Game.dispatch(state, { type: "START_RUN", seedCode });
+    // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
+    const urlRules = new URLSearchParams(location.search).get("rules");
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft });
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
       UI.UIState.onboarding = true;
@@ -4738,6 +5233,10 @@ const UI = (function () {
         break;
       }
       case "select": Sfx.play("select"); dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
+      case "toggle-rules":
+        UI.UIState.rulesDraft = el.dataset.rules;
+        rerender();
+        break;
       case "fight": dispatchAndRender({ type: "CONFIRM_FIGHT" }); break;
       case "discard": Sfx.play("discard"); dispatchAndRender({ type: "DISCARD", uids: state.combat.selectedUids.slice() }); break;
       case "clear-selection": clearSelection(); break;
