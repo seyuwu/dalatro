@@ -1,0 +1,2814 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DALATRO — Dota × Balatro</title>
+  <style>
+/* DALATRO — visual language: Dota 2 UI (angular frames, gold trim, dark
+   navy panels) × Balatro readability (big numbers, readable stacks).
+   All art is original vector work — see VISUAL_SPEC.md. */
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+:root {
+  --bg: #0b0e14;
+  --card-bg: #171d29;
+  --panel: #141925;
+  --panel-2: #1b2231;
+  --border: #2c3648;
+  --text: #d8dee9;
+  --muted: #7a8699;
+  --gold: #c8a24b;
+  --gold-bright: #e8c56a;
+  --str: #d64545;
+  --agi: #3fb96b;
+  --int: #4a90d9;
+  --uni: #c8a24b;
+  --danger: #e05555;
+  --win: #4fc47a;
+  --rar-common: #98a2b3;
+  --rar-rare: #4fa3ff;
+  --rar-epic: #ffb84d;
+}
+
+body {
+  background:
+    radial-gradient(1100px 600px at 50% -10%, #1c2536 0%, transparent 60%),
+    radial-gradient(900px 500px at 50% 115%, #161e2c 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+#app { max-width: 1220px; margin: 0 auto; padding: 14px 18px 40px; }
+
+.muted { color: var(--muted); font-size: 13px; }
+
+/* Angular Dota-style frame for panels */
+.angled { clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px); }
+
+/* ---------- buttons ---------- */
+.btn {
+  background: linear-gradient(180deg, #222a3b, #1a2130);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-weight: 600;
+}
+.btn:hover { border-color: var(--gold); color: var(--gold-bright); }
+.btn.primary {
+  background: linear-gradient(180deg, #453711, #2c230c);
+  border-color: var(--gold);
+  color: var(--gold-bright);
+}
+.btn.primary:hover { box-shadow: 0 0 16px rgba(200, 162, 75, 0.35); }
+.btn.big { font-size: 19px; padding: 13px 34px; }
+.btn.small { font-size: 12px; padding: 4px 10px; font-weight: 500; }
+.btn.tiny { font-size: 12px; padding: 2px 8px; }
+.btn.disabled { opacity: 0.4; pointer-events: none; }
+.btn.danger { border-color: #6b3030; color: #e08a8a; }
+.btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ---------- cards: full-bleed portrait + overlays ----------
+   Текст на карте минимален: гем силы + имя. Атрибут = цвет рамки/гема,
+   способность = золотая метка ✦ (детали в тултипе и превью). */
+.card {
+  width: 106px;
+  height: 150px;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  background: var(--card-bg);
+  border: 2px solid var(--frame, var(--border));
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+  cursor: pointer;
+  transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s, filter 0.14s;
+}
+.card:hover { transform: translateY(-6px); filter: brightness(1.1); }
+.card.static { cursor: default; }
+.card.static:hover { transform: none; filter: none; }
+
+.card-art { position: absolute; inset: 0; }
+.card-art::before {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(180deg, rgba(5, 8, 14, 0.55) 0%, rgba(5, 8, 14, 0) 26%, rgba(5, 8, 14, 0) 62%, rgba(5, 8, 14, 0.82) 100%);
+}
+.card-art .sigil { position: absolute; inset: 14%; width: 72%; height: 72%; fill: #e9edf4; color: #e9edf4; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+.card-art .sigil-rune { opacity: 0.8; }
+.hero-art { position: absolute; inset: 0; }
+.hero-art .sigil { position: absolute; inset: 14%; width: 72%; height: 72%; opacity: 0.45; }
+.hero-art img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: 50% 18%;
+  filter: saturate(1.08) contrast(1.05);
+}
+
+.card-top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 6px;
+}
+.power-gem {
+  min-width: 27px; height: 27px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 900; color: #fff;
+  background: rgba(9, 13, 20, 0.82);
+  border: 2px solid var(--gem, var(--border));
+  border-radius: 7px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.ability-dot {
+  width: 21px; height: 21px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--gold-bright);
+  background: rgba(9, 13, 20, 0.82);
+  border: 1.5px solid var(--gold);
+  border-radius: 50%;
+  cursor: help;
+}
+.card-name-strip {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  padding: 15px 7px 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  text-transform: uppercase; color: #f0f3f8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.card.attr-str { --frame: #b03d3d; --gem: #d64545; }
+.card.attr-agi { --frame: #2f8a54; --gem: #3fb96b; }
+.card.attr-int { --frame: #3a6fa8; --gem: #4a90d9; }
+.card.attr-uni { --frame: #a8853a; --gem: #c8a24b; }
+
+.card.selected {
+  transform: translateY(-16px);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 20px rgba(232, 197, 106, 0.45);
+}
+.card.discard-mode { outline: 2px dashed rgba(224, 85, 85, 0.55); outline-offset: 2px; }
+.card.discard-mode.selected { outline: none; border-color: var(--danger); box-shadow: 0 0 18px rgba(224, 85, 85, 0.55); }
+.card.illusion { opacity: 0.85; }
+
+/* ---------- title screen ---------- */
+.title-screen { display: flex; flex-direction: column; align-items: center; padding-top: 6vh; gap: 18px; }
+.logo {
+  font-size: 64px; font-weight: 900; letter-spacing: 12px;
+  background: linear-gradient(180deg, #f4dc96 0%, var(--gold) 45%, #7d6126 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(200, 162, 75, 0.3));
+}
+.tagline { color: var(--muted); letter-spacing: 4px; font-size: 14px; text-transform: uppercase; }
+.title-card-demo { display: flex; gap: 16px; margin: 18px 0 4px; }
+.title-card-demo .card { cursor: default; }
+.seed-row { display: flex; gap: 10px; margin-top: 12px; }
+.seed-row input {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 14px; border-radius: 6px; font-size: 15px; width: 240px; outline: none;
+}
+.seed-row input:focus { border-color: var(--gold); }
+.how-to { margin-top: 22px; max-width: 660px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 22px; }
+.how-title { color: var(--gold); font-weight: 700; margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; font-size: 13px; }
+.how-lines { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: #aab4c4; }
+
+/* ---------- header ---------- */
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.header-left, .header-right { display: flex; align-items: center; gap: 14px; }
+.seed { color: var(--muted); font-size: 12px; letter-spacing: 1px; }
+.gold { font-size: 20px; font-weight: 800; color: var(--gold-bright); }
+.barracks-row { display: flex; gap: 4px; }
+.barrack { width: 17px; height: 17px; border-radius: 3px; display: inline-block; }
+.barrack.alive { background: linear-gradient(180deg, #5a7ba6, #34486a); border: 1px solid #7e9cc4; }
+.barrack.dead { background: #1a1214; border: 1px solid #4a2530; position: relative; }
+.barrack.dead::after { content: "✖"; color: #8a3a45; font-size: 10px; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+/* ---------- tower zone ---------- */
+.wave-label { text-align: center; color: var(--muted); font-size: 12px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+.tower-zone {
+  display: flex; align-items: center; gap: 20px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border); border-top-color: #3a465c;
+  padding: 12px 22px; margin-bottom: 14px;
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 10px), 0 10px);
+}
+.tower-zone.boss { border-color: #6e5c2e; box-shadow: inset 0 0 40px rgba(200, 162, 75, 0.08); }
+.tower-emoji { font-size: 52px; filter: drop-shadow(0 0 14px rgba(224, 85, 85, 0.35)); }
+.tower-info { flex: 1; }
+.tower-name { font-weight: 800; font-size: 17px; margin-bottom: 6px; letter-spacing: 0.5px; }
+.hp-bar { height: 18px; background: #22141a; border: 1px solid #3a2530; overflow: hidden; }
+.hp-fill { height: 100%; background: linear-gradient(90deg, #8f2626, #d64545); transition: width 0.5s; }
+.hp-text { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.mod-row { display: flex; gap: 8px; margin-top: 7px; flex-wrap: wrap; }
+.mod-badge {
+  font-size: 11.5px; padding: 2px 9px; background: #2a1a20;
+  border: 1px solid #5a3040; color: #e0a0a0; cursor: help;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0 50%);
+}
+.mod-badge.used { opacity: 0.45; text-decoration: line-through; }
+.mod-badge.enemy-rapier { background: #2a2410; border-color: #6b5a20; color: var(--gold-bright); }
+.glyph-warn {
+  text-align: center; color: #e0b050; background: rgba(120, 90, 20, 0.15);
+  border: 1px dashed #6b5a20; padding: 6px; margin-bottom: 10px; font-size: 13.5px;
+}
+
+/* ---------- main row: board + preview ---------- */
+.main-row { display: flex; gap: 16px; align-items: flex-start; }
+.board { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+.slots-row { display: flex; gap: 10px; justify-content: center; }
+.slot {
+  width: 106px; height: 150px; border: 2px dashed #2c3648;
+  display: flex; align-items: center; justify-content: center;
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+}
+.slot .slot-num { color: #333e52; font-size: 28px; font-weight: 800; }
+.slot.filled { border: none; }
+
+.hand { display: flex; gap: 8px; justify-content: center; min-height: 172px; align-items: flex-end; padding-top: 16px; }
+
+.controls { display: flex; gap: 12px; justify-content: center; align-items: center; }
+.status-row {
+  display: flex; gap: 18px; justify-content: center; align-items: center;
+  color: var(--muted); font-size: 13px; flex-wrap: wrap;
+}
+.fight-dot { width: 10px; height: 10px; background: var(--gold); display: inline-block; margin-right: 3px; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.fight-dot.spent { background: #333e52; }
+.items-inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+.item-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--border); padding: 3px 9px;
+  font-size: 12.5px; cursor: help;
+}
+.item-gem {
+  position: relative; overflow: hidden;
+  font-size: 15px; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0;
+  background: radial-gradient(circle at 35% 30%, #2c3850, #161d2a);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+.item-gem img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.item-fallback { position: relative; z-index: 1; line-height: 1; }
+.item-gem.rar-common { border: 1px solid var(--rar-common); }
+.item-gem.rar-rare { border: 1px solid var(--rar-rare); box-shadow: 0 0 8px rgba(79, 163, 255, 0.35); }
+.item-gem.rar-epic { border: 1px solid var(--rar-epic); box-shadow: 0 0 10px rgba(255, 184, 77, 0.45); }
+
+/* ---------- side panels (preview / build / inspect) ---------- */
+.side-panel, .preview-panel {
+  width: 330px; flex-shrink: 0;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border);
+  padding: 14px 16px; min-height: 440px;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+.panel-title { color: var(--gold); font-weight: 700; letter-spacing: 2px; font-size: 12px; text-transform: uppercase; margin-bottom: 10px; }
+.preview-hint { line-height: 1.5; }
+.preview-combo { text-align: center; font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: 0.5px; }
+.preview-damage { text-align: center; font-size: 46px; font-weight: 900; color: var(--gold-bright); text-shadow: 0 0 20px rgba(232, 197, 106, 0.4); line-height: 1.1; }
+.preview-damage-label { text-align: center; color: var(--muted); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
+.preview-math { text-align: center; color: #aab4c4; font-size: 13px; margin-bottom: 4px; }
+.preview-gold { text-align: center; color: var(--gold-bright); font-weight: 700; margin-bottom: 4px; }
+.preview-lottery { text-align: center; color: #b8a0e0; font-size: 12px; margin-bottom: 4px; }
+.preview-hpbar { height: 8px; background: #22141a; margin: 8px 0; }
+.preview-hpbar .hp-fill { transition: none; }
+.preview-steps { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; max-height: 260px; overflow-y: auto; }
+.preview-step { display: flex; gap: 7px; font-size: 12.5px; color: #b8c2d4; align-items: baseline; }
+.step-icon { width: 16px; text-align: center; flex-shrink: 0; }
+
+/* build panel */
+.build-row { margin-bottom: 10px; cursor: help; }
+.build-head { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: #c4cddc; margin-bottom: 3px; }
+.build-frac { color: var(--gold-bright); }
+.build-bar { height: 7px; background: #10151f; border: 1px solid var(--border); }
+.build-fill { height: 100%; background: linear-gradient(90deg, #8a6d2c, var(--gold-bright)); transition: width 0.3s; }
+.build-foot { margin-top: 12px; line-height: 1.4; font-size: 11.5px; }
+
+/* inspect panel */
+.inspect-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.inspect-head .item-gem { width: 40px; height: 40px; font-size: 20px; }
+.inspect-name { font-size: 17px; font-weight: 800; color: #fff; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.chip {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 2px 8px;
+  border: 1px solid var(--border); color: var(--muted); background: rgba(0, 0, 0, 0.25);
+}
+.chip.rar-common { color: var(--rar-common); border-color: var(--rar-common); }
+.chip.rar-rare { color: var(--rar-rare); border-color: var(--rar-rare); }
+.chip.rar-epic { color: var(--rar-epic); border-color: var(--rar-epic); }
+.chip.cat-power { color: #e08a8a; }
+.chip.cat-mult { color: #8ab4e8; }
+.chip.cat-rule { color: #c8a0e8; }
+.chip.cat-economy { color: var(--gold-bright); }
+.chip.owned { color: var(--win); border-color: var(--win); }
+.inspect-desc { font-size: 13px; color: #c4cddc; line-height: 1.5; margin-bottom: 10px; }
+.inspect-sub { color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.inspect-line { font-size: 12.5px; color: #b8c2d4; line-height: 1.45; margin-bottom: 4px; }
+
+/* ---------- fight overlay ---------- */
+.fight-overlay {
+  position: fixed; inset: 0; background: rgba(5, 7, 12, 0.88);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+  cursor: pointer;
+}
+.fight-box { width: 540px; max-width: 92vw; max-height: 86vh; overflow: hidden; text-align: center; }
+.fight-combo { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 16px; letter-spacing: 1px; }
+.fight-steps { display: flex; flex-direction: column; gap: 7px; min-height: 200px; align-items: center; }
+.fight-steps .preview-step { font-size: 14.5px; }
+.preview-step.appear { animation: stepIn 0.22s ease-out; }
+@keyframes stepIn { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+.fight-damage {
+  font-size: 88px; font-weight: 900; color: var(--gold-bright); margin-top: 14px;
+  opacity: 0; transform: scale(0.4);
+  transition: all 0.3s cubic-bezier(0.2, 1.6, 0.4, 1);
+  text-shadow: 0 0 34px rgba(232, 197, 106, 0.65);
+}
+.fight-damage.show { opacity: 1; transform: scale(1); }
+.fight-hint { color: var(--muted); font-size: 11px; margin-top: 18px; letter-spacing: 3px; text-transform: uppercase; }
+
+/* ---------- modal (wave outcome) ---------- */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(5, 7, 12, 0.7);
+  display: flex; align-items: center; justify-content: center; z-index: 90;
+}
+.modal {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--gold); border-radius: 10px;
+  padding: 28px 44px; text-align: center; display: flex; flex-direction: column; gap: 12px;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+}
+.modal-title { font-size: 24px; font-weight: 800; }
+.modal-title.win { color: var(--win); }
+.modal-title.lose { color: var(--danger); }
+.reward-row { color: #b8c2d4; font-size: 15px; }
+.reward-row b { color: var(--gold-bright); }
+.rapier-note { color: #e0b050; max-width: 340px; }
+
+/* ---------- shop ---------- */
+.shop-title { text-align: center; font-size: 26px; font-weight: 900; color: var(--gold-bright); margin: 8px 0 16px; letter-spacing: 2px; }
+.shop-layout { display: flex; gap: 16px; align-items: flex-start; }
+.shop-main { flex: 1; }
+.shop-grid { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.shop-item {
+  width: 196px; background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  padding: 14px 12px 16px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center;
+  transition: transform 0.12s, filter 0.12s; cursor: help; position: relative;
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  border: 1px solid var(--border);
+}
+.shop-item:hover { transform: translateY(-4px); filter: brightness(1.1); }
+.shop-item.locked { outline: 2px solid var(--gold); outline-offset: -2px; }
+.rar-border-common { border-top: 2px solid var(--rar-common); }
+.rar-border-rare { border-top: 2px solid var(--rar-rare); box-shadow: inset 0 12px 24px -14px rgba(79, 163, 255, 0.4); }
+.rar-border-epic { border-top: 2px solid var(--rar-epic); box-shadow: inset 0 12px 24px -14px rgba(255, 184, 77, 0.5); }
+.shop-item-head { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; }
+.lock-btn.locked { border-color: var(--gold); }
+.shop-item .item-gem { width: 52px; height: 52px; }
+.shop-item-name { font-weight: 800; font-size: 15.5px; color: #fff; line-height: 1.2; }
+.shop-item-desc { font-size: 11.5px; color: #aab4c4; min-height: 54px; line-height: 1.45; }
+.shop-item-cost { font-size: 18px; font-weight: 800; color: var(--gold-bright); }
+.shop-controls { display: flex; gap: 16px; justify-content: center; margin: 18px 0; }
+.shop-side { display: flex; flex-direction: column; gap: 14px; width: 330px; flex-shrink: 0; }
+.shop-side .side-panel { width: 100%; min-height: 0; }
+.owned-row {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--border); padding: 12px 16px;
+}
+.owned-label { color: var(--muted); font-size: 13px; }
+
+/* ---------- debug ---------- */
+.debug-panel {
+  position: fixed; right: 14px; bottom: 14px; width: 340px; max-height: 55vh; overflow-y: auto;
+  background: #10131b; border: 1px solid #3a2a4a; padding: 12px 14px; z-index: 80;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+.debug-title { color: #b8a0e0; font-weight: 700; font-size: 12px; letter-spacing: 2px; margin-bottom: 8px; }
+.debug-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.debug-deck { font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+.debug-log { font-size: 11px; color: #8a94a8; line-height: 1.5; border-top: 1px solid #2a3446; padding-top: 6px; max-height: 220px; overflow-y: auto; }
+
+/* ---------- end screens ---------- */
+.end-screen { display: flex; flex-direction: column; align-items: center; padding-top: 10vh; gap: 14px; text-align: center; }
+.end-emoji { font-size: 90px; }
+.end-title { font-size: 40px; font-weight: 900; letter-spacing: 4px; }
+.end-title.win { color: var(--gold-bright); text-shadow: 0 0 30px rgba(232, 197, 106, 0.5); }
+.end-title.lose { color: var(--danger); }
+.end-sub { color: var(--muted); }
+.end-stats { display: flex; flex-direction: column; gap: 6px; font-size: 16px; color: #b8c2d4; background: var(--panel); border: 1px solid var(--border); padding: 16px 30px; }
+
+@media (max-width: 980px) {
+  .main-row { flex-direction: column; }
+  .preview-panel, .side-panel { width: 100%; min-height: 0; }
+  .shop-layout { flex-direction: column; }
+  .shop-side { width: 100%; }
+}
+
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- content first (data), then engine, then systems, then game, then ui -->
+  <script>
+// Dalatro — deterministic RNG.
+// Same seed + same action sequence = same run. Never use Math.random() in game logic.
+const Rng = (function () {
+  // Fast, tiny PRNG. Good enough for a card game, fully reproducible.
+  function mulberry32(a) {
+    return function () {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function hashString(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return h >>> 0;
+  }
+
+  function randomSeedCode() {
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let s = "";
+    for (let i = 0; i < 5; i++) {
+      s += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return s;
+  }
+
+  function normalizeSeedCode(input) {
+    const raw = String(input || "").trim().toUpperCase();
+    const match = raw.match(/([A-Z0-9]{4,8})$/);
+    return match ? match[1] : null;
+  }
+
+  // Module-level "active" rng for the current run. Kept out of game state so
+  // state stays structuredClone-able (simulator) and pure-serializable.
+  let active = null;
+  let suppressDepth = 0;
+
+  function setActive(instance) {
+    active = instance;
+  }
+
+  function current() {
+    return active;
+  }
+
+  function create(seedCode) {
+    const code = seedCode || randomSeedCode();
+    const raw = mulberry32(hashString("DALATRO-" + code));
+    let draws = 0; // consumed draws; persisted so a restored run stays deterministic
+
+    function next() {
+      // While suppressed (preview simulation), streams return a constant
+      // WITHOUT consuming real draws — so previews never desync the run.
+      if (suppressDepth > 0) return 0.5;
+      draws++;
+      return raw();
+    }
+
+    return {
+      seedCode: code,
+      drawCount() {
+        return draws;
+      },
+      fastForward(n) {
+        draws = n;
+        for (let i = 0; i < n; i++) raw();
+      },
+      // float in [0, 1)
+      next() {
+        return next();
+      },
+      // int in [min, max] inclusive
+      int(min, max) {
+        return min + Math.floor(next() * (max - min + 1));
+      },
+      chance(probability) {
+        return next() < probability;
+      },
+      shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(next() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      },
+      pick(array) {
+        return array[Math.floor(next() * array.length)];
+      },
+    };
+  }
+
+  function suppress(fn) {
+    suppressDepth++;
+    try {
+      return fn();
+    } finally {
+      suppressDepth--;
+    }
+  }
+
+  return { create, randomSeedCode, normalizeSeedCode, hashString, setActive, current, suppress };
+})();
+
+</script>
+  <script>
+// Dalatro content — heroes.
+// Card = hero + a mechanical rule (trigger), never just a skin.
+// The full 40-slot grid (10 ranks × 4 attributes) exists here: heroes with
+// inDeck:true form the starting 12, the rest are ready for future shop
+// recruitment / acts (see ROADMAP.md). Non-starting heroes have no abilities yet.
+//
+// Power 2..11 (11 = Aegis-tier). attr: str | agi | int | uni.
+const HEROES_DATA = [
+  // --- Starting deck (12) ---
+  { id: "tusk", name: "Tusk", attr: "str", power: 3, inDeck: true, ability: null },
+  {
+    id: "axe", name: "Axe", attr: "str", power: 5, inDeck: true,
+    ability: {
+      name: "Counter Helix", event: "COMBO_DETECTED",
+      when: { type: "COMBO_IS", value: "three" },
+      effects: [{ type: "ADD_POWER", value: 10 }],
+    },
+  },
+  {
+    id: "pudge", name: "Pudge", attr: "str", power: 7, inDeck: true,
+    ability: {
+      name: "Meathook", event: "ON_DISCARD", chance: 0.5,
+      effects: [{ type: "RETURN_TO_HAND" }],
+    },
+  },
+  { id: "sven", name: "Sven", attr: "str", power: 8, inDeck: true, ability: null },
+  { id: "centaur", name: "Centaur Warrunner", attr: "str", power: 10, inDeck: true, ability: null },
+
+  {
+    id: "morphling", name: "Morphling", attr: "agi", power: 5, inDeck: true,
+    ability: {
+      name: "Morph", event: "PRE_DETECT",
+      effects: [{ type: "COPY_ATTRIBUTE", target: "left_neighbor" }],
+    },
+  },
+  {
+    id: "juggernaut", name: "Juggernaut", attr: "agi", power: 7, inDeck: true,
+    ability: {
+      name: "Blade Fury", event: "ON_PLAY",
+      when: { type: "SLOT_IS", value: 0 },
+      effects: [{ type: "ADD_POWER", value: 8 }],
+    },
+  },
+  {
+    id: "pa", name: "Phantom Assassin", attr: "agi", power: 9, inDeck: true,
+    ability: {
+      name: "Coup de Grace", event: "COMBO_DETECTED",
+      when: { type: "COMBO_MIN", value: "pair" }, chance: 0.5,
+      effects: [{ type: "MULT_MULT", value: 2 }],
+    },
+  },
+
+  {
+    id: "cm", name: "Crystal Maiden", attr: "int", power: 2, inDeck: true,
+    ability: {
+      name: "Frostbite", event: "ON_DISCARD",
+      effects: [{ type: "GOLD", value: 2 }],
+    },
+  },
+  {
+    id: "zeus", name: "Zeus", attr: "int", power: 5, inDeck: true,
+    ability: {
+      name: "Static Field", event: "ON_PLAY",
+      when: { type: "EXISTS_ATTRIBUTE", value: "int" },
+      effects: [{ type: "ADD_MULT", value: 2 }],
+    },
+  },
+
+  { id: "dawnbreaker", name: "Dawnbreaker", attr: "uni", power: 9, inDeck: true, ability: null },
+  { id: "primal", name: "Primal Beast", attr: "uni", power: 11, inDeck: true, ability: null },
+
+  // --- Future roster: grid 10 × 4, waiting for Act 2+ content ---
+  { id: "undying", name: "Undying", attr: "str", power: 2, inDeck: false, ability: null },
+  { id: "ogre_magi", name: "Ogre Magi", attr: "str", power: 4, inDeck: false, ability: null },
+  { id: "legion", name: "Legion Commander", attr: "str", power: 6, inDeck: false, ability: null },
+  { id: "huskar", name: "Huskar", attr: "str", power: 9, inDeck: false, ability: null },
+  { id: "tidehunter", name: "Tidehunter", attr: "str", power: 11, inDeck: false, ability: null },
+
+  { id: "meepo", name: "Meepo", attr: "agi", power: 2, inDeck: false, ability: null },
+  { id: "bounty", name: "Bounty Hunter", attr: "agi", power: 3, inDeck: false, ability: null },
+  { id: "slark", name: "Slark", attr: "agi", power: 4, inDeck: false, ability: null },
+  { id: "phantom_lancer", name: "Phantom Lancer", attr: "agi", power: 6, inDeck: false, ability: null },
+  { id: "anti_mage", name: "Anti-Mage", attr: "agi", power: 8, inDeck: false, ability: null },
+  { id: "faceless", name: "Faceless Void", attr: "agi", power: 10, inDeck: false, ability: null },
+  { id: "terrorblade", name: "Terrorblade", attr: "agi", power: 11, inDeck: false, ability: null },
+
+  { id: "oracle", name: "Oracle", attr: "int", power: 3, inDeck: false, ability: null },
+  { id: "skywrath", name: "Skywrath Mage", attr: "int", power: 4, inDeck: false, ability: null },
+  { id: "lina", name: "Lina", attr: "int", power: 6, inDeck: false, ability: null },
+  { id: "rubick", name: "Rubick", attr: "int", power: 7, inDeck: false, ability: null },
+  { id: "invoker", name: "Invoker", attr: "int", power: 8, inDeck: false, ability: null },
+  { id: "storm_spirit", name: "Storm Spirit", attr: "int", power: 9, inDeck: false, ability: null },
+  { id: "outworld", name: "Outworld Destroyer", attr: "int", power: 10, inDeck: false, ability: null },
+  { id: "ancient_apparition", name: "Ancient Apparition", attr: "int", power: 11, inDeck: false, ability: null },
+
+  { id: "io", name: "Io", attr: "uni", power: 2, inDeck: false, ability: null },
+  { id: "muerta", name: "Muerta", attr: "uni", power: 3, inDeck: false, ability: null },
+  { id: "marci", name: "Marci", attr: "uni", power: 4, inDeck: false, ability: null },
+  { id: "snapfire", name: "Snapfire", attr: "uni", power: 5, inDeck: false, ability: null },
+  { id: "void_spirit", name: "Void Spirit", attr: "uni", power: 6, inDeck: false, ability: null },
+  { id: "kez", name: "Kez", attr: "uni", power: 7, inDeck: false, ability: null },
+  { id: "beastmaster", name: "Beastmaster", attr: "uni", power: 8, inDeck: false, ability: null },
+  { id: "tiny", name: "Tiny", attr: "uni", power: 10, inDeck: false, ability: null },
+];
+
+</script>
+  <script>
+// Dalatro content — items.
+// Rarity: common | rare | epic (weights and prices in BALANCE.md).
+// Category: power (left axis) | mult (right axis) | rule (changes the rules) |
+//           economy (gold engine).
+const ITEMS_DATA = [
+  // ---------- common ----------
+  {
+    id: "battle_fury", name: "Battle Fury", cost: 7, emoji: "🌀", rarity: "common", category: "power",
+    desc: "Cleave: сила самой слабой сыгранной карты учитывается дважды.",
+    ability: { name: "Cleave", event: "FIGHT_SCORING", effects: [{ type: "WEAKEST_POWER_DOUBLE" }] },
+  },
+  {
+    id: "meteor_hammer", name: "Meteor Hammer", cost: 6, emoji: "☄️", rarity: "common", category: "power",
+    desc: "+8 силы, если сыграно 3+ героев.",
+    ability: { name: "Meteor", event: "FIGHT_SCORING", when: { type: "PLAYED_COUNT_ABOVE", value: 2 }, effects: [{ type: "ADD_POWER", value: 8 }] },
+  },
+  {
+    id: "drum", name: "Drum of Endurance", cost: 7, emoji: "🥁", rarity: "common", category: "mult",
+    desc: "+2 к множителю, если сыграно 4+ героев.",
+    ability: { name: "War Drums", event: "FIGHT_SCORING", when: { type: "PLAYED_COUNT_ABOVE", value: 3 }, effects: [{ type: "ADD_MULT", value: 2 }] },
+  },
+  {
+    id: "midas", name: "Hand of Midas", cost: 7, emoji: "👑", rarity: "common", category: "economy",
+    desc: "Золото с оверкилла ×2.",
+    ability: { name: "Transmute", event: "FIGHT_SCORING", effects: [{ type: "OVERKILL_RATE", value: 2 }] },
+  },
+  {
+    id: "bkb", name: "Black King Bar", cost: 7, emoji: "🛡️", rarity: "common", category: "rule",
+    desc: "Игнорирует модификаторы башен (Armor, Glyph). На Рошана не действует.",
+    ability: { name: "Avatar", event: "FIGHT_SCORING", effects: [{ type: "IGNORE_TOWER_MODS" }] },
+  },
+  {
+    id: "kaya", name: "Kaya and Sange", cost: 8, emoji: "💎", rarity: "common", category: "power",
+    desc: "+10 силы и +1 к множителю.",
+    ability: { name: "State", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 10 }, { type: "ADD_MULT", value: 1 }] },
+  },
+  {
+    id: "vladmir", name: "Vladmir's Offering", cost: 8, emoji: "🩸", rarity: "common", category: "economy",
+    desc: "+2 золота за каждый бой, даже проигранный.",
+    ability: { name: "Vampiric Aura", event: "FIGHT_SCORING", effects: [{ type: "GOLD", value: 2 }] },
+  },
+
+  // ---------- rare ----------
+  {
+    id: "daedalus", name: "Daedalus", cost: 9, emoji: "💥", rarity: "rare", category: "mult",
+    desc: "25% шанс крита: ×2 к множителю.",
+    ability: { name: "Crit", event: "FIGHT_SCORING", chance: 0.25, effects: [{ type: "MULT_MULT", value: 2 }] },
+  },
+  {
+    id: "satanic", name: "Satanic", cost: 10, emoji: "😈", rarity: "rare", category: "mult",
+    desc: "×1.5 к множителю, если комбо — пара или две пары.",
+    ability: {
+      name: "Unholy Rage", event: "FIGHT_SCORING",
+      when: { any: [{ type: "COMBO_IS", value: "pair" }, { type: "COMBO_IS", value: "two_pair" }] },
+      effects: [{ type: "MULT_MULT", value: 1.5 }],
+    },
+  },
+  {
+    id: "shadow_blade", name: "Shadow Blade", cost: 9, emoji: "🌑", rarity: "rare", category: "rule",
+    desc: "Самая сильная сыгранная карта может считаться соседним рангом (±1, игра выберет лучшее; сила не растёт).",
+    ability: { name: "Shadow Walk", event: "PRE_DETECT", effects: [{ type: "BUMP_STRONGEST_RANK", value: 1 }] },
+  },
+  {
+    id: "heart", name: "Heart of Tarrasque", cost: 11, emoji: "❤️", rarity: "rare", category: "power",
+    desc: "+25 силы.",
+    ability: { name: "Tarrasque", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 25 }] },
+  },
+  {
+    id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult",
+    desc: "Способности героев срабатывают дважды за бой.",
+    ability: { name: "Refresh", event: "FIGHT_SCORING", effects: [{ type: "REFRESH_HERO_TRIGGERS" }] },
+  },
+  {
+    id: "butterfly", name: "Butterfly", cost: 8, emoji: "🦋", rarity: "rare", category: "rule",
+    desc: "Самая слабая сыгранная карта может считаться соседним рангом (только для комбо). 25% шанс уклонить модификатор башни.",
+    ability: { name: "Evasion", event: "PRE_DETECT", effects: [{ type: "WILD_RANK" }] },
+  },
+  {
+    id: "manta", name: "Manta Style", cost: 10, emoji: "✨", rarity: "rare", category: "rule",
+    desc: "Иллюзия сильнейшего сыгранного героя: тот же ранг и атрибут, но 50% силы. Считается для комбо и силы, абилки не активирует.",
+    ability: { name: "Mirror Image", event: "PRE_DETECT", effects: [{ type: "CREATE_ILLUSION", powerRatio: 0.5 }] },
+  },
+
+  // ---------- epic ----------
+  {
+    id: "rapier", name: "Divine Rapier", cost: 12, emoji: "⚔️", rarity: "epic", category: "mult",
+    desc: "×2 к итоговому урону. Провалишь волну — рапиру заберёт враг: твой урон по нему ×0.5, пока он её держит. Убей — вернётся.",
+    ability: { name: "Divine", event: "FIGHT_SCORING", effects: [{ type: "FINAL_MULT", value: 2 }] },
+  },
+  {
+    id: "radiance", name: "Radiance", cost: 13, emoji: "🔆", rarity: "epic", category: "power",
+    desc: "+3 силы за каждого сыгранного героя. Полная пятёрка = +15.",
+    ability: { name: "Immolate", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_PLAYED", value: 3 }] },
+  },
+  {
+    id: "octarine", name: "Octarine Core", cost: 12, emoji: "🔮", rarity: "epic", category: "mult",
+    desc: "+1 к множителю за каждый твой предмет. Чем жирнее билд — тем сильнее ядро.",
+    ability: { name: "Cooldown Reduction", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_ITEM", value: 1 }] },
+  },
+];
+
+</script>
+  <script>
+// Dalatro content — combos (poker hand -> Dota event), waves (towers + boss),
+// and boss/wave modifiers. One modifier format for everything.
+const COMBOS_DATA = [
+  { id: "high_card", name: "Харас", basePower: 5, baseMult: 1, rank: 0 },
+  { id: "pair", name: "Дуо на линии", basePower: 10, baseMult: 2, rank: 1 },
+  { id: "two_pair", name: "Ротация", basePower: 20, baseMult: 2, rank: 2 },
+  { id: "three", name: "Ганг", basePower: 30, baseMult: 3, rank: 3 },
+  { id: "straight", name: "Смок на Рошана", basePower: 30, baseMult: 4, rank: 4 },
+  { id: "flush", name: "Тимфайт атрибута", basePower: 35, baseMult: 4, rank: 5 },
+  { id: "full_house", name: "4 Protect 1", basePower: 40, baseMult: 6, rank: 6 },
+];
+
+const WAVES_DATA = [
+  { id: "t1", name: "T1 Башня", emoji: "🗼", hp: 300, modifiers: [] },
+  { id: "t2", name: "T2 Башня", emoji: "🗼", hp: 550, modifiers: [{ id: "armor" }] },
+  { id: "t3", name: "T3 Башня", emoji: "🏯", hp: 800, modifiers: [{ id: "glyph" }] },
+  { id: "roshan", name: "Roshan", emoji: "👹", hp: 1600, isBoss: true, modifiers: [{ id: "aegis" }] },
+];
+
+const MODIFIERS_DATA = [
+  { id: "armor", name: "Armor", desc: "Первый бой волны наносит ×0.5 урона." },
+  { id: "glyph", name: "Glyph", desc: "Каждый 3-й бой полностью заблокирован." },
+  { id: "aegis", name: "Aegis", desc: "Один раз возрождается с 50% HP.", hpPercent: 50 },
+];
+
+</script>
+  <script>
+// Dalatro — content registry. The engine only ever talks to Content.
+const Content = (function () {
+  function byId(list) {
+    const map = {};
+    for (const entry of list) map[entry.id] = entry;
+    return map;
+  }
+
+  const heroes = { list: HEROES_DATA, byId: byId(HEROES_DATA) };
+  heroes.deckIds = HEROES_DATA.filter((h) => h.inDeck).map((h) => h.id);
+  heroes.startingIds = heroes.deckIds; // legacy alias
+
+  const items = { list: ITEMS_DATA, byId: byId(ITEMS_DATA) };
+  items.rarities = ["common", "rare", "epic"];
+  const combos = { list: COMBOS_DATA, byId: byId(COMBOS_DATA) };
+  const waves = { list: WAVES_DATA, byId: byId(WAVES_DATA), order: WAVES_DATA.map((w) => w.id) };
+  const modifiers = { list: MODIFIERS_DATA, byId: byId(MODIFIERS_DATA) };
+
+  const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
+  const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
+
+  return { heroes, items, combos, waves, modifiers, attrNames, attrShort };
+})();
+
+</script>
+  <script>
+// Dalatro — event bus.
+// Actions produce events; triggers listen to events. The bus is synchronous and
+// every emitted event is appended to the state log (used by UI + debug inspector).
+const Events = (function () {
+  function createBus(logSink) {
+    const listeners = new Map(); // eventName -> Set<handler>
+    return {
+      on(eventName, handler) {
+        if (!listeners.has(eventName)) listeners.set(eventName, new Set());
+        listeners.get(eventName).add(handler);
+        return () => listeners.get(eventName).delete(handler);
+      },
+      emit(state, eventName, payload = {}) {
+        if (logSink) logSink(state, eventName, payload);
+        const set = listeners.get(eventName);
+        if (!set) return;
+        // Snapshot: handlers may subscribe/unsubscribe during emit.
+        for (const handler of Array.from(set)) {
+          handler(state, payload);
+        }
+      },
+    };
+  }
+
+  return { createBus };
+})();
+
+</script>
+  <script>
+// Dalatro — conditions.
+// A condition is a plain data object evaluated against a context:
+//   ctx = { state, combo, playedCards, slotIndex, card, hero, source }
+// Content never touches state directly — it declares conditions, engine evaluates them.
+const Cond = (function () {
+  // Content is loaded before any condition runs; only reference it lazily.
+  function comboRank(comboId) {
+    const combo = Content.combos.byId[comboId];
+    return combo ? combo.rank : -1;
+  }
+
+  function evaluate(condition, ctx) {
+    if (!condition) return true;
+    if (condition.all) return condition.all.every((c) => evaluate(c, ctx));
+    if (condition.any) return condition.any.some((c) => evaluate(c, ctx));
+    if (condition.not) return !evaluate(condition.not, ctx);
+
+    switch (condition.type) {
+      case "ALWAYS":
+        return true;
+      case "COMBO_IS":
+        return !!ctx.combo && ctx.combo.type === condition.value;
+      case "COMBO_MIN":
+        return !!ctx.combo && comboRank(ctx.combo.type) >= comboRank(condition.value);
+      case "SLOT_IS":
+        return ctx.slotIndex === condition.value;
+      case "PLAYED_COUNT_ABOVE":
+        return ctx.playedCards && ctx.playedCards.length > condition.value;
+      case "POWER_ABOVE":
+        return typeof ctx.power === "number" && ctx.power > condition.value;
+      case "HAS_ITEM":
+        return ctx.state && ctx.state.player.items.includes(condition.item);
+      case "TAG_IS":
+        return !!(ctx.hero && ctx.hero.tags && ctx.hero.tags.includes(condition.tag));
+      case "EXISTS_ATTRIBUTE":
+        // Any OTHER played card (self excluded by reference) with this attribute.
+        return !!(ctx.playedCards && ctx.playedCards.some(
+          (c) => c !== ctx.card && c.attr === condition.value
+        ));
+      default:
+        console.warn("Unknown condition type:", condition.type);
+        return false;
+    }
+  }
+
+  return { evaluate };
+})();
+
+</script>
+  <script>
+// Dalatro — effects.
+// Content declares effects; ONLY this module (and the detection pipeline in
+// combat.js for PRE_DETECT effects) applies them to state/scoring.
+// Golden rule: content never mutates GameState directly.
+//
+// Two families:
+//  - Scoring/economy effects run through Effects.apply() below.
+//  - Pre-detection effects (COPY_ATTRIBUTE, CREATE_ILLUSION, WILD_RANK) are
+//    interpreted by Combat.buildEffectiveSet() because they change what the
+//    poker detector sees BEFORE a combo exists.
+const Effects = (function () {
+  function fmt(v) {
+    return v > 0 ? "+" + v : String(v);
+  }
+
+  const applicators = {
+    ADD_POWER(effect, ctx) {
+      ctx.scoring.power += effect.value;
+      return { label: `${ctx.sourceName}: +${effect.value} силы` };
+    },
+    ADD_MULT(effect, ctx) {
+      ctx.scoring.mult += effect.value;
+      return { label: `${ctx.sourceName}: +${effect.value} к множителю` };
+    },
+    MULT_MULT(effect, ctx) {
+      ctx.scoring.mult *= effect.value;
+      return {
+        label: `${ctx.sourceName}: ×${effect.value} множитель${ctx.note ? " (" + ctx.note + ")" : ""}`,
+      };
+    },
+    FINAL_MULT(effect, ctx) {
+      ctx.scoring.finalMult *= effect.value;
+      return { label: `${ctx.sourceName}: ×${effect.value} к итоговому урону` };
+    },
+    WEAKEST_POWER_DOUBLE(effect, ctx) {
+      const powers = ctx.playedCards.map((c) => c.power);
+      if (!powers.length) return null;
+      const weakest = Math.min(...powers);
+      ctx.scoring.power += weakest;
+      return { label: `${ctx.sourceName}: cleave +${weakest} (сила слабейшего)` };
+    },
+    ADD_POWER_PER_PLAYED(effect, ctx) {
+      const n = ctx.playedCards.length;
+      if (!n) return null;
+      ctx.scoring.power += effect.value * n;
+      return { label: `${ctx.sourceName}: +${effect.value * n} силы (${n} героев × ${effect.value})` };
+    },
+    ADD_MULT_PER_ITEM(effect, ctx) {
+      const n = ctx.state.player.items.length;
+      if (!n) return null;
+      ctx.scoring.mult += effect.value * n;
+      return { label: `${ctx.sourceName}: +${effect.value * n} к множителю (${n} предметов)` };
+    },
+    GOLD(effect, ctx) {
+      ctx.state.run.gold += effect.value;
+      return { label: `${ctx.sourceName}: ${fmt(effect.value)} золота`, gold: effect.value };
+    },
+    IGNORE_TOWER_MODS(effect, ctx) {
+      ctx.scoring.flags.ignoreTowerMods = true;
+      return { label: `${ctx.sourceName}: игнорирует модификаторы башни` };
+    },
+    OVERKILL_RATE(effect, ctx) {
+      ctx.scoring.flags.overkillRate *= effect.value;
+      return { label: `${ctx.sourceName}: золото с оверкилла ×${effect.value}` };
+    },
+    REFRESH_HERO_TRIGGERS(effect, ctx) {
+      ctx.scoring.flags.refreshHeroTriggers = true;
+      return { label: `${ctx.sourceName}: способности героев срабатывают дважды` };
+    },
+    REVIVE(effect, ctx) {
+      const tower = ctx.state.combat.wave;
+      const restored = Math.max(1, Math.round((tower.maxHp * effect.hpPercent) / 100));
+      tower.hp = restored;
+      return { label: `Aegis: ${ctx.sourceName} возрождается с ${restored} HP`, revive: restored };
+    },
+    RETURN_TO_HAND(effect, ctx) {
+      if (ctx.discardCtx) ctx.discardCtx.returnToHand = true;
+      return { label: `${ctx.sourceName}: крюк вытягивает обратно в руку` };
+    },
+  };
+
+  function apply(effect, ctx) {
+    const fn = applicators[effect.type];
+    if (!fn) {
+      console.warn("Unknown effect type:", effect.type);
+      return null;
+    }
+    return fn(effect, ctx);
+  }
+
+  return { apply };
+})();
+
+</script>
+  <script>
+// Dalatro — trigger resolution.
+// Runs every trigger registered for an event, checks its conditions,
+// applies its effects and records each application as a resolution step.
+//
+// Trigger shape (heroes, items, modifiers — one format for all):
+//   { event, when?, chance?, effects: [...] }
+const Triggers = (function () {
+  function collectSources(state, playedCards) {
+    // Heroes in slot order, then items in acquisition order, then tower/boss modifiers.
+    const sources = [];
+    playedCards.forEach((card, slotIndex) => {
+      const hero = Content.heroes.byId[card.heroId];
+      if (!hero || card.illusion) return; // illusions never activate abilities
+      if (hero.ability) {
+        sources.push({ kind: "hero", card, slotIndex, hero, def: { ...hero.ability, sourceId: hero.id, sourceName: hero.name } });
+      }
+    });
+    state.player.items.forEach((itemId) => {
+      const item = Content.items.byId[itemId];
+      if (item && item.ability) {
+        sources.push({ kind: "item", hero: null, slotIndex: -1, item, def: { ...item.ability, sourceId: item.id, sourceName: item.name } });
+      }
+    });
+    const tower = state.combat.wave;
+    (tower.modifiers || []).forEach((mod) => {
+      const def = Content.modifiers.byId[mod.id];
+      if (def && def.ability) {
+        sources.push({ kind: "modifier", hero: null, slotIndex: -1, mod, def: { ...def.ability, sourceId: def.id, sourceName: def.name || def.id } });
+      }
+    });
+    return sources;
+  }
+
+  // true, если условие НЕ выполнялось бы на наборе карт без скопированных
+  // атрибутов (т.е. копия Morphling буквально открыла этот триггер).
+  function assistedByCopy(when, ctxBase, copyLog) {
+    if (!when || !copyLog || !copyLog.length) return false;
+    const uncopied = ctxBase.playedCards.map((c) => {
+      const cp = copyLog.find((l) => l.uid === c.uid);
+      return cp ? { ...c, attr: cp.from } : c;
+    });
+    if (uncopied.every((c, i) => c.attr === ctxBase.playedCards[i].attr)) return false;
+    return !Cond.evaluate(when, { ...ctxBase, playedCards: uncopied });
+  }
+
+  function runEvent(state, bus, eventName, payload, resolution) {
+    const playedCards = payload.playedCards || [];
+    const sources = collectSources(state, playedCards);
+
+    for (const source of sources) {
+      if (payload.onlyKinds && !payload.onlyKinds.includes(source.kind)) continue;
+      const def = source.def;
+      if (def.event !== eventName) continue;
+
+      const ctxBase = {
+        state,
+        combo: payload.combo || null,
+        playedCards,
+        slotIndex: source.slotIndex,
+        card: source.card || null,
+        hero: source.hero,
+        power: payload.power,
+        sourceName: def.sourceName,
+        scoring: payload.scoring,
+        discardCtx: payload.discardCtx || null,
+        note: null,
+      };
+
+      if (def.when && !Cond.evaluate(def.when, ctxBase)) continue;
+
+      // Synergy feedback: если условие стало выполнимым ТОЛЬКО из-за копий
+      // атрибута (Morphling) — пометить цепочку в стеке.
+      if (assistedByCopy(def.when, ctxBase, payload.scoring && payload.scoring.copyLog)) {
+        for (const l of payload.scoring.copyLog) {
+          resolution.steps.push({
+            icon: "🔗",
+            label: `Цепочка: копия ${Content.heroes.byId[l.heroId].name} (${Content.attrNames[l.from]} → ${Content.attrNames[l.to]}) открыла условие ${def.sourceName}`,
+            kind: "chain",
+          });
+        }
+      }
+
+      if (def.chance != null) {
+        if (payload.simulate) {
+          // Preview: show the lottery without spinning it.
+          resolution.steps.push({
+            icon: "🎲",
+            label: `${def.sourceName}: шанс ${Math.round(def.chance * 100)}% — эффект ещё не разыгран`,
+            kind: "info",
+          });
+          continue;
+        }
+        if (!Rng.current().chance(def.chance)) {
+          resolution.steps.push({ icon: "🎲", label: `${def.sourceName}: шанс не сработал`, kind: "miss" });
+          continue;
+        }
+        ctxBase.note = "крит!";
+      }
+
+      for (const effect of def.effects || []) {
+        const result = Effects.apply(effect, ctxBase);
+        if (result) {
+          resolution.steps.push({ icon: source.kind === "hero" ? "✦" : source.kind === "item" ? "◆" : "☠", label: result.label, kind: source.kind });
+        }
+      }
+    }
+  }
+
+  return { runEvent, collectSources };
+})();
+
+</script>
+  <script>
+// Dalatro — resolution stack.
+// One object that serves four consumers: calculation, UI preview, fight
+// animation and debugging. Everything the engine does during a fight is
+// recorded here as ordered steps.
+const Resolver = (function () {
+  function createResolution(state) {
+    return {
+      steps: [],
+      combo: null,
+      power: 0,
+      mult: 1,
+      finalMult: 1,
+      damage: 0,
+      goldGained: 0,
+      killed: false,
+      blocked: false,
+      // tower snapshot after the fight (for preview)
+      towerHpAfter: null,
+      towerMaxHp: state.combat.wave.maxHp,
+    };
+  }
+
+  function pushStep(resolution, step) {
+    resolution.steps.push(step);
+  }
+
+  return { createResolution, pushStep };
+})();
+
+</script>
+  <script>
+// Dalatro — game state + action dispatch.
+// EVERYTHING that mutates state goes through dispatch(). UI never edits state,
+// content never edits state: State -> Action -> Engine -> Events/Effects -> State.
+const Game = (function () {
+  const FIGHTS_PER_WAVE = 4;
+  const DISCARDS_PER_WAVE = 3;
+  const WAVE_CLEAR_GOLD = 6;
+
+  function createInitialState(seedCode) {
+    return {
+      seedCode: seedCode || "",
+      phase: "title",
+      run: { act: 1, waveIndex: 0, barracks: 6, gold: 4 },
+      player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
+      cards: {},
+      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null },
+      shop: { offers: [] },
+      log: [],
+      stats: { totalDamage: 0, biggestHit: 0 },
+      simulate: false,
+    };
+  }
+
+  function log(state, text) {
+    state.log.push(text);
+    if (state.log.length > 300) state.log.shift();
+  }
+
+  function setupWave(state, waveIndex) {
+    const def = Content.waves.byId[Content.waves.order[waveIndex]];
+    state.combat.wave = {
+      towerId: def.id,
+      name: def.name,
+      emoji: def.emoji,
+      isBoss: !!def.isBoss,
+      hp: def.hp,
+      maxHp: def.hp,
+      modifiers: (def.modifiers || []).map((m) => ({ id: m.id })),
+      enemyItems: [],
+      aegisUsed: false,
+    };
+    state.combat.fightIndex = 0;
+    state.combat.selectedUids = [];
+    state.combat.outcome = null;
+    state.player.fightsLeft = FIGHTS_PER_WAVE;
+    state.player.discardsLeft = DISCARDS_PER_WAVE;
+    DeckSys.resetAll(state, Rng.current());
+    DeckSys.draw(state, Rng.current());
+    log(state, `— Волна ${waveIndex + 1}: ${def.name} — ${def.hp} HP`);
+  }
+
+  function returnRapierIfHeld(state) {
+    if (state.combat.wave.enemyItems.includes("rapier")) {
+      state.combat.wave.enemyItems = state.combat.wave.enemyItems.filter((id) => id !== "rapier");
+      state.player.items.push("rapier");
+      log(state, "Divine Rapier возвращается к тебе!");
+    }
+  }
+
+  function dispatch(state, action) {
+    const s = state;
+    switch (action.type) {
+      case "START_RUN": {
+        const code = Rng.normalizeSeedCode(action.seedCode) || Rng.randomSeedCode();
+        const fresh = createInitialState(code);
+        fresh.phase = "wave";
+        Rng.setActive(Rng.create(code));
+        DeckSys.createFromHeroes(fresh, Content.heroes.startingIds);
+        setupWave(fresh, 0);
+        log(fresh, `Забег начат. Seed: DALATRO-${code}`);
+        return fresh;
+      }
+
+      case "SELECT_CARD": {
+        if (s.phase !== "wave" || s.combat.outcome) return s;
+        const uid = action.uid;
+        const idx = s.combat.selectedUids.indexOf(uid);
+        if (idx !== -1) {
+          s.combat.selectedUids.splice(idx, 1);
+        } else if (s.combat.selectedUids.length < Combat.MAX_SLOTS && s.player.handUids.includes(uid)) {
+          s.combat.selectedUids.push(uid);
+        }
+        return s;
+      }
+
+      case "CONFIRM_FIGHT": {
+        if (s.phase !== "wave" || s.combat.outcome || s.player.fightsLeft <= 0) return s;
+        if (!s.combat.selectedUids.length || s.combat.selectedUids.length > Combat.MAX_SLOTS) return s;
+        const resolution = Combat.resolveFight(s);
+        log(s, `Бой #${s.combat.fightIndex}: ${resolution.combo.name} → ${resolution.damage} урона`);
+        if (resolution.killed) {
+          s.combat.outcome = "cleared";
+          s.run.gold += WAVE_CLEAR_GOLD;
+          log(s, `Волна зачищена! +${WAVE_CLEAR_GOLD} золота`);
+          returnRapierIfHeld(s);
+          if (s.combat.wave.isBoss) {
+            s.phase = "victory";
+            log(s, "РОШАН ПОВЕРЖЕН. ТИ ВЗЯТ!");
+          }
+        } else if (s.player.fightsLeft <= 0) {
+          s.combat.outcome = "failed";
+        }
+        return s;
+      }
+
+      case "DISCARD": {
+        if (s.phase !== "wave" || s.combat.outcome || s.player.discardsLeft <= 0) return s;
+        const uids = action.uids.filter((uid) => s.player.handUids.includes(uid));
+        if (!uids.length) return s;
+        for (const uid of uids) {
+          const card = s.cards[uid];
+          const hero = Content.heroes.byId[card.heroId];
+          const fakeCard = { uid, heroId: card.heroId, power: hero.power, attr: hero.attr, illusion: false, slotIndex: 0 };
+          const discardCtx = { returnToHand: false };
+          const fakeResolution = { steps: [] };
+          Triggers.runEvent(s, null, "ON_DISCARD", { playedCards: [fakeCard], onlyKinds: ["hero"], discardCtx }, fakeResolution);
+          fakeResolution.steps.forEach((st) => log(s, st.label));
+          if (!discardCtx.returnToHand) {
+            DeckSys.moveToDiscard(s, [uid]);
+          }
+        }
+        s.player.discardsLeft -= 1;
+        DeckSys.draw(s, Rng.current());
+        return s;
+      }
+
+      case "ENTER_SHOP": {
+        if (s.phase !== "wave" || s.combat.outcome !== "cleared") return s;
+        s.phase = "shop";
+        s.shop.offers = Economy.generateOffers(s);
+        return s;
+      }
+
+      case "BUY_ITEM": {
+        if (s.phase !== "shop") return s;
+        const item = Content.items.byId[action.itemId];
+        const offerIdx = s.shop.offers.findIndex((o) => o.id === action.itemId);
+        if (!item || offerIdx === -1) return s;
+        if (s.player.items.includes(action.itemId)) return s;
+        if (s.run.gold < item.cost) return s;
+        s.run.gold -= item.cost;
+        s.player.items.push(action.itemId);
+        s.shop.offers.splice(offerIdx, 1);
+        log(s, `Куплено: ${item.name} (−${item.cost} золота)`);
+        return s;
+      }
+
+      case "LOCK_OFFER": {
+        if (s.phase !== "shop") return s;
+        const offer = s.shop.offers.find((o) => o.id === action.itemId);
+        if (!offer) return s;
+        offer.locked = !offer.locked;
+        return s;
+      }
+
+      case "SELL_ITEM": {
+        if (s.phase !== "shop") return s;
+        const idx = s.player.items.indexOf(action.itemId);
+        if (idx === -1) return s;
+        const item = Content.items.byId[action.itemId];
+        const value = Economy.sellValue(action.itemId);
+        s.player.items.splice(idx, 1);
+        s.run.gold += value;
+        log(s, `Продано: ${item.name} (+${value} золота)`);
+        return s;
+      }
+
+      case "REROLL_SHOP": {
+        if (s.phase !== "shop" || s.run.gold < Economy.REROLL_COST) return s;
+        s.run.gold -= Economy.REROLL_COST;
+        const locked = s.shop.offers.filter((o) => o.locked);
+        s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, locked);
+        return s;
+      }
+
+      case "LEAVE_SHOP": {
+        if (s.phase !== "shop") return s;
+        s.phase = "wave";
+        s.run.waveIndex += 1;
+        setupWave(s, s.run.waveIndex);
+        return s;
+      }
+
+      case "RETRY_WAVE": {
+        if (s.phase !== "wave" || s.combat.outcome !== "failed") return s;
+        s.run.barracks -= 1;
+        log(s, `Казарма потеряна! Осталось: ${s.run.barracks}`);
+        if (s.run.barracks <= 0) {
+          s.phase = "gameover";
+          log(s, "Трон разрушен. Забег окончен.");
+          return s;
+        }
+        if (s.player.items.includes("rapier")) {
+          s.player.items = s.player.items.filter((id) => id !== "rapier");
+          s.combat.wave.enemyItems.push("rapier");
+          log(s, "Divine Rapier у врага! Твой урон по этой башне ×0.5, пока он её держит.");
+        }
+        s.combat.wave.hp = s.combat.wave.maxHp;
+        s.combat.fightIndex = 0;
+        s.combat.outcome = null;
+        s.player.fightsLeft = FIGHTS_PER_WAVE;
+        s.player.discardsLeft = DISCARDS_PER_WAVE;
+        DeckSys.resetAll(s, Rng.current());
+        DeckSys.draw(s, Rng.current());
+        return s;
+      }
+
+      case "DEBUG_GOLD":
+        s.run.gold += 1000;
+        return s;
+      case "DEBUG_FIGHTS":
+        s.player.fightsLeft += 5;
+        return s;
+      case "DEBUG_DAMAGE_TOWER":
+        s.combat.wave.hp = Math.max(0, s.combat.wave.hp - (action.amount || 100));
+        return s;
+      case "DEBUG_KILL_TOWER":
+        s.combat.wave.hp = 0;
+        return s;
+      case "DEBUG_DRAW":
+        DeckSys.draw(s, Rng.current());
+        return s;
+      case "DEBUG_REVEAL":
+        s.debugReveal = !s.debugReveal;
+        return s;
+
+      default:
+        console.warn("Unknown action:", action.type);
+        return s;
+    }
+  }
+
+  return { createInitialState, dispatch, FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD };
+})();
+
+</script>
+  <script>
+// Dalatro — simulator. Preview = the SAME dispatch on a cloned state.
+// No separate preview logic, ever. RNG is suppressed so a preview never
+// consumes draws or rolls from the real run.
+const Sim = (function () {
+  function simulate(state, action) {
+    let clone;
+    try {
+      clone = structuredClone(state);
+    } catch (e) {
+      console.error("[simulate] clone failed", e);
+      return null;
+    }
+    clone.simulate = true;
+    return Rng.suppress(() => {
+      try {
+        return Game.dispatch(clone, action);
+      } catch (e) {
+        console.error("[simulate] dispatch failed", e);
+        return null;
+      }
+    });
+  }
+
+  return { simulate };
+})();
+
+</script>
+  <script>
+// Dalatro — poker module. Knows nothing about Dota: takes cards with
+// { power, attr } and returns the best combination contained in the set.
+// All played cards still contribute their power; the combo only sets the type
+// and its base power / multiplier.
+const PokerSys = (function () {
+  // Detection rank: wild ranks (Butterfly) and illusions (Manta) override it
+  // via detectPower, while their real `power` still drives the damage sum.
+  function valueOf(card) {
+    return card.detectPower != null ? card.detectPower : card.power;
+  }
+
+  function countsBy(cards, key) {
+    const map = new Map();
+    for (const c of cards) {
+      const k = key === "power" ? valueOf(c) : c[key];
+      map.set(k, (map.get(k) || 0) + 1);
+    }
+    return map;
+  }
+
+  function hasStraight(values) {
+    const distinct = Array.from(new Set(values)).sort((a, b) => a - b);
+    let run = 1;
+    for (let i = 1; i < distinct.length; i++) {
+      run = distinct[i] === distinct[i - 1] + 1 ? run + 1 : 1;
+      if (run >= 5) return true;
+    }
+    return false;
+  }
+
+  // Returns { type } — best combo contained in the card set (1..6 cards).
+  function detectType(cards) {
+    if (!cards || cards.length === 0) return null;
+
+    const powers = countsBy(cards, "power");
+    const attrs = countsBy(cards, "attr");
+    const values = cards.map(valueOf);
+
+    const hasFlush = cards.length >= 5 && Array.from(attrs.values()).some((n) => n >= 5);
+    const straightOk = cards.length >= 5 && hasStraight(values);
+
+    const hasTriple = Array.from(powers.values()).some((n) => n >= 3);
+    const pairValues = Array.from(powers.values()).filter((n) => n >= 2).length;
+
+    if (hasFlush && straightOk) return "straight_flush"; // not in slice table; falls back below
+    if (hasFlush) return "flush";
+    if (straightOk) return "straight";
+    if (hasTriple && pairValues >= 2) return "full_house";
+    if (hasTriple) return "three";
+    if (pairValues >= 2) return "two_pair";
+    if (pairValues >= 1) return "pair";
+    return "high_card";
+  }
+
+  // Best combo for the effective card set, honoring the slice combo table.
+  // straight_flush scores as flush for now (expansion point, see ROADMAP).
+  function evaluate(cards) {
+    let type = detectType(cards);
+    if (type === "straight_flush") type = "flush";
+    if (!type) return null;
+    const def = Content.combos.byId[type];
+    if (!def) return null;
+    return { type, name: def.name, basePower: def.basePower, baseMult: def.baseMult };
+  }
+
+  return { evaluate, detectType };
+})();
+
+</script>
+  <script>
+// Dalatro — deck system: deck / hand / discard as uid arrays + card registry.
+const DeckSys = (function () {
+  let uidCounter = 0;
+  // Hand of 7 vs deck of 12: after playing 5 the refill exactly drains the deck,
+  // so played heroes return only on the next full cycle (no full-house spam).
+  const HAND_SIZE = 7;
+
+  // state.cards: uid -> { uid, heroId }. Deck arrays hold uids only.
+  function createFromHeroes(state, heroIds) {
+    state.cards = {};
+    state.player.deckUids = [];
+    for (const heroId of heroIds) {
+      const uid = "c" + uidCounter++;
+      state.cards[uid] = { uid, heroId };
+      state.player.deckUids.push(uid);
+    }
+    state.player.handUids = [];
+    state.player.discardUids = [];
+  }
+
+  // Draws until the hand reaches HAND_SIZE (or deck+discard are empty).
+  function draw(state, rng) {
+    while (state.player.handUids.length < HAND_SIZE) {
+      if (state.player.deckUids.length === 0) {
+        if (state.player.discardUids.length === 0) return;
+        state.player.deckUids = rng.shuffle(state.player.discardUids.slice());
+        state.player.discardUids = [];
+      }
+      state.player.handUids.push(state.player.deckUids.pop());
+    }
+  }
+
+  function moveToDiscard(state, uids) {
+    for (const uid of uids) {
+      const idx = state.player.handUids.indexOf(uid);
+      if (idx !== -1) {
+        state.player.handUids.splice(idx, 1);
+        state.player.discardUids.push(uid);
+      }
+    }
+  }
+
+  function resetAll(state, rng) {
+    const all = state.player.deckUids
+      .concat(state.player.handUids)
+      .concat(state.player.discardUids);
+    state.player.deckUids = rng.shuffle(all.slice());
+    state.player.handUids = [];
+    state.player.discardUids = [];
+  }
+
+  return { createFromHeroes, draw, moveToDiscard, resetAll, HAND_SIZE };
+})();
+
+</script>
+  <script>
+// Dalatro — combat orchestration. The heart of the vertical slice.
+//
+// Resolution order (fixed, documented in ARCHITECTURE.md):
+//   1. PRE_DETECT   — heroes (slot order) + items mutate what the detector sees
+//                     (Morphling copy, Manta illusion, Butterfly wild rank)
+//   2. Detection    — poker.evaluate on the effective set
+//   3. Base         — combo base power + sum of effective card powers
+//   4. Hero triggers (slot order): ON_PLAY then COMBO_DETECTED
+//   5. Item triggers (acquisition order): FIGHT_SCORING
+//   6. Refresher    — hero triggers (4) run a second time
+//   7. Tower mods   — BKB / Butterfly interact, then armor / glyph
+//   8. Damage       — power × mult × finalMult × towerMult
+//   9. Death/Aegis  — revive once, else killed
+//  10. Gold         — overkill (decayed) + exact last hit
+const Combat = (function () {
+  const HAND_SIZE = DeckSys.HAND_SIZE;
+  const MAX_SLOTS = 5;
+
+  function realPlayedCards(state) {
+    return state.combat.selectedUids.map((uid) => {
+      const card = state.cards[uid];
+      const hero = Content.heroes.byId[card.heroId];
+      return { uid, heroId: card.heroId, power: hero.power, attr: hero.attr, illusion: false, slotIndex: 0 };
+    });
+  }
+
+  function collectPreDetectEffects(state, playedCards) {
+    const effects = [];
+    playedCards.forEach((card, slotIndex) => {
+      if (card.illusion) return;
+      const hero = Content.heroes.byId[card.heroId];
+      if (hero.ability && hero.ability.event === "PRE_DETECT") {
+        effects.push({ effect: hero.ability.effects[0], card, slotIndex, sourceName: hero.name });
+      }
+    });
+    state.player.items.forEach((itemId) => {
+      const item = Content.items.byId[itemId];
+      if (item.ability && item.ability.event === "PRE_DETECT") {
+        effects.push({ effect: item.ability.effects[0], card: null, slotIndex: -1, sourceName: item.name });
+      }
+    });
+    return effects;
+  }
+
+  // Builds the effective card set (scoring) and the detection view (combo).
+  function buildEffectiveSet(state, playedCards, resolution) {
+    const effective = playedCards.map((c) => ({ ...c }));
+    const pendingIllusions = [];
+    const pendingWilds = [];
+    const copyLog = []; // какие копии атрибута изменили effective-набор
+    let strongestBump = 0;
+    let bumpSource = null;
+
+    for (const { effect, card, slotIndex, sourceName } of collectPreDetectEffects(state, effective)) {
+      switch (effect.type) {
+        case "COPY_ATTRIBUTE": {
+          if (effect.target === "left_neighbor" && slotIndex > 0) {
+            const neighbor = effective[slotIndex - 1];
+            if (neighbor && neighbor.attr !== effective[slotIndex].attr) {
+              Resolver.pushStep(resolution, {
+                icon: "✦",
+                label: `${sourceName} копирует атрибут «${Content.attrNames[neighbor.attr]}» у ${Content.heroes.byId[neighbor.heroId].name}`,
+                kind: "hero",
+              });
+              copyLog.push({
+                uid: effective[slotIndex].uid,
+                heroId: effective[slotIndex].heroId,
+                from: effective[slotIndex].attr,
+                to: neighbor.attr,
+              });
+              effective[slotIndex].attr = neighbor.attr;
+            }
+          }
+          break;
+        }
+        case "CREATE_ILLUSION": {
+          const strongest = effective.reduce((a, b) => (b.power > a.power ? b : a), effective[0]);
+          if (strongest) {
+            pendingIllusions.push({ sourceName, of: strongest, ratio: effect.powerRatio || 0.5 });
+          }
+          break;
+        }
+        case "WILD_RANK": {
+          pendingWilds.push({ sourceName });
+          break;
+        }
+        case "BUMP_STRONGEST_RANK": {
+          strongestBump += effect.value || 1;
+          bumpSource = sourceName;
+          break;
+        }
+      }
+    }
+
+    // Illusions join the effective set (half power, count for combos, never trigger).
+    for (const { sourceName, of, ratio } of pendingIllusions) {
+      const illusionPower = Math.floor(of.power * ratio);
+      effective.push({
+        uid: "illusion_" + of.uid,
+        heroId: of.heroId,
+        power: illusionPower,
+        detectPower: of.detectPower != null ? of.detectPower : of.power,
+        attr: of.attr,
+        illusion: true,
+      });
+      Resolver.pushStep(resolution, {
+        icon: "◆",
+        label: `${sourceName}: иллюзия ${Content.heroes.byId[of.heroId].name} (${illusionPower} силы) вступает в бой`,
+        kind: "item",
+      });
+    }
+
+    // Wild ranks and rank bumps affect detection only — real power still scores.
+    // Candidates: identity, +bumped-strongest, each ± butterfly wild on the
+    // weakest card. The engine plays whichever candidate yields the best combo,
+    // so detection hooks never HURT the player.
+    const identity = effective.map((c) => ({ ...c, meta: { bumped: false, wild: 0 } }));
+    const candidates = [identity];
+    if (strongestBump) {
+      const strongestIdx = identity.reduce((mi, c, i, arr) => (c.power > arr[mi].power ? i : mi), 0);
+      for (const delta of [strongestBump, -strongestBump]) {
+        const bumped = effective.map((c) => ({ ...c, meta: { bumped: true, wild: 0 } }));
+        bumped[strongestIdx].detectPower =
+          (bumped[strongestIdx].detectPower != null ? bumped[strongestIdx].detectPower : bumped[strongestIdx].power) + delta;
+        candidates.push(bumped);
+      }
+    }
+    if (pendingWilds.length) {
+      for (const base of candidates.slice()) {
+        const weakestIdx = base.reduce((mi, c, i, arr) => (c.power < arr[mi].power ? i : mi), 0);
+        for (const delta of [-1, 1]) {
+          const variant = base.map((c) => ({ ...c, meta: { ...c.meta } }));
+          variant[weakestIdx] = { ...variant[weakestIdx], detectPower: variant[weakestIdx].power + delta, meta: { bumped: variant[weakestIdx].meta.bumped, wild: delta } };
+          candidates.push(variant);
+        }
+      }
+    }
+    let best = null;
+    for (const candidate of candidates) {
+      const combo = PokerSys.evaluate(candidate);
+      if (!combo) continue;
+      if (!best || betterCombo(combo, best.combo)) {
+        best = { combo, cards: candidate, meta: candidate[0].meta };
+      }
+    }
+    const usedBump = best.meta && best.meta.bumped;
+    if (strongestBump && usedBump) {
+      Resolver.pushStep(resolution, {
+        icon: "◆",
+        label: `${bumpSource}: сильнейшая карта считается соседним рангом`,
+        kind: "item",
+      });
+    }
+    if (pendingWilds.length && best.meta && best.meta.wild !== 0) {
+      Resolver.pushStep(resolution, {
+        icon: "◆",
+        label: `Butterfly: слабейшая карта считается соседним рангом для комбо`,
+        kind: "item",
+      });
+    }
+    return { effective, combo: best.combo, copyLog };
+  }
+
+  function betterCombo(a, b) {
+    const ra = Content.combos.byId[a.type].rank;
+    const rb = Content.combos.byId[b.type].rank;
+    if (ra !== rb) return ra > rb;
+    return a.basePower > b.basePower;
+  }
+
+  function towerDamageMult(state, resolution) {
+    const tower = state.combat.wave;
+    if (state.combat.scoring.flags.bkbBlocksMods) return 1;
+    for (const mod of tower.modifiers || []) {
+      if (mod.id === "armor" && state.combat.fightIndex === 0) {
+        // fightIndex is 0-based: 0 = first fight of the wave.
+        // Butterfly evasion, one roll per fight (BKB already handled globally).
+        if (state.player.items.includes("butterfly") && Rng.current().chance(0.25)) {
+          Resolver.pushStep(resolution, { icon: "🎲", label: "Butterfly: броня башни уклонена!", kind: "item" });
+          return 1;
+        }
+        Resolver.pushStep(resolution, { icon: "☠", label: "Armor T2: первый бой волны — урон ×0.5", kind: "modifier" });
+        return 0.5;
+      }
+      if (mod.id === "glyph" && state.combat.fightIndex % 3 === 2) {
+        // every 3rd fight: #3, #6, ...
+        Resolver.pushStep(resolution, { icon: "☠", label: "Glyph T3: бой заблокирован полностью!", kind: "modifier" });
+        return 0;
+      }
+    }
+    return 1;
+  }
+
+  function enemyShieldMult(state) {
+    // Enemy picked up the Divine Rapier after a failed wave.
+    return (state.combat.wave.enemyItems || []).includes("rapier") ? 0.5 : 1;
+  }
+
+  function overkillGold(state, overkill) {
+    if (overkill <= 0) return 0;
+    const halfCap = Math.floor(state.combat.wave.maxHp * 0.5);
+    const fast = Math.min(overkill, halfCap);
+    const slow = Math.max(0, overkill - halfCap);
+    const raw = Math.floor(fast / 20) + Math.floor(slow / 40);
+    return Math.floor(raw * state.combat.scoring.flags.overkillRate);
+  }
+
+  // Runs the whole fight against state.combat.wave. Mutates state.
+  function resolveFight(state) {
+    const resolution = Resolver.createResolution(state);
+    const played = realPlayedCards(state);
+    played.forEach((c, i) => (c.slotIndex = i));
+
+    state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb") } };
+
+    // 1-2. Pre-detect + detection.
+    const { effective, combo, copyLog } = buildEffectiveSet(state, played, resolution);
+    resolution.combo = combo;
+    Resolver.pushStep(resolution, {
+      icon: "🃏",
+      label: `Комбо: ${combo.name} (база ${combo.basePower} × ${combo.baseMult})`,
+      kind: "combo",
+    });
+
+    // 3. Base power + played card powers.
+    state.combat.scoring.power = combo.basePower;
+    let cardPowerSum = 0;
+    for (const card of effective) cardPowerSum += card.power;
+    state.combat.scoring.power += cardPowerSum;
+    state.combat.scoring.mult = combo.baseMult;
+    state.combat.scoring.effective = effective;
+    state.combat.scoring.copyLog = copyLog;
+
+    // 4. Hero triggers.
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["hero"]);
+
+    // 5. Item triggers.
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["item"]);
+
+    // 6. Refresher: hero triggers again.
+    if (state.combat.scoring.flags.refreshHeroTriggers) {
+      runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: ["hero"], refreshed: true }, ["hero"]);
+    }
+
+    // 7. Tower modifiers.
+    const towerMult = towerDamageMult(state, resolution) * enemyShieldMult(state);
+    resolution.blocked = towerMult === 0;
+
+    // 8. Damage.
+    const s = state.combat.scoring;
+    const damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    resolution.power = s.power;
+    resolution.mult = s.mult;
+    resolution.damage = damage;
+    Resolver.pushStep(resolution, {
+      icon: "⚔",
+      label: `Урон: ${s.power} × ${round2(s.mult)}${s.finalMult !== 1 ? " × " + round2(s.finalMult) : ""}${towerMult !== 1 ? " × " + round2(towerMult) : ""} = ${damage}`,
+      kind: "damage",
+    });
+
+    // 9. Apply damage / death / aegis.
+    const tower = state.combat.wave;
+    const hpBefore = tower.hp;
+    tower.hp -= damage;
+    const overkill = Math.max(0, damage - hpBefore);
+    resolution.towerHpAfter = Math.max(0, tower.hp);
+
+    if (tower.hp <= 0) {
+      const aegis = (tower.modifiers || []).find((m) => m.id === "aegis");
+      if (aegis && !tower.aegisUsed) {
+        tower.aegisUsed = true;
+        const def = Content.modifiers.byId["aegis"];
+        const result = Effects.apply({ type: "REVIVE", hpPercent: def.hpPercent }, {
+          state,
+          scoring: s,
+          sourceName: "Roshan",
+        });
+        Resolver.pushStep(resolution, { icon: "☠", label: result.label, kind: "modifier" });
+        resolution.killed = false;
+      } else {
+        resolution.killed = true;
+      }
+    }
+
+    // 10. Gold from overkill + exact last hit.
+    let gold = overkillGold(state, overkill);
+    if (gold > 0) {
+      Resolver.pushStep(resolution, { icon: "💰", label: `Overkill +${gold} золота`, kind: "gold" });
+    }
+    if (!resolution.blocked && damage === hpBefore && hpBefore > 0) {
+      gold += 5;
+      Resolver.pushStep(resolution, { icon: "🎯", label: "Last Hit! +5 золота", kind: "gold" });
+    }
+    resolution.goldGained = gold;
+    state.run.gold += gold;
+
+    state.stats.totalDamage += damage;
+    if (damage > state.stats.biggestHit) state.stats.biggestHit = damage;
+
+    // Cycle: played cards go to discard (illusions vanish), draw back to hand size.
+    DeckSys.moveToDiscard(state, state.combat.selectedUids);
+    state.combat.selectedUids = [];
+    DeckSys.draw(state, Rng.current());
+    state.player.fightsLeft -= 1;
+    state.combat.fightIndex += 1;
+    state.combat.lastResolution = resolution;
+    state.combat.scoring = null;
+    return resolution;
+  }
+
+  function runTriggers(state, resolution, payload, kinds) {
+    Triggers.runEvent(state, null, "ON_PLAY", { ...payload, onlyKinds: kinds }, resolution);
+    Triggers.runEvent(state, null, "COMBO_DETECTED", { ...payload, onlyKinds: kinds }, resolution);
+    Triggers.runEvent(state, null, "FIGHT_SCORING", { ...payload, onlyKinds: kinds }, resolution);
+  }
+
+  function round2(v) {
+    return Math.round(v * 100) / 100;
+  }
+
+  return { resolveFight, realPlayedCards, buildEffectiveSet, HAND_SIZE, MAX_SLOTS };
+})();
+
+</script>
+  <script>
+// Dalatro — economy: shop offers with rarity weights and lock support.
+// Offers are objects: { id, locked }. Buy/sell/reroll math lives in game.js.
+const Economy = (function () {
+  const REROLL_COST = 2;
+  const OFFER_SLOTS = 5;
+  // Rarity weights per offer slot (epic stays special).
+  const RARITY_WEIGHTS = { common: 62, rare: 28, epic: 10 };
+
+  function pickRarity(rng) {
+    const total = RARITY_WEIGHTS.common + RARITY_WEIGHTS.rare + RARITY_WEIGHTS.epic;
+    let roll = rng.next() * total;
+    for (const rarity of ["common", "rare", "epic"]) {
+      roll -= RARITY_WEIGHTS[rarity];
+      if (roll < 0) return rarity;
+    }
+    return "common";
+  }
+
+  // Fills up to `slots` offers from items not owned and not already offered.
+  function generateOffers(state, slots = OFFER_SLOTS, keepLocked = []) {
+    const rng = Rng.current();
+    const offers = keepLocked.slice();
+    const taken = new Set(offers.map((o) => o.id).concat(state.player.items));
+    let guard = 60; // pool can be exhausted — never loop forever
+    while (offers.length < slots && guard-- > 0) {
+      const rarity = pickRarity(rng);
+      const pool = Content.items.list
+        .map((i) => i.id)
+        .filter((id) => !taken.has(id) && Content.items.byId[id].rarity === rarity);
+      if (!pool.length) continue;
+      const id = rng.pick(pool);
+      taken.add(id);
+      offers.push({ id, locked: false });
+    }
+    return offers;
+  }
+
+  function sellValue(itemId) {
+    const item = Content.items.byId[itemId];
+    return Math.floor(item.cost / 2);
+  }
+
+  return { generateOffers, sellValue, REROLL_COST, OFFER_SLOTS };
+})();
+
+</script>
+  <script>
+// Dalatro — build advisor. Turns the run's deck + items into visible build
+// directions (progress bars) and per-item synergy explanations for the shop.
+// Pure analysis: reads state, mutates nothing.
+const Advisor = (function () {
+  function deckHeroes(state) {
+    return Object.values(state.cards).map((c) => Content.heroes.byId[c.heroId]);
+  }
+
+  function countBy(arr, key) {
+    const map = new Map();
+    for (const x of arr) map.set(x[key], (map.get(x[key]) || 0) + 1);
+    return map;
+  }
+
+  // Longest run of consecutive powers in the deck.
+  function longestStraight(values) {
+    const distinct = Array.from(new Set(values)).sort((a, b) => a - b);
+    let best = { len: 1, from: distinct[0] };
+    let len = 1;
+    for (let i = 1; i < distinct.length; i++) {
+      len = distinct[i] === distinct[i - 1] + 1 ? len + 1 : 1;
+      if (len > best.len) best = { len, from: distinct[i - len + 1] };
+    }
+    return { len: best.len, from: best.from, to: best.from + best.len - 1 };
+  }
+
+  // Build directions visible in the shop. Sorted: closest to complete first.
+  function analyzeBuilds(state) {
+    const heroes = deckHeroes(state);
+    const owned = new Set(state.player.items);
+    const builds = [];
+
+    // Flush lines per attribute.
+    const byAttr = countBy(heroes, "attr");
+    for (const [attr, n] of byAttr) {
+      if (n >= 3) {
+        builds.push({
+          key: "flush_" + attr,
+          name: `Тимфайт ${Content.attrNames[attr]}`,
+          have: n, need: 5,
+          hint: "Пять героев одного атрибута = флеш: 35 × 4",
+        });
+      }
+    }
+
+    // Straight run.
+    const straight = longestStraight(heroes.map((h) => h.power));
+    if (straight.len >= 3) {
+      const missing = [];
+      for (let v = straight.from; v <= straight.to; v++) {
+        if (!heroes.some((h) => h.power === v)) missing.push(v);
+      }
+      builds.push({
+        key: "straight",
+        name: "Смок-стрит",
+        have: straight.len, need: 5,
+        hint: missing.length
+          ? `Ранги ${straight.from}–${straight.to} есть, не хватает силы ${missing.join(" и ")}`
+          : `Ранги ${straight.from}–${straight.to} собраны — играй их вместе`,
+      });
+    }
+
+    // Trips.
+    const byPower = countBy(heroes, "power");
+    for (const [power, n] of byPower) {
+      if (n >= 3) {
+        builds.push({
+          key: "trips_" + power,
+          name: `Ганг силы ${power}`,
+          have: n, need: 3,
+          hint: `Три героя силы ${power} — ганг; +2 к фулл-хаусу с любой парой`,
+        });
+      }
+    }
+
+    // Crit build: Daedalus + PA + Refresher.
+    const critPieces =
+      (owned.has("daedalus") ? 1 : 0) +
+      (heroes.some((h) => h.id === "pa") ? 1 : 0) +
+      (owned.has("refresher") ? 1 : 0);
+    if (critPieces >= 1) {
+      builds.push({
+        key: "crit",
+        name: "Крит-билд",
+        have: critPieces, need: 3,
+        hint: "Daedalus (25% ×2) + Phantom Assassin (50% ×2) + Refresher (двойной рол)",
+      });
+    }
+
+    // Morph engine: Morphling + Zeus.
+    const hasMorph = heroes.some((h) => h.id === "morphling");
+    const hasZeus = heroes.some((h) => h.id === "zeus");
+    if (hasMorph && hasZeus) {
+      builds.push({
+        key: "morph_engine",
+        name: "Морф-движок",
+        have: hasMorph && hasZeus ? 2 : 1, need: 2,
+        hint: "Zeus в руке слева от Morphling: морф копирует INT, зевс +2 к множителю",
+      });
+    }
+
+    // Rank manipulation: Butterfly + Manta + Shadow Blade.
+    const rulePieces =
+      (owned.has("butterfly") ? 1 : 0) +
+      (owned.has("manta") ? 1 : 0) +
+      (owned.has("shadow_blade") ? 1 : 0);
+    if (rulePieces >= 2) {
+      builds.push({
+        key: "ranksmith",
+        name: "Кузня рангов",
+        have: rulePieces, need: 3,
+        hint: "Butterfly ± ранг слабейшего, Shadow Blade +1 сильнейшего, Manta копия — комбо собираются из ничего",
+      });
+    }
+
+    return builds
+      .map((b) => ({ ...b, pct: Math.min(100, Math.round((b.have / b.need) * 100)) }))
+      .sort((a, b) => b.pct - a.pct)
+      .slice(0, 6);
+  }
+
+  // "What does THIS item give THIS run" — shown in the shop hover panel.
+  function itemSynergy(itemId, state) {
+    const heroes = deckHeroes(state);
+    const owned = new Set(state.player.items);
+    const heroIds = new Set(heroes.map((h) => h.id));
+    const lines = [];
+    const has = (id) => heroIds.has(id);
+
+    switch (itemId) {
+      case "daedalus":
+        if (has("pa")) lines.push("Phantom Assassin в колоде — два независимых источника ×2");
+        if (owned.has("refresher")) lines.push("Refresher Orb — крит прокатится дважды");
+        break;
+      case "refresher":
+        lines.push(`Усилит ${heroes.filter((h) => h.ability).length} способностей героев колоды`);
+        if (owned.has("daedalus") || has("pa")) lines.push("Криты смогут сработать дважды за бой");
+        break;
+      case "satanic": {
+        const pairs = Array.from(countBy(heroes, "power").entries()).filter(([, n]) => n >= 2).map(([p]) => p);
+        if (pairs.length) lines.push(`В колоде стабильные пары силы ${pairs.join(", ")} — Satanic будет жечь почти каждый бой`);
+        break;
+      }
+      case "manta": {
+        const pairs = Array.from(countBy(heroes, "power").entries()).filter(([, n]) => n >= 2).map(([p]) => p);
+        if (pairs.length) lines.push(`Иллюзия превращает пару силы ${pairs.join("/")} в сет или фулл-хаус`);
+        if (has("morphling")) lines.push("Morphling: иллюзия наследует его ранг и атрибут");
+        break;
+      }
+      case "butterfly":
+        lines.push("Игра применит ±ранг только если он улучшает комбо — минуса нет");
+        if (has("cm")) lines.push("CM (2) → 3: из {2,3,5,5} собираются две пары");
+        break;
+      case "shadow_blade":
+        lines.push("±1 ранг сильнейшей карты: 9+10 превращаются в пару 10-10 — игра берёт только улучшение");
+        break;
+      case "radiance":
+        lines.push("Полная пятёрка героев = +15 силы");
+        if (owned.has("drum") || owned.has("meteor_hammer")) lines.push("Дружит с билдом «играй много героев»");
+        break;
+      case "octarine": {
+        const n = state.player.items.length;
+        lines.push(`Сейчас предметов: ${n} → +${n} к множителю за каждый бой`);
+        lines.push("Покупай вместе с ним — ядро растёт");
+        break;
+      }
+      case "vladmir":
+        lines.push("≈ +8 золота за волну (4 боя) — окупается за волну");
+        break;
+      case "midas":
+        lines.push("Удваивает золото с оверкилла — бей точно в ноль HP для ласт-хита");
+        break;
+      case "rapier":
+        lines.push("Сейчас: ×2 к итоговому урону каждого боя");
+        lines.push("Провал волны = рапира у врага (×0.5 к твоему урону по нему)");
+        break;
+      case "bkb": {
+        const nextWave = Content.waves.byId[Content.waves.order[state.run.waveIndex + 1]];
+        if (nextWave && nextWave.modifiers.length) {
+          const defs = nextWave.modifiers.map((m) => Content.modifiers.byId[m.id].name).join(", ");
+          lines.push(`Следующая башня: ${nextWave.name} (${defs}) — BKB это игнорирует`);
+        } else {
+          lines.push("Ближайшие башни без модификаторов — прибереги или продай");
+        }
+        break;
+      }
+      case "heart":
+        if (byAttrHas(heroes, "str", 4)) lines.push("Флеш Силы почти собран — Heart утяжелит каждый удар");
+        break;
+      case "meteor_hammer":
+      case "drum":
+        lines.push("Сыграй 4–5 героев, чтобы триггер был стабилен");
+        break;
+      case "kaya":
+        lines.push("Качает обе оси сразу — безопасный первый предмет");
+        break;
+      case "battle_fury":
+        lines.push("Любит руки с одной большой картой и мусором рядом");
+        break;
+    }
+    return lines;
+  }
+
+  function byAttrHas(heroes, attr, n) {
+    return heroes.filter((h) => h.attr === attr).length >= n;
+  }
+
+  return { analyzeBuilds, itemSynergy };
+})();
+
+</script>
+  <script>
+// Dalatro — art pool.
+// Hero portraits come from Valve's public Dota 2 CDN (the canonical look).
+// The hand-drawn SVG sigils stay as an automatic fallback when the CDN is
+// unreachable — and as the original- art path for a public release, see
+// VISUAL_SPEC.md (IP note).
+const Art = (function () {
+  const S = 'viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"';
+  const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes";
+  const ITEM_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items";
+
+  // heroId -> Steam internal name (legacy names: antimage, wisp,
+  // obsidian_destroyer).
+  const DOTA_IMG = {
+    tusk: "tusk", axe: "axe", pudge: "pudge", sven: "sven", centaur: "centaur",
+    morphling: "morphling", juggernaut: "juggernaut", pa: "phantom_assassin",
+    cm: "crystal_maiden", zeus: "zeus", dawnbreaker: "dawnbreaker", primal: "primal_beast",
+    undying: "undying", ogre_magi: "ogre_magi", legion: "legion_commander",
+    huskar: "huskar", tidehunter: "tidehunter",
+    meepo: "meepo", bounty: "bounty_hunter", slark: "slark",
+    phantom_lancer: "phantom_lancer", anti_mage: "antimage", faceless: "faceless_void",
+    terrorblade: "terrorblade",
+    oracle: "oracle", skywrath: "skywrath_mage", lina: "lina", rubick: "rubick",
+    invoker: "invoker", storm_spirit: "storm_spirit", outworld: "obsidian_destroyer",
+    ancient_apparition: "ancient_apparition",
+    io: "wisp", muerta: "muerta", marci: "marci", snapfire: "snapfire",
+    void_spirit: "void_spirit", kez: "kez", beastmaster: "beastmaster", tiny: "tiny",
+  };
+
+  const SIGILS = {
+    axe: `<rect x="30" y="8" width="4" height="52"/>
+      <path d="M32 6L6 12l6 12 20-4z"/>
+      <path d="M32 6l26 6-6 12-20-4z"/>`,
+
+    morphling: `<path d="M32 5c11 15 18 24 18 33a18 18 0 1 1-36 0c0-9 7-18 18-33z"/>
+      <path d="M20 40c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="var(--card-bg)" stroke-width="4" stroke-linecap="round"/>`,
+
+    zeus: `<path d="M36 4L16 35h12l-5 25 21-34H31z"/>`,
+
+    cm: `<g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round">
+      <path d="M32 6v52"/><path d="M10 19l44 26"/><path d="M10 45l44-26"/></g>
+      <circle cx="32" cy="32" r="7"/>`,
+
+    juggernaut: `<path d="M13 36a19 22 0 0 1 38 0v10H13z"/>
+      <path d="M12 32L4 18l12 6zM52 32l8-14-12 6z"/>
+      <rect x="19" y="38" width="26" height="6" fill="var(--card-bg)"/>`,
+
+    pa: `<path d="M32 4l9 14-3 24H26l-3-24z"/>
+      <rect x="18" y="42" width="28" height="5"/>
+      <rect x="28" y="47" width="8" height="13"/>`,
+
+    pudge: `<path d="M42 4v16c0 8-24 6-24 22a13 13 0 1 0 26-2h-8a5 5 0 1 1-10-1c0-8 16-8 16-19V4z"/>`,
+
+    tusk: `<rect x="12" y="18" width="40" height="36" rx="9"/>
+      <path d="M12 30h40M12 40h40" stroke="var(--card-bg)" stroke-width="4"/>
+      <path d="M22 18v-8M32 18v-8M42 18v-8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`,
+
+    sven: `<path d="M32 4l21 8v22c0 15-11 22-21 26-10-4-21-11-21-26V12z"/>
+      <path d="M32 12v40M20 24h24" stroke="var(--card-bg)" stroke-width="5"/>`,
+
+    centaur: `<path d="M50 4l6 6-28 34-8-8z"/>
+      <path d="M10 52l8-10 8 10 8-10 8 10 8-10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`,
+
+    dawnbreaker: `<circle cx="32" cy="32" r="13"/>
+      <g stroke="currentColor" stroke-width="5" stroke-linecap="round">
+        <path d="M32 4v8M32 52v8M4 32h8M52 32h8M12 12l6 6M46 46l6 6M52 12l-6 6M18 46l-6 6"/></g>`,
+
+    primal: `<path d="M14 26L32 10l18 16v16L32 58 14 42z"/>
+      <path d="M22 30h20M22 38h20" stroke="var(--card-bg)" stroke-width="4"/>`,
+  };
+
+  // Attribute rune fallback for roster heroes without a bespoke sigil.
+  const RUNES = {
+    str: `<path d="M8 54L26 20l10 18 6-8 14 24z"/>`,
+    agi: `<path d="M20 6l14 12-10 2 18 14-10 2 14 12-24-6 8-8-14-2 10-10-14-4z"/>`,
+    int: `<path d="M32 12c14 0 24 12 26 20-2 8-12 20-26 20S10 40 6 32c2-8 12-20 26-20z"/>
+      <circle cx="32" cy="32" r="8" fill="var(--card-bg)"/><circle cx="32" cy="32" r="4"/>`,
+    uni: `<path d="M32 4l7 21h21l-17 13 7 22-18-14-18 14 7-22L4 25h21z"/>`,
+  };
+
+  function svg(inner, cls) {
+    return `<svg ${S} class="${cls || ""}" aria-hidden="true">${inner}</svg>`;
+  }
+
+  function sigilFor(hero) {
+    const inner = SIGILS[hero.id] || RUNES[hero.attr];
+    return svg(inner, "sigil" + (SIGILS[hero.id] ? "" : " sigil-rune"));
+  }
+
+  // Portrait layered over the sigil: while the CDN image loads (or if it
+  // fails offline), the sigil shows through. One removal = clean fallback.
+  function heroArt(hero) {
+    const key = DOTA_IMG[hero.id];
+    if (!key) return sigilFor(hero);
+    const url = `${CDN}/${key}.png`;
+    return `<div class="hero-art">
+      ${sigilFor(hero)}
+      <img src="${url}" alt="${hero.name}" loading="lazy" onerror="this.remove()">
+    </div>`;
+  }
+
+  // itemId -> Steam internal name (legacy: invis_sword = Shadow Blade,
+  // ancient_janggo = Drum, manta = Manta Style).
+  const DOTA_ITEM_IMG = {
+    battle_fury: "bfury", meteor_hammer: "meteor_hammer", drum: "ancient_janggo",
+    midas: "hand_of_midas", bkb: "black_king_bar", kaya: "kaya_and_sange",
+    vladmir: "vladmir", daedalus: "greater_crit", satanic: "satanic",
+    shadow_blade: "invis_sword", heart: "heart", refresher: "refresher",
+    butterfly: "butterfly", manta: "manta", rapier: "rapier", radiance: "radiance",
+    octarine: "octarine_core",
+  };
+
+  // Item art: CDN icon over the emoji fallback (same pattern as heroArt).
+  function itemIcon(item) {
+    const key = DOTA_ITEM_IMG[item.id];
+    if (!key) return `<span class="item-gem rar-${item.rarity}">${item.emoji}</span>`;
+    return `<span class="item-gem rar-${item.rarity}">
+      <span class="item-fallback">${item.emoji}</span>
+      <img src="${ITEM_CDN}/${key}.png" alt="${item.name}" loading="lazy" onerror="this.remove()">
+    </span>`;
+  }
+
+  return { heroArt, sigilFor, itemIcon, hasCustomSigil: (id) => !!SIGILS[id] };
+})();
+
+</script>
+  <script>
+// Dalatro — UI. Reads state, renders DOM, dispatches actions via data-attributes.
+// Never a source of truth: State -> Render.
+const UI = (function () {
+  const app = () => document.getElementById("app");
+  const UIState = {
+    debugOpen: false,
+    discardMode: false,
+    inspectedId: null, // item currently pinned in the shop inspect panel
+  };
+
+  const RARITY_NAMES = { common: "ОБЫЧНЫЙ", rare: "РЕДКИЙ", epic: "ЭПИК" };
+  const CATEGORY_NAMES = { power: "СИЛА", mult: "МНОЖИТЕЛЬ", rule: "ПРАВИЛА", economy: "ЭКОНОМИКА" };
+
+  function h(tag, cls, html) {
+    return `<${tag} class="${cls || ""}">${html || ""}</${tag}>`;
+  }
+
+  function esc(str) {
+    return String(str).replace(/"/g, "&quot;");
+  }
+
+  function heroTooltip(hero) {
+    let t = `${hero.name} — ${Content.attrNames[hero.attr]}, сила ${hero.power}`;
+    if (hero.ability) t += `\n✦ ${hero.ability.name}: ${abilityText(hero)}`;
+    t += `\nЦвет рамки = атрибут: 5 карт одного цвета собирают флеш «Тимфайт атрибута»`;
+    return esc(t);
+  }
+
+  const ABILITY_TEXT = {
+    morphling: "копирует атрибут героя слева",
+    pudge: "50%: вернётся в руку при сбросе",
+    pa: "50%: ×2 множитель в комбо",
+    juggernaut: "в слоте 1: +8 силы",
+    zeus: "рядом INT-герой: +2 множителя",
+    axe: "сет (ганг): +10 силы",
+    cm: "сброс: +2 золота",
+  };
+
+  function abilityText(hero) {
+    return ABILITY_TEXT[hero.id] || hero.ability.name;
+  }
+
+  function cardHtml(card, opts = {}) {
+    const hero = Content.heroes.byId[card.heroId];
+    const cls = [
+      "card",
+      "attr-" + hero.attr,
+      opts.selected ? "selected" : "",
+      opts.inDiscardMode ? "discard-mode" : "",
+      opts.static ? "static" : "",
+      card.illusion ? "illusion" : "",
+    ].join(" ");
+    return `<div class="${cls}" ${opts.static ? "" : `data-action="select" data-uid="${card.uid}"`} title="${heroTooltip(hero)}">
+      <div class="card-art">${Art.heroArt(hero)}</div>
+      <div class="card-top">
+        <span class="power-gem">${hero.power}</span>
+        ${hero.ability ? '<span class="ability-dot" title="У героя есть способность — детали в тултипе и в превью боя">✦</span>' : ""}
+      </div>
+      <div class="card-name-strip">${hero.name}</div>
+    </div>`;
+  }
+
+  function itemsStrip(state, shopMode) {
+    const items = state.player.items.map((id) => {
+      const item = Content.items.byId[id];
+      const sell = shopMode
+        ? `<button class="btn small danger" data-action="sell" data-id="${id}">Продать +${Economy.sellValue(id)}</button>`
+        : "";
+      return `<div class="item-chip" title="${esc(item.name + ": " + item.desc)}">
+        ${Art.itemIcon(item)}<span>${item.name}</span>${sell}
+      </div>`;
+    });
+    return items.length ? items.join("") : `<span class="muted">предметов нет</span>`;
+  }
+
+  // ---------- Screens ----------
+
+  function renderTitle(state) {
+    app().innerHTML = h("div", "title-screen", `
+      ${h("div", "logo", "DALATRO")}
+      ${h("div", "tagline", "Дота × покер × Balatro")}
+      <div class="title-card-demo">
+        ${cardHtml({ heroId: "morphling" }, { static: true })}
+        ${cardHtml({ heroId: "axe" }, { static: true })}
+        ${cardHtml({ heroId: "pa" }, { static: true })}
+      </div>
+      <div class="seed-row">
+        <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
+        <button class="btn primary" data-action="start">Начать забег</button>
+      </div>
+      ${h("div", "how-to", `
+        ${h("div", "how-title", "Как играть")}
+        ${h("div", "how-lines", `
+          <div>Выбирай 1–5 героев — это твой тимфайт. Лучшее покерное комбо = урон по башне.</div>
+          <div><b>Сила × Множитель</b>. Пара — дуо, сет — ганг, флеш — тимфайт атрибута, фулл-хаус — 4 protect 1.</div>
+          <div>Порядок клика = порядок в бою: позиции важны. Превью справа показывает весь стек до нажатия «В бой».</div>
+          <div><b>Цвет рамки карты = атрибут</b>: пять карт одного цвета собирают флеш. ✦ — у героя есть способность (детали по наведению).</div>
+          <div>Оверкилл конвертируется в золото, точный ласт-хит даёт бонус. 4 боя на волну, 3 ТП на сбросы.</div>
+          <div>Между волнами — секретный шоп: 5 предметов, редкости, локи и панель билда. Провал = −1 казарма.</div>
+        `)}
+      `)}
+    `);
+  }
+
+  function headerHtml(state) {
+    const barracks = Array.from({ length: 6 }, (_, i) =>
+      `<span class="barrack ${i < state.run.barracks ? "alive" : "dead"}" title="Казармы: 6 жизней забега"></span>`
+    ).join("");
+    return h("div", "header", `
+      ${h("div", "header-left", `
+        <span class="seed" title="Seed забега — тем же seedом можно повторить забег">DALATRO-${state.seedCode}</span>
+        ${h("div", "barracks-row", barracks)}
+      `)}
+      ${h("div", "header-right", `
+        <span class="gold">💰 ${state.run.gold}</span>
+        <button class="btn small" data-action="debug-toggle" title="Debug-песочница (клавиша D)">⚙</button>
+        <button class="btn small" data-action="abandon" title="Бросить забег и начать новый">⏏</button>
+      `)}
+    `);
+  }
+
+  function towerZoneHtml(state) {
+    const wave = state.combat.wave;
+    const hpPct = Math.max(0, Math.round((wave.hp / wave.maxHp) * 100));
+    const badges = (wave.modifiers || []).map((m) => {
+      const def = Content.modifiers.byId[m.id];
+      const used = m.id === "aegis" && wave.aegisUsed;
+      return `<span class="mod-badge ${used ? "used" : ""}" title="${esc(def.desc)}">${used ? "☑" : "☠"} ${def.name}</span>`;
+    }).join("");
+    const enemyRapier = (wave.enemyItems || []).includes("rapier")
+      ? `<span class="mod-badge enemy-rapier" title="Враг держит Divine Rapier: твой урон ×0.5">⚔️ враг держит Рапиру</span>`
+      : "";
+    const glyphWarn = (wave.modifiers || []).some((m) => m.id === "glyph") && state.combat.fightIndex % 3 === 2
+      ? h("div", "glyph-warn", "⚠ Glyph заблокирует этот бой — отправляй минимальный отряд!")
+      : "";
+    return `
+      ${h("div", `tower-zone ${wave.isBoss ? "boss" : ""}`, `
+        ${h("div", "tower-emoji", wave.emoji)}
+        ${h("div", "tower-info", `
+          ${h("div", "tower-name", `${wave.name}${wave.isBoss ? " — БОСС" : ""}`)}
+          <div class="hp-bar"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+          ${h("div", "hp-text", `${Math.max(0, wave.hp)} / ${wave.maxHp}`)}
+          <div class="mod-row">${badges}${enemyRapier}</div>
+        `)}
+      `)}
+      ${glyphWarn}
+    `;
+  }
+
+  function slotsHtml(state) {
+    const slots = [];
+    for (let i = 0; i < Combat.MAX_SLOTS; i++) {
+      const uid = state.combat.selectedUids[i];
+      if (uid) {
+        slots.push(`<div class="slot filled">${cardHtml({ heroId: state.cards[uid].heroId }, { static: true })}</div>`);
+      } else {
+        slots.push(`<div class="slot">${h("div", "slot-num", i + 1)}</div>`);
+      }
+    }
+    return h("div", "slots-row", slots.join(""));
+  }
+
+  function lotteryNote(state) {
+    const notes = [];
+    if (state.player.items.includes("daedalus")) notes.push("Daedalus 25% ×2");
+    const paPlayed = state.combat.selectedUids.some((uid) => state.cards[uid].heroId === "pa");
+    if (paPlayed) notes.push("PA 50% ×2");
+    return notes.join(", ");
+  }
+
+  function previewHtml(state, preview) {
+    if (!preview) {
+      return h("div", "preview-panel", `
+        ${h("div", "panel-title", "Превью боя")}
+        ${h("div", "muted preview-hint", "Выбери 1–5 героев из руки. Порядок клика = порядок в бою (позиции важны!).")}
+      `);
+    }
+    const steps = preview.steps.map((st) =>
+      h("div", "preview-step", `<span class="step-icon">${st.icon}</span><span>${st.label}</span>`)
+    ).join("");
+    const lottery = lotteryNote(state);
+    const hpPct = Math.max(0, Math.round(((preview.towerHpAfter ?? state.combat.wave.hp) / state.combat.wave.maxHp) * 100));
+    return h("div", "preview-panel", `
+      ${h("div", "panel-title", "Превью боя")}
+      <div class="preview-combo">${preview.combo.name}</div>
+      ${h("div", "preview-damage", `${preview.damage}`)}
+      ${h("div", "preview-damage-label", "урона")}
+      ${h("div", "preview-math", `${preview.power} × ${round2(preview.mult)}${preview.damage && preview.power ? " → башне останется " + Math.max(0, preview.towerHpAfter ?? 0) + " HP" : ""}`)}
+      ${preview.goldGained ? h("div", "preview-gold", `+${preview.goldGained} 💰`) : ""}
+      ${lottery ? h("div", "preview-lottery", `🎲 В бою возможны: ${lottery}`) : ""}
+      <div class="preview-hpbar"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+      ${h("div", "preview-steps", steps || h("div", "muted", "модификаторов нет"))}
+    `);
+  }
+
+  function debugPanelHtml(state) {
+    if (!UIState.debugOpen) return "";
+    const deckOrder = state.player.deckUids.map((uid) => Content.heroes.byId[state.cards[uid].heroId].name).join(", ") || "—";
+    const logTail = state.log.slice(-24).map((l) => `<div>${esc(l)}</div>`).join("");
+    return h("div", "debug-panel", `
+      ${h("div", "debug-title", "DEBUG SANDBOX")}
+      <div class="debug-buttons">
+        <button class="btn small" data-action="debug-gold">+1000 💰</button>
+        <button class="btn small" data-action="debug-fights">+5 боёв</button>
+        <button class="btn small" data-action="debug-tower">−100 HP башни</button>
+        <button class="btn small" data-action="debug-kill">убить башню</button>
+        <button class="btn small" data-action="debug-draw">добить руку</button>
+        <button class="btn small" data-action="debug-reveal">колода</button>
+      </div>
+      ${state.debugReveal ? h("div", "debug-deck", "Колода: " + esc(deckOrder)) : ""}
+      ${h("div", "debug-log", logTail || '<div class="muted">лог пуст</div>')}
+    `);
+  }
+
+  function outcomeModalHtml(state) {
+    const outcome = state.combat.outcome;
+    if (!outcome) return "";
+    const res = state.combat.lastResolution;
+    if (outcome === "cleared") {
+      return h("div", "modal-backdrop", h("div", "modal", `
+        ${h("div", "modal-title win", "✔ Волна зачищена!")}
+        <div class="reward-row">Зачистка: <b>+${Game.WAVE_CLEAR_GOLD} 💰</b></div>
+        ${res && res.goldGained ? `<div class="reward-row">Оверкилл / ласт-хит: <b>+${res.goldGained} 💰</b></div>` : ""}
+        ${state.combat.wave.isBoss ? h("div", "reward-row", "Рошан повержен!") : ""}
+        <button class="btn primary" data-action="enter-shop">В магазин →</button>
+      `));
+    }
+    return h("div", "modal-backdrop", h("div", "modal", `
+      ${h("div", "modal-title lose", "✖ Пуш провален")}
+      <div class="reward-row">Казарма разрушена: <b>−1</b> (осталось ${state.run.barracks})</div>
+      ${state.player.items.includes("rapier") || (state.combat.wave.enemyItems || []).includes("rapier")
+        ? h("div", "reward-row rapier-note", "⚔️ Враг подобрал твою Divine Rapier! Урон по этой башне ×0.5, пока он её держит.") : ""}
+      <button class="btn primary" data-action="retry">Новая попытка</button>
+    `));
+  }
+
+  function renderWave(state) {
+    const fightsDots = Array.from({ length: 4 }, (_, i) =>
+      `<span class="fight-dot ${i < 4 - state.player.fightsLeft ? "spent" : ""}"></span>`).join("");
+    const handCards = state.player.handUids.map((uid) =>
+      cardHtml(state.cards[uid], { selected: state.combat.selectedUids.includes(uid), inDiscardMode: UIState.discardMode })
+    ).join("");
+    const canFight = !state.combat.outcome && state.player.fightsLeft > 0 && state.combat.selectedUids.length > 0 && !UIState.discardMode;
+    const canDiscard = !state.combat.outcome && state.player.discardsLeft > 0 && UIState.discardMode && state.combat.selectedUids.length > 0;
+    const preview = computePreview(state);
+
+    app().innerHTML = `
+      ${headerHtml(state)}
+      ${h("div", "wave-label", `Волна ${state.run.waveIndex + 1} / ${Content.waves.order.length}`)}
+      ${towerZoneHtml(state)}
+      ${h("div", "main-row", `
+        ${h("div", "board", `
+          ${slotsHtml(state)}
+          ${h("div", "hand", handCards)}
+          ${h("div", "controls", `
+            ${UIState.discardMode
+        ? `<button class="btn primary ${canDiscard ? "" : "disabled"}" data-action="discard">🗑 Сбросить (${state.combat.selectedUids.length})</button>
+               <button class="btn" data-action="toggle-discard">Отмена</button>`
+        : `<button class="btn primary big ${canFight ? "" : "disabled"}" data-action="fight">⚔ В БОЙ</button>
+               <button class="btn ${state.player.discardsLeft > 0 && !state.combat.outcome ? "" : "disabled"}" data-action="toggle-discard">🗑 ТП-сброс (${state.player.discardsLeft})</button>`}
+          `)}
+          ${h("div", "status-row", `
+            <span title="Осталось боёв до провала волны">Бои: ${fightsDots}</span>
+            <span title="Карты в колоде / сбросе">🂠 ${state.player.deckUids.length} / 🗑 ${state.player.discardUids.length}</span>
+            ${h("span", "items-inline", itemsStrip(state, false))}
+          `)}
+        `)}
+        ${previewHtml(state, preview)}
+      `)}
+      ${debugPanelHtml(state)}
+      ${outcomeModalHtml(state)}
+    `;
+  }
+
+  // ---------- Shop: 5 offers, rarities, locks, build panel, inspect panel ----------
+
+  function shopOfferHtml(offer, state) {
+    const item = Content.items.byId[offer.id];
+    const afford = state.run.gold >= item.cost;
+    return `<div class="shop-item rar-border-${item.rarity} ${offer.locked ? "locked" : ""}" data-inspect="${item.id}" data-action="inspect">
+      <div class="shop-item-head">
+        ${Art.itemIcon(item)}
+        <button class="btn tiny lock-btn ${offer.locked ? "locked" : ""}" data-action="lock" data-id="${item.id}" title="Зафиксировать предмет при реролле">${offer.locked ? "🔒" : "🔓"}</button>
+      </div>
+      ${h("div", "shop-item-name", item.name)}
+      <div class="chip-row">
+        <span class="chip rar-${item.rarity}">${RARITY_NAMES[item.rarity]}</span>
+        <span class="chip cat-${item.category}">${CATEGORY_NAMES[item.category]}</span>
+      </div>
+      ${h("div", "shop-item-desc", item.desc)}
+      <div class="shop-item-cost">${item.cost} 💰</div>
+      <button class="btn ${afford ? "primary" : "disabled"}" data-action="buy" data-id="${item.id}">Купить</button>
+    </div>`;
+  }
+
+  function buildPanelHtml(state) {
+    const builds = Advisor.analyzeBuilds(state);
+    const rows = builds.map((b) => `
+      <div class="build-row" title="${esc(b.hint)}">
+        <div class="build-head"><span>${b.name}</span><span class="build-frac">${b.have}/${b.need}</span></div>
+        <div class="build-bar"><div class="build-fill" style="width:${b.pct}%"></div></div>
+      </div>`).join("");
+    return h("div", "side-panel", `
+      ${h("div", "panel-title", "Твой билд")}
+      ${rows || h("div", "muted", "Купи героев-синергий и предметы — направления появятся здесь")}
+      ${h("div", "build-foot muted", "Наведи на предмет справа, чтобы увидеть, что он даст именно твоему забегу")}
+    `);
+  }
+
+  function inspectPanelHtml(state) {
+    const item = UIState.inspectedId ? Content.items.byId[UIState.inspectedId] : null;
+    if (!item) {
+      return h("div", "side-panel", `
+        ${h("div", "panel-title", "Лупа")}
+        ${h("div", "muted", "Кликни или наведи на предмет в шопе — здесь появится его разбор: правила, синергии и что он изменит в твоём билде.")}
+      `);
+    }
+    const synergies = Advisor.itemSynergy(item.id, state);
+    const owned = state.player.items.includes(item.id);
+    return h("div", "side-panel inspect", `
+      ${h("div", "panel-title", "Разбор предмета")}
+      <div class="inspect-head">${Art.itemIcon(item)} ${h("div", "inspect-name", item.name)}</div>
+      <div class="chip-row">
+        <span class="chip rar-${item.rarity}">${RARITY_NAMES[item.rarity]}</span>
+        <span class="chip cat-${item.category}">${CATEGORY_NAMES[item.category]}</span>
+        <span class="chip">💰 ${item.cost}</span>
+        ${owned ? '<span class="chip owned">КУПЛЕН</span>' : ""}
+      </div>
+      ${h("div", "inspect-desc", item.desc)}
+      ${synergies.length ? h("div", "inspect-synergies",
+      h("div", "inspect-sub", "Что даст твоему забегу") +
+      synergies.map((s) => h("div", "inspect-line", "• " + s)).join("")) : ""}
+    `);
+  }
+
+  function renderShop(state) {
+    const offers = state.shop.offers.map((o) => shopOfferHtml(o, state)).join("");
+    const canReroll = state.run.gold >= Economy.REROLL_COST;
+    const lockedCount = state.shop.offers.filter((o) => o.locked).length;
+    app().innerHTML = `
+      ${headerHtml(state)}
+      ${h("div", "shop-title", "🏪 Секретный шоп")}
+      ${h("div", "shop-layout", `
+        ${h("div", "shop-main", `
+          ${h("div", "shop-grid", offers)}
+          ${h("div", "shop-controls", `
+            <button class="btn ${canReroll ? "" : "disabled"}" data-action="reroll">🔄 Реролл (${Economy.REROLL_COST} 💰)${lockedCount ? ` — локов: ${lockedCount}` : ""}</button>
+            <button class="btn primary big" data-action="leave-shop">В бой →</button>
+          `)}
+          ${h("div", "owned-row", `${h("div", "owned-label", "Твои предметы:")} ${itemsStrip(state, true)}`)}
+        `)}
+        ${h("div", "shop-side", buildPanelHtml(state) + inspectPanelHtml(state))}
+      `)}
+      ${debugPanelHtml(state)}
+    `;
+  }
+
+  function renderGameover(state) {
+    app().innerHTML = h("div", "end-screen", `
+      ${h("div", "end-emoji", "💀")}
+      ${h("div", "end-title lose", "ТРОН РАЗРУШЕН")}
+      ${h("div", "end-sub", `Seed: DALATRO-${state.seedCode} — тот же seed даст тот же забег`)}
+      ${h("div", "end-stats", `
+        <div>Пройдено волн: ${state.run.waveIndex}</div>
+        <div>Всего урона: ${state.stats.totalDamage}</div>
+        <div>Самый жирный бой: ${state.stats.biggestHit}</div>
+      `)}
+      <button class="btn primary big" data-action="restart">Новый забег</button>
+    `);
+  }
+
+  function renderVictory(state) {
+    app().innerHTML = h("div", "end-screen", `
+      ${h("div", "end-emoji", "🏆")}
+      ${h("div", "end-title win", "ROSHAN ПОВЕРЖЕН — ТИ ВЗЯТ")}
+      ${h("div", "end-sub", `Seed: DALATRO-${state.seedCode}`)}
+      ${h("div", "end-stats", `
+        <div>Всего урона: ${state.stats.totalDamage}</div>
+        <div>Самый жирный бой: ${state.stats.biggestHit}</div>
+        <div>Казарм осталось: ${state.run.barracks} / 6</div>
+      `)}
+      ${h("div", "muted", "Акт 2: новые боссы, Tinker, Techies, Aghanim — скоро (см. ROADMAP.md)")}
+      <button class="btn primary big" data-action="restart">Новый забег</button>
+    `);
+  }
+
+  function computePreview(state) {
+    if (state.phase !== "wave" || state.combat.outcome) return null;
+    if (!state.combat.selectedUids.length || state.player.fightsLeft <= 0) return null;
+    const clone = Sim.simulate(state, { type: "CONFIRM_FIGHT" });
+    return clone ? clone.combat.lastResolution : null;
+  }
+
+  function round2(v) {
+    return Math.round(v * 100) / 100;
+  }
+
+  // ---------- Fight animation: replays the resolution stack (same object used by preview) ----------
+
+  function playFightAnimation(resolution, onDone) {
+    const overlay = document.createElement("div");
+    overlay.className = "fight-overlay";
+    overlay.innerHTML = `
+      <div class="fight-box">
+        ${h("div", "fight-combo", resolution.combo.name)}
+        <div class="fight-steps"></div>
+        ${h("div", "fight-damage", resolution.blocked ? "ГЛИФ!" : `${resolution.damage}`)}
+        ${h("div", "fight-hint", "клик — пропустить")}
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const stepsEl = overlay.querySelector(".fight-steps");
+    const damageEl = overlay.querySelector(".fight-damage");
+    let timers = [];
+    let finished = false;
+
+    function finish() {
+      if (finished) return;
+      finished = true;
+      timers.forEach(clearTimeout);
+      overlay.remove();
+      onDone();
+    }
+    overlay.addEventListener("click", finish);
+
+    resolution.steps.forEach((step, i) => {
+      timers.push(setTimeout(() => {
+        const el = document.createElement("div");
+        el.className = "preview-step appear";
+        el.innerHTML = `<span class="step-icon">${step.icon}</span><span>${step.label}</span>`;
+        stepsEl.appendChild(el);
+      }, 150 + i * 300));
+    });
+    const damageAt = 400 + resolution.steps.length * 300;
+    timers.push(setTimeout(() => damageEl.classList.add("show"), damageAt));
+    timers.push(setTimeout(finish, damageAt + 1200));
+  }
+
+  // ---------- entry ----------
+
+  function render(state) {
+    switch (state.phase) {
+      case "title": return renderTitle(state);
+      case "wave": return renderWave(state);
+      case "shop": return renderShop(state);
+      case "victory": return renderVictory(state);
+      case "gameover": return renderGameover(state);
+    }
+  }
+
+  // Returns true if the inspected item changed (caller re-renders).
+  function setInspected(itemId) {
+    if (UIState.inspectedId === itemId) return false;
+    UIState.inspectedId = itemId;
+    return true;
+  }
+
+  return { render, playFightAnimation, UIState, setInspected };
+})();
+
+</script>
+  <script>
+// Dalatro — main: app state holder + event delegation. UI events become actions.
+(function () {
+  const SAVE_KEY = "dalatro_save_v1";
+
+  function saveState() {
+    try {
+      const rng = Rng.current();
+      const payload = { ...state, rngCount: rng ? rng.drawCount() : 0 };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    } catch (e) { /* приватный режим — без сейва */ }
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !s.phase || s.phase === "title") return null;
+      // Recreate the seeded stream and fast-forward to the saved position.
+      if (s.seedCode) {
+        const rng = Rng.create(s.seedCode);
+        rng.fastForward(s.rngCount || 0);
+        Rng.setActive(rng);
+      }
+      return s;
+    } catch (e) { return null; }
+  }
+
+  let state = loadState() || Game.createInitialState("");
+  let fighting = false;
+
+  function dispatchAndRender(action) {
+    state = Game.dispatch(state, action);
+    saveState();
+
+    // Fight: animate the resolution stack first, then reveal the result.
+    if (action.type === "CONFIRM_FIGHT" && state.combat.lastResolution) {
+      fighting = true;
+      const resolution = state.combat.lastResolution;
+      UI.playFightAnimation(resolution, () => {
+        fighting = false;
+        render();
+      });
+      return;
+    }
+    render();
+  }
+
+  function render() {
+    UI.render(state);
+  }
+
+  document.getElementById("app").addEventListener("click", (e) => {
+    const el = e.target.closest("[data-action]");
+    if (!el || fighting) return;
+    const action = el.dataset.action;
+    switch (action) {
+      case "start": {
+        const input = document.getElementById("seed-input");
+        dispatchAndRender({ type: "START_RUN", seedCode: input ? input.value : "" });
+        break;
+      }
+      case "select": dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
+      case "fight": dispatchAndRender({ type: "CONFIRM_FIGHT" }); break;
+      case "toggle-discard":
+        UI.UIState.discardMode = !UI.UIState.discardMode;
+        render();
+        break;
+      case "discard": dispatchAndRender({ type: "DISCARD", uids: state.combat.selectedUids.slice() }); break;
+      case "enter-shop":
+        UI.UIState.inspectedId = null;
+        dispatchAndRender({ type: "ENTER_SHOP" });
+        break;
+      case "buy": dispatchAndRender({ type: "BUY_ITEM", itemId: el.dataset.id }); break;
+      case "inspect": if (UI.setInspected(el.dataset.inspect)) render(); break;
+      case "sell": dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id }); break;
+      case "lock": dispatchAndRender({ type: "LOCK_OFFER", itemId: el.dataset.id }); break;
+      case "reroll": dispatchAndRender({ type: "REROLL_SHOP" }); break;
+      case "leave-shop": dispatchAndRender({ type: "LEAVE_SHOP" }); break;
+      case "retry": dispatchAndRender({ type: "RETRY_WAVE" }); break;
+      case "restart":
+        localStorage.removeItem(SAVE_KEY);
+        state = Game.createInitialState("");
+        UI.UIState.discardMode = false;
+        UI.UIState.debugOpen = false;
+        UI.UIState.inspectedId = null;
+        render();
+        break;
+      case "abandon":
+        localStorage.removeItem(SAVE_KEY);
+        state = Game.createInitialState("");
+        UI.UIState.discardMode = false;
+        UI.UIState.inspectedId = null;
+        render();
+        break;
+      case "debug-toggle":
+        UI.UIState.debugOpen = !UI.UIState.debugOpen;
+        render();
+        break;
+      case "debug-gold": dispatchAndRender({ type: "DEBUG_GOLD" }); break;
+      case "debug-fights": dispatchAndRender({ type: "DEBUG_FIGHTS" }); break;
+      case "debug-tower": dispatchAndRender({ type: "DEBUG_DAMAGE_TOWER", amount: 100 }); break;
+      case "debug-kill": dispatchAndRender({ type: "DEBUG_KILL_TOWER" }); break;
+      case "debug-draw": dispatchAndRender({ type: "DEBUG_DRAW" }); break;
+      case "debug-reveal": dispatchAndRender({ type: "DEBUG_REVEAL" }); break;
+      default: break;
+    }
+  });
+
+  // Shop inspect: hovering an offer shows its breakdown, clicking pins it.
+  document.getElementById("app").addEventListener("mouseover", (e) => {
+    if (state.phase !== "shop") return;
+    const el = e.target.closest("[data-inspect]");
+    if (el && UI.setInspected(el.dataset.inspect)) render();
+  });
+
+  // Enter key on seed input starts the run.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && state.phase === "title") {
+      const input = document.getElementById("seed-input");
+      if (input && document.activeElement === input) {
+        dispatchAndRender({ type: "START_RUN", seedCode: input.value });
+      }
+    }
+    // D = toggle debug sandbox
+    if (e.key.toLowerCase() === "d" && state.phase !== "title") {
+      UI.UIState.debugOpen = !UI.UIState.debugOpen;
+      render();
+    }
+  });
+
+  render();
+
+  // Debug handle for sandbox/testing (used by docs screenshots and console).
+  window.__dalatro = {
+    get state() { return state; },
+    Game, Sim, Advisor,
+  };
+})();
+
+</script>
+</body>
+</html>

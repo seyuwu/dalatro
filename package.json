@@ -1,0 +1,11 @@
+{
+  "name": "dalatro",
+  "version": "0.1.0",
+  "description": "DALATRO — Dota x poker x Balatro browser roguelike. Vertical slice v0.1.",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run.js",
+    "dev": "node serve.js",
+    "build": "node build.js"
+  }
+}

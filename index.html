@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DALATRO — Dota × Balatro</title>
+  <link rel="stylesheet" href="src/ui/styles.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- content first (data), then engine, then systems, then game, then ui -->
+  <script src="src/systems/rng.js"></script>
+  <script src="src/content/heroes.js"></script>
+  <script src="src/content/items.js"></script>
+  <script src="src/content/world.js"></script>
+  <script src="src/content/content.js"></script>
+  <script src="src/engine/events.js"></script>
+  <script src="src/engine/conditions.js"></script>
+  <script src="src/engine/effects.js"></script>
+  <script src="src/engine/triggers.js"></script>
+  <script src="src/engine/resolver.js"></script>
+  <script src="src/engine/game.js"></script>
+  <script src="src/engine/simulator.js"></script>
+  <script src="src/systems/poker.js"></script>
+  <script src="src/systems/deck.js"></script>
+  <script src="src/systems/combat.js"></script>
+  <script src="src/systems/economy.js"></script>
+  <script src="src/systems/advisor.js"></script>
+  <script src="src/ui/art.js"></script>
+  <script src="src/ui/ui.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
