@@ -128,6 +128,10 @@ const ITEMS_DATA = [
     },
   },
   {
+    id: "ledger", name: "Trader's Ledger", cost: 6, emoji: "📒", rarity: "rare", category: "rule", slotClass: "util",
+    desc: "Живой ассортимент: после покупки улучшения его карточку можно обновить за 1G. Смена стратегии без ожидания.",
+  },
+  {
     id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult", slotClass: "util",
     desc: "Способности героев срабатывают дважды за бой.",
     ability: { name: "Refresh", event: "FIGHT_SCORING", effects: [{ type: "REFRESH_HERO_TRIGGERS" }] },

@@ -1761,6 +1761,10 @@ const ITEMS_DATA = [
     },
   },
   {
+    id: "ledger", name: "Trader's Ledger", cost: 6, emoji: "📒", rarity: "rare", category: "rule", slotClass: "util",
+    desc: "Живой ассортимент: после покупки улучшения его карточку можно обновить за 1G. Смена стратегии без ожидания.",
+  },
+  {
     id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult", slotClass: "util",
     desc: "Способности героев срабатывают дважды за бой.",
     ability: { name: "Refresh", event: "FIGHT_SCORING", effects: [{ type: "REFRESH_HERO_TRIGGERS" }] },
@@ -3783,7 +3787,6 @@ const Game = (function () {
         const isAttrPotion = action.upgradeId === Upgrades.ATTR_POTION_ID;
         const up = isHandSlot ? Upgrades.handSlotDef(s) : isAttrPotion ? Upgrades.attrPotionDef(s) : Content.upgrades.byId[action.upgradeId];
         if (!up) return s;
-        if (!isHandSlot && !isAttrPotion && (s.run.upgrades || []).includes(up.id)) return s;
         let finalCost = up.cost;
         s.run.upgradePurchases = (s.run.upgradePurchases || 0) + 1;
         const amulet = Upgrades.sum(s, "upgradeLoyalty");
@@ -3804,10 +3807,26 @@ const Game = (function () {
           s.run.upgrades.push(up.id);
           log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
         }
-        s.shop.upgrades.splice(offerIdx, 1);
-        // Купил — слот сразу заполняется новым случайным предложением.
-        const refill = Upgrades.generateOffers(s, 1, s.shop.upgrades);
-        if (refill.length) s.shop.upgrades.push(refill[0]);
+        // Улучшение остаётся на месте (стакается); с «Торговой книгой» карточку
+        // можно обновить за 1G прямо на месте.
+        if (s.player.items.includes("ledger")) s.shop.upgrades[offerIdx].justBought = true;
+        return s;
+      }
+
+      // Торговая книга: заменить только что купленное улучшение на новое (1G).
+      case "REFRESH_UPGRADE": {
+        if (s.phase !== "shop") return s;
+        if (!s.player.items.includes("ledger")) return s;
+        const idx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
+        if (idx === -1) return s;
+        if (s.run.gold < Upgrades.REROLL_COST) return s;
+        s.run.gold -= Upgrades.REROLL_COST;
+        const others = s.shop.upgrades.filter((_, i) => i !== idx);
+        const fresh = Upgrades.generateOffers(s, 1, others);
+        if (fresh.length) {
+          s.shop.upgrades[idx] = fresh[0];
+          log(s, "Торговая книга: карточка улучшения обновлена");
+        }
         return s;
       }
 
@@ -4832,7 +4851,8 @@ const Upgrades = (function () {
     const count = slots || slotsFor(state);
     const weights = rarityWeights(l);
     const rng = Rng.current();
-    const owned = new Set(state.run.upgrades || []);
+    // Улучшения стакаются: купленное можно покупать снова, поэтому owned
+    // не исключает пул — исключаются только карточки, уже лежащие в лавке.
     const taken = new Set((exclude || []).map((o) => o.id || o));
     const offers = [];
     let handSlotOffered = (taken.has(HAND_SLOT_ID) ? true : false);
@@ -4851,7 +4871,7 @@ const Upgrades = (function () {
         continue;
       }
       const pool = Content.upgrades.list
-        .filter((u) => u.rarity === rarity && !owned.has(u.id) && !taken.has(u.id) && !offers.some((o) => o.id === u.id));
+        .filter((u) => u.rarity === rarity && !taken.has(u.id) && !offers.some((o) => o.id === u.id));
       if (!pool.length) continue;
       const u = pool[Math.floor(rng.next() * pool.length)];
       offers.push({ id: u.id });
@@ -7286,23 +7306,36 @@ const Art = (function () {
             <div class="shop-upgrades">
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
                 <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
-                <span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}
+                <span class="upgrade-owned">${(() => {
+    const counts = {};
+    for (const u of Upgrades.ownedDefs(state)) counts[u.id] = (counts[u.id] || 0) + 1;
+    return Object.entries(counts).map(([id, n]) => {
+      const u = Content.upgrades.byId[id];
+      if (!u) return "";
+      return `<span class="upgrade-chip" data-tip>${u.emoji}${n > 1 ? `<b>×${n}</b>` : ""}<span class="pop"><strong>${u.name}${n > 1 ? " ×" + n : ""}</strong><p>${esc(u.desc)}</p></span></span>`;
+    }).join("");
+  })()}
                   ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}
                   ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}</span>
                 <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
                 ${(state.shop.upgrades || []).map((o) => {
-    const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state) : Content.upgrades.byId[o.id];
+    const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state)
+      : o.id === Upgrades.ATTR_POTION_ID ? Upgrades.attrPotionDef(state)
+      : Content.upgrades.byId[o.id];
     const afford = state.run.gold >= up.cost;
     const lvl = up.repeatable ? ` ×${(state.run.handSlots || 0) + 1}` : "";
+    const canRefresh = state.player.items.includes("ledger") && o.justBought;
     return `<div class="upgrade-card ${up.rarity}" data-tip>
                   <span class="upgrade-emoji">${up.emoji}</span>
-                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small></div>
+                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small>
+                    ${canRefresh ? `<button class="upgrade-refresh" data-action="refresh-upgrade" data-id="${up.id}">↻ Обновить · ${Upgrades.REROLL_COST} ${icon("coins", 11)}</button>` : ""}
+                  </div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
                     <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
                   </button>
-                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]}${up.repeatable ? " · повторяемое: дороже с каждым уровнем" : " · копится с другими улучшениями"}</small></span>
+                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · покупается многократно, эффекты складываются</small></span>
                 </div>`;
   }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке или обнови.</span>'}
               </div>
@@ -7901,14 +7934,24 @@ const Art = (function () {
 
   function render(state) {
     document.body.classList.toggle("reduced-motion", !UIState.motion);
+    // Покупки в лавке не должны поднимать скролл наверх: запоминаем позиции
+    // прокручиваемых контейнеров и возвращаем их после перерисовки.
+    const prevShop = document.querySelector(".shop");
+    const shopScroll = prevShop ? prevShop.scrollTop : 0;
+    const prevModal = document.querySelector(".modal");
+    const modalScroll = prevModal ? prevModal.scrollTop : 0;
     switch (state.phase) {
-      case "title": return renderTitle(state);
-      case "wave": return renderWave(state);
-      case "route": return renderRoute(state);
-      case "shop": return renderShop(state);
-      case "victory": return renderVictory(state);
-      case "gameover": return renderGameover(state);
+      case "title": renderTitle(state); break;
+      case "wave": renderWave(state); break;
+      case "route": renderRoute(state); break;
+      case "shop": renderShop(state); break;
+      case "victory": renderVictory(state); break;
+      case "gameover": renderGameover(state); break;
     }
+    const shop = document.querySelector(".shop");
+    if (shop && shopScroll) shop.scrollTop = shopScroll;
+    const modal = document.querySelector(".modal");
+    if (modal && modalScroll) modal.scrollTop = modalScroll;
   }
 
   return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
@@ -8212,6 +8255,10 @@ const Art = (function () {
         break;
       case "reroll-upgrades":
         dispatchAndRender({ type: "REROLL_UPGRADES" });
+        break;
+      case "refresh-upgrade":
+        Sfx.play("buy");
+        dispatchAndRender({ type: "REFRESH_UPGRADE", upgradeId: el.dataset.id });
         break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });

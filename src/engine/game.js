@@ -550,7 +550,6 @@ const Game = (function () {
         const isAttrPotion = action.upgradeId === Upgrades.ATTR_POTION_ID;
         const up = isHandSlot ? Upgrades.handSlotDef(s) : isAttrPotion ? Upgrades.attrPotionDef(s) : Content.upgrades.byId[action.upgradeId];
         if (!up) return s;
-        if (!isHandSlot && !isAttrPotion && (s.run.upgrades || []).includes(up.id)) return s;
         let finalCost = up.cost;
         s.run.upgradePurchases = (s.run.upgradePurchases || 0) + 1;
         const amulet = Upgrades.sum(s, "upgradeLoyalty");
@@ -571,10 +570,26 @@ const Game = (function () {
           s.run.upgrades.push(up.id);
           log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
         }
-        s.shop.upgrades.splice(offerIdx, 1);
-        // Купил — слот сразу заполняется новым случайным предложением.
-        const refill = Upgrades.generateOffers(s, 1, s.shop.upgrades);
-        if (refill.length) s.shop.upgrades.push(refill[0]);
+        // Улучшение остаётся на месте (стакается); с «Торговой книгой» карточку
+        // можно обновить за 1G прямо на месте.
+        if (s.player.items.includes("ledger")) s.shop.upgrades[offerIdx].justBought = true;
+        return s;
+      }
+
+      // Торговая книга: заменить только что купленное улучшение на новое (1G).
+      case "REFRESH_UPGRADE": {
+        if (s.phase !== "shop") return s;
+        if (!s.player.items.includes("ledger")) return s;
+        const idx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
+        if (idx === -1) return s;
+        if (s.run.gold < Upgrades.REROLL_COST) return s;
+        s.run.gold -= Upgrades.REROLL_COST;
+        const others = s.shop.upgrades.filter((_, i) => i !== idx);
+        const fresh = Upgrades.generateOffers(s, 1, others);
+        if (fresh.length) {
+          s.shop.upgrades[idx] = fresh[0];
+          log(s, "Торговая книга: карточка улучшения обновлена");
+        }
         return s;
       }
 

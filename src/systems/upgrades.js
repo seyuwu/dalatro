@@ -102,7 +102,8 @@ const Upgrades = (function () {
     const count = slots || slotsFor(state);
     const weights = rarityWeights(l);
     const rng = Rng.current();
-    const owned = new Set(state.run.upgrades || []);
+    // Улучшения стакаются: купленное можно покупать снова, поэтому owned
+    // не исключает пул — исключаются только карточки, уже лежащие в лавке.
     const taken = new Set((exclude || []).map((o) => o.id || o));
     const offers = [];
     let handSlotOffered = (taken.has(HAND_SLOT_ID) ? true : false);
@@ -121,7 +122,7 @@ const Upgrades = (function () {
         continue;
       }
       const pool = Content.upgrades.list
-        .filter((u) => u.rarity === rarity && !owned.has(u.id) && !taken.has(u.id) && !offers.some((o) => o.id === u.id));
+        .filter((u) => u.rarity === rarity && !taken.has(u.id) && !offers.some((o) => o.id === u.id));
       if (!pool.length) continue;
       const u = pool[Math.floor(rng.next() * pool.length)];
       offers.push({ id: u.id });

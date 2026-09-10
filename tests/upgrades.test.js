@@ -89,23 +89,39 @@ test("Удача: сдвигает веса редкостей и добавля
   assert(w.common >= 15, "общие не выжигаются в ноль");
 });
 
-test("Реролл улучшений: 1G, новые предложения; покупка заполняет слот", () => {
+test("Реролл улучшений: 1G; купленное остаётся на месте и стакается", () => {
   const s = upRun("UPG15C");
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
   assertEq((s.shop.upgrades || []).length, 4, "база — 4 карточки");
-  const first = JSON.stringify(s.shop.upgrades);
   s.run.gold = 10;
   Game.dispatch(s, { type: "REROLL_UPGRADES" });
   assertEq(s.run.gold, 9, "1G списано");
   assertEq((s.shop.upgrades || []).length, 4, "предложения обновлены");
-  // Покупка: слот сразу заполняется новым предложением
+  // Покупка: карточка ОСТАЁТСЯ на месте — можно докупить ещё раз
   s.shop.upgrades = [{ id: "ostryi_kraj" }, { id: "pereprodazha" }, { id: "meloch" }, { id: "sberezheniya" }];
   const before = s.shop.upgrades.length;
   Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "ostryi_kraj" });
-  assertEq(s.shop.upgrades.length, before, "слот немедленно заполнен");
-  assert((s.run.upgrades || []).includes("ostryi_kraj"), "куплено");
-  assert(!s.shop.upgrades.some((o) => o.id === "ostryi_kraj"), "купленного нет в предложениях");
+  assertEq(s.shop.upgrades.length, before, "карточка не заменяется");
+  assertEq((s.run.upgrades || []).filter((x) => x === "ostryi_kraj").length, 1, "куплено 1");
+  Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "ostryi_kraj" });
+  assertEq((s.run.upgrades || []).filter((x) => x === "ostryi_kraj").length, 2, "второй экземпляр стакается");
+  assertEq(Upgrades.sum(s, "dmg"), 2, "эффекты складываются (+1% × 2)");
+});
+
+test("Торговая книга: после покупки карточку можно обновить за 1G", () => {
+  const s = upRun("UPG15D");
+  s.player.items.push("ledger");
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  s.shop.upgrades = [{ id: "ostryi_kraj" }];
+  s.run.gold = 10;
+  Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "ostryi_kraj" });
+  assertEq(s.shop.upgrades[0].justBought, true, "карточка помечена к обновлению");
+  const before = s.shop.upgrades[0].id;
+  Game.dispatch(s, { type: "REFRESH_UPGRADE", upgradeId: before });
+  assertEq(s.run.gold, 7, "10 − 2 покупка − 1 обновление");
+  assertEq(s.shop.upgrades.length, 1, "слот по-прежнему один");
 });
 
 test("Scalar реролл: «Сбережения» дешевеют только при 15+ золоте", () => {
@@ -137,10 +153,11 @@ test("Покупка улучшения: BUY_UPGRADE списывает золо
   assertEq(s.run.gold, 8, "золото списано");
   assert((s.run.upgrades || []).includes("ostryi_kraj"), "куплено");
   assertEq(s.player.items.length, itemsBefore, "слоты предметов не тронуты");
-  // Повторно купить нельзя
+  // Покупается многократно — эффекты складываются
   s.shop.upgrades.push({ id: "ostryi_kraj", cost: 2 });
   Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "ostryi_kraj" });
-  assertEq((s.run.upgrades || []).length, 1, "второй экземпляр не продаётся");
+  assertEq((s.run.upgrades || []).length, 2, "второй экземпляр стакается");
+  assertEq(Upgrades.sum(s, "dmg"), 2, "+1% дважды = +2%");
 });
 
 test("Генерация предложений: детерминизм, без купленных, редкости из пула §5.1", () => {
@@ -151,14 +168,14 @@ test("Генерация предложений: детерминизм, без 
   b.combat.outcome = "cleared";
   Game.dispatch(b, { type: "ENTER_SHOP" });
   assertEq(JSON.stringify(a.shop.upgrades), JSON.stringify(b.shop.upgrades), "тот же сид — те же предложения");
-  a.run.upgrades = Content.upgrades.list.map((u) => u.id); // всё куплено
+  // Стакающийся пул неисчерпаем: даже купив всё, предложения приходят.
   const c = upRun("UPG20");
   c.combat.outcome = "cleared";
-  c.run.upgrades = Content.upgrades.list.map((u) => u.id);
+  c.run.upgrades = Content.upgrades.list.map((u) => u.id).concat(Content.upgrades.list.map((u) => u.id));
   Game.dispatch(c, { type: "ENTER_SHOP" });
-  // Пул исчерпан — остаются только виртуальные повторяемые (слот/зелье).
   const left = (c.shop.upgrades || []).map((o) => o.id);
-  assert(left.every((id) => id === "hand_slot" || id === "attr_potion"), "только виртуальные: " + left);
+  assert(left.length >= 4, "предложения приходят всегда");
+  assert(left.every((id) => Content.upgrades.byId[id] || id === "hand_slot" || id === "attr_potion"), "только реальные улучшения: " + left);
 });
 
 test("Зелье атрибута: заряд меняет атрибут героя во всех боевых расчётах", () => {

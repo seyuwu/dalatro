@@ -1138,23 +1138,36 @@
             <div class="shop-upgrades">
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
                 <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
-                <span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}
+                <span class="upgrade-owned">${(() => {
+    const counts = {};
+    for (const u of Upgrades.ownedDefs(state)) counts[u.id] = (counts[u.id] || 0) + 1;
+    return Object.entries(counts).map(([id, n]) => {
+      const u = Content.upgrades.byId[id];
+      if (!u) return "";
+      return `<span class="upgrade-chip" data-tip>${u.emoji}${n > 1 ? `<b>×${n}</b>` : ""}<span class="pop"><strong>${u.name}${n > 1 ? " ×" + n : ""}</strong><p>${esc(u.desc)}</p></span></span>`;
+    }).join("");
+  })()}
                   ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}
                   ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}</span>
                 <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
                 ${(state.shop.upgrades || []).map((o) => {
-    const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state) : Content.upgrades.byId[o.id];
+    const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state)
+      : o.id === Upgrades.ATTR_POTION_ID ? Upgrades.attrPotionDef(state)
+      : Content.upgrades.byId[o.id];
     const afford = state.run.gold >= up.cost;
     const lvl = up.repeatable ? ` ×${(state.run.handSlots || 0) + 1}` : "";
+    const canRefresh = state.player.items.includes("ledger") && o.justBought;
     return `<div class="upgrade-card ${up.rarity}" data-tip>
                   <span class="upgrade-emoji">${up.emoji}</span>
-                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small></div>
+                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small>
+                    ${canRefresh ? `<button class="upgrade-refresh" data-action="refresh-upgrade" data-id="${up.id}">↻ Обновить · ${Upgrades.REROLL_COST} ${icon("coins", 11)}</button>` : ""}
+                  </div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
                     <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
                   </button>
-                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]}${up.repeatable ? " · повторяемое: дороже с каждым уровнем" : " · копится с другими улучшениями"}</small></span>
+                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · покупается многократно, эффекты складываются</small></span>
                 </div>`;
   }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке или обнови.</span>'}
               </div>
@@ -1753,14 +1766,24 @@
 
   function render(state) {
     document.body.classList.toggle("reduced-motion", !UIState.motion);
+    // Покупки в лавке не должны поднимать скролл наверх: запоминаем позиции
+    // прокручиваемых контейнеров и возвращаем их после перерисовки.
+    const prevShop = document.querySelector(".shop");
+    const shopScroll = prevShop ? prevShop.scrollTop : 0;
+    const prevModal = document.querySelector(".modal");
+    const modalScroll = prevModal ? prevModal.scrollTop : 0;
     switch (state.phase) {
-      case "title": return renderTitle(state);
-      case "wave": return renderWave(state);
-      case "route": return renderRoute(state);
-      case "shop": return renderShop(state);
-      case "victory": return renderVictory(state);
-      case "gameover": return renderGameover(state);
+      case "title": renderTitle(state); break;
+      case "wave": renderWave(state); break;
+      case "route": renderRoute(state); break;
+      case "shop": renderShop(state); break;
+      case "victory": renderVictory(state); break;
+      case "gameover": renderGameover(state); break;
     }
+    const shop = document.querySelector(".shop");
+    if (shop && shopScroll) shop.scrollTop = shopScroll;
+    const modal = document.querySelector(".modal");
+    if (modal && modalScroll) modal.scrollTop = modalScroll;
   }
 
   return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
