@@ -136,6 +136,7 @@
   function closeModal() {
     UI.UIState.modal = null;
     UI.UIState.detail = null;
+    UI.UIState.labFocus = null;
     rerender();
   }
 
@@ -323,6 +324,14 @@
       case "open-collection-deck":
         UI.UIState.modal = "collection";
         UI.UIState.collectionTab = "deck";
+        UI.UIState.labFocus = "exile";
+        UI.UIState.search = "";
+        rerender();
+        break;
+      case "open-training":
+        UI.UIState.modal = "collection";
+        UI.UIState.collectionTab = "deck";
+        UI.UIState.labFocus = "train";
         UI.UIState.search = "";
         rerender();
         break;
@@ -332,6 +341,7 @@
         break;
       case "collection-tab":
         UI.UIState.collectionTab = el.dataset.tab;
+        UI.UIState.labFocus = null;
         UI.UIState.search = "";
         rerender();
         break;

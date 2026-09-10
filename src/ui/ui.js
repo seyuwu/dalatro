@@ -125,6 +125,8 @@
     unlockBanner: null, // имя открытого ранга для плашки на экране победы
     // Стартовый архетип нового забега (спек §7).
     starterDraft: "standard",
+    // Фокус лаборатории колоды: train | exile | null (какую кнопку нажали в лавке).
+    labFocus: null,
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -1093,7 +1095,10 @@
             <div class="shop-lab">
               <div class="shop-lab-head">
                 <h3>${icon("layers", 14)} Лаборатория колоды</h3>
-                <button class="secondary-button" data-action="open-collection-deck" title="Увольнение и тренировка героев">${state.run.campBoon ? "Уволить бесплатно 🏕️" : `Уволить героя · ${Game.EXILE_COST} ${icon("coins", 12)}`}</button>
+                <span class="lab-shop-actions">
+                  <button class="secondary-button train-button" data-action="open-training" title="Тренировка: +1 к рангу героя навсегда">🏋️ Тренировать · ${Game.TRAIN_COST} ${icon("coins", 12)}</button>
+                  <button class="secondary-button exile-button" data-action="open-collection-deck" title="Безвозвратное удаление героя из колоды">${state.run.campBoon ? "Уволить бесплатно 🏕️" : `Уволить · ${Game.EXILE_COST} ${icon("coins", 12)}`}</button>
+                </span>
               </div>
               <div class="recruit-row ${UIState.animLab ? "" : "no-anim"}">
                 ${(state.shop.recruits || []).length ? state.shop.recruits.map((heroId) => {
@@ -1273,7 +1278,8 @@
     if (UIState.onboarding) return onboardingHtml();
     if (!UIState.modal && !UIState.detail) return "";
     const wide = UIState.modal === "collection" || UIState.modal === "help" ? "wide-modal" : "";
-    return `<div class="modal-backdrop" data-action="modal-backdrop"><section class="modal ${wide}" role="dialog" aria-modal="true">
+    const focusCls = UIState.labFocus === "train" ? "focus-train" : UIState.labFocus === "exile" ? "focus-exile" : "";
+    return `<div class="modal-backdrop" data-action="modal-backdrop"><section class="modal ${wide} ${focusCls}" role="dialog" aria-modal="true">
       <button class="modal-close icon-button" data-action="close-modal">${icon("x", 20)}</button>
       ${modalBodyHtml(state)}
     </section></div>`;
@@ -1480,6 +1486,8 @@
         <input aria-label="Поиск в коллекции" placeholder="Найти по имени..." value="${esc(UIState.search)}" data-action-input="search">
       </div>
       ${tab === "deck" ? `<div class="deck-summary"><span>В руке <b>${state.player.handUids.length}</b></span><span>В колоде <b>${state.player.deckUids.length}</b></span><span>В сбросе <b>${state.player.discardUids.length}</b></span></div>` : ""}
+      ${state.phase === "shop" && UIState.labFocus === "train" ? `<div class="lab-focus-banner train">🏋️ Режим тренировки: +1 к рангу героя за ${Game.TRAIN_COST} G — навсегда, влияет на силу в бою.</div>` : ""}
+      ${state.phase === "shop" && UIState.labFocus === "exile" ? `<div class="lab-focus-banner exile">⚔️ Режим увольнения: герой покинет колоду${state.run.campBoon ? " бесплатно (привал лагеря)" : ` за ${Game.EXILE_COST} G`}.</div>` : ""}
       <div class="collection-grid">${grid || '<div class="empty-search">Ничего не найдено. Попробуй другое имя.</div>'}</div>`;
   }
 
