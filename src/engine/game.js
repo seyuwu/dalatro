@@ -15,7 +15,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [] },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -465,6 +465,32 @@ const Game = (function () {
       case "LEAVE_SHOP": {
         if (s.phase !== "shop") return s;
         s.run.shopPriceMult = 1; // ценовой множитель действует только на эту лавку
+        // Лагерь: следующий бой реально пропускается (спек §2) — волна
+        // пролистывается без награды и без импульса, лавки за неё нет.
+        if (s.run.skipNextBattle) {
+          s.run.skipNextBattle = false;
+          const skipIndex = s.run.waveIndex + 1;
+          const skipDef = Content.waves.byId[Content.waves.order[skipIndex]];
+          if (skipDef) {
+            log(s, `Лагерь: волна «${skipDef.name}» пропущена без боя.`);
+            s.run.waveIndex = skipIndex;
+            s.combat.routeOptions = [];
+            const after = Content.waves.byId[Content.waves.order[skipIndex + 1]];
+            if (after && !after.isBoss) {
+              s.combat.routeOptions = rollRouteOptions(s, skipIndex + 1);
+              s.phase = "route";
+              return s;
+            }
+            if (after) {
+              s.phase = "wave";
+              s.run.waveIndex = skipIndex + 1;
+              setupWave(s, skipIndex + 1, null);
+              return s;
+            }
+            s.phase = "victory"; // пропущена последняя волна (защита, недостижимо)
+            return s;
+          }
+        }
         const nextIndex = s.run.waveIndex + 1;
         const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
         if (!nextDef) return s;
@@ -494,10 +520,11 @@ const Game = (function () {
           s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
           s.run.campBoon = true;
           s.combat.campTaken = true;
+          s.run.skipNextBattle = true; // после лавки следующая волна листается без боя
           s.combat.route = null;
           s.combat.routeOptions = [];
           s.phase = "shop";
-          log(s, "Крип-лагерь зачищен без боя: +6 золота, привал (+1 казарма), бесплатное увольнение в лавке");
+          log(s, "Крип-лагерь зачищен без боя: +6 золота, привал (+1 казарма), бесплатное увольнение. Следующая волна будет пропущена.");
           return s;
         }
         // Немедленные эффекты маршрута: золото и гэмбл.

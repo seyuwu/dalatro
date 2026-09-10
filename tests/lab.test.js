@@ -41,7 +41,7 @@ function deckTotal(s) {
 
 suite("Маршруты");
 
-test("LEAVE_SHOP открывает развилку; крип-лагерь даёт +6g и +1 казарму один раз", () => {
+test("LEAVE_SHOP открывает развилку; лагерь реально пропускает следующую волну", () => {
   const s = newRun("RT1");
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
@@ -57,18 +57,35 @@ test("LEAVE_SHOP открывает развилку; крип-лагерь да
   assertEq(s.run.gold, goldBefore + 6, "+6 золота");
   assertEq(s.run.barracks, Math.min(Game.BARRACKS_MAX, barracksBefore + 1), "+1 казарма");
   assert(s.run.campBoon, "привал на увольнение");
-  assert(s.combat.campTaken, "лагерь использован");
+  assert(s.run.skipNextBattle, "следующий бой помечен к пропуску");
+  // Выходим из лавки — волна 2 листается без боя, развилка сразу за неё.
   Game.dispatch(s, { type: "LEAVE_SHOP" });
-  assertEq(s.phase, "route", "снова развилка");
-  assert(!s.combat.routeOptions.some((o) => o.id === "camp"), "лагерь исключён из ролла после зачистки");
-  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "camp" });
-  assertEq(s.phase, "route", "второй лагерь за волну невозможен");
+  assertEq(s.run.waveIndex, 1, "волна 2 (T2) пропущена без боя");
+  assertEq(s.phase, "route", "сразу развилка за пропущенной волной");
+  assert(s.combat.routeOptions.every((o) => o.id !== "camp"), "два лагеря подряд невозможны");
+  // Обычная башня после пропуска: волна 3, стандартное HP
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "normal" });
-  assertEq(s.phase, "wave", "обычная башня = бой");
+  assertEq(s.phase, "wave", "бой");
+  assertEq(s.run.waveIndex, 2, "волна 3");
   const def = Content.waves.byId[Content.waves.order[s.run.waveIndex]];
   assertEq(s.combat.wave.hp, def.hp, "обычное HP");
-  assert(!s.combat.wave.elite, "не элита");
-  assert(s.combat.routeOptions.length === 0, "опции развилки потрачены");
+  // campTaken сброшен только что отыгранной волной — лагерь снова доступен дальше
+});
+
+test("Лагерь перед мини-боссом: пропуск приводит сразу к Рошану", () => {
+  const s = newRun("RT1B");
+  s.run.waveIndex = 2;
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  Game.dispatch(s, { type: "LEAVE_SHOP" });
+  // форк для волны 4 (Techies, мини-босс) — инжектим лагерь детерминированно
+  s.combat.routeOptions = [{ id: "normal" }, { id: "camp" }];
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "camp" });
+  assertEq(s.phase, "shop");
+  Game.dispatch(s, { type: "LEAVE_SHOP" });
+  assertEq(s.run.waveIndex, 4, "Techies (3) пропущены, стоим на Рошане (4)");
+  assertEq(s.phase, "wave", "после пропуска — сразу босс, без развилки");
+  assert(s.combat.wave.isBoss, "Рошан");
 });
 
 test("Перед боссом развилки нет — сразу волна Рошана", () => {
