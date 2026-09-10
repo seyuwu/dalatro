@@ -146,10 +146,10 @@ const RANK_CURSES_DATA = [
 ];
 
 // --- Стартовые архетипы (спек §7): выбор задаёт НАПРАВЛЕНИЕ, не запирает игру.
-// Гарантированное трио + 9 карт из тематического пула (ролл по сиду, состав
-// колоды каждый забег чуть разный). Перк — микроскопический, эффекты по id
-// в game.js/combat.js. «standard» — классическая колода без перка (дефолт:
-// старые сиды и A/B-бот играют ровно как раньше).
+// Гарантированное трио + 9 карт из широкого тематического пула (ролл по сиду,
+// 9 из 16 → тысячи составов: старт каждый забег реально разный). Перк —
+// микроскопический, эффекты по id в game.js/combat.js. «standard» — классическая
+// колода без перка (дефолт: старые сиды и A/B-бот играют ровно как раньше).
 const ARCHETYPES_DATA = [
   {
     id: "standard", name: "Стандарт", emoji: "🎯", quote: "Классические двенадцать", color: "#97a39b",
@@ -158,25 +158,29 @@ const ARCHETYPES_DATA = [
   {
     id: "assault", name: "Штурм", emoji: "⚔", quote: "Ломай быстрее, чем чинят", color: "#d8b24f",
     guaranteed: ["juggernaut", "axe", "centaur"],
-    fill: ["tusk", "pudge", "sven", "morphling", "pa", "bounty", "dawnbreaker", "primal", "slark", "tiny"],
+    fill: ["tusk", "pudge", "sven", "morphling", "pa", "bounty", "dawnbreaker", "primal", "slark", "tiny",
+      "meepo", "anti_mage", "legion", "huskar", "marci", "void_spirit"],
     perk: "gold1", perkDesc: "+1G начального золота",
   },
   {
     id: "control", name: "Контроль", emoji: "❄", quote: "Мир замедляется — ты нет", color: "#5a9dd6",
     guaranteed: ["zeus", "cm", "morphling"],
-    fill: ["tusk", "axe", "pudge", "sven", "juggernaut", "pa", "dawnbreaker", "primal", "rubick", "oracle"],
+    fill: ["tusk", "axe", "pudge", "sven", "centaur", "juggernaut", "pa", "dawnbreaker", "primal",
+      "rubick", "oracle", "ogre_magi", "io", "muerta", "void_spirit", "kez"],
     perk: "tp1", perkDesc: "+1 ТП-сброс в акте 1",
   },
   {
     id: "crit", name: "Крит", emoji: "💀", quote: "Один удар. Одна ошибка врага", color: "#e0684e",
     guaranteed: ["pa", "sven", "dawnbreaker"],
-    fill: ["tusk", "axe", "pudge", "juggernaut", "morphling", "centaur", "bounty", "cm", "zeus", "primal"],
+    fill: ["tusk", "axe", "pudge", "juggernaut", "morphling", "centaur", "bounty", "cm", "zeus", "primal",
+      "legion", "anti_mage", "phantom_lancer", "marci", "kez", "void_spirit"],
     perk: "lasthit2", perkDesc: "+2G за точный ласт-хит",
   },
   {
     id: "arcane", name: "Магия", emoji: "✨", quote: "Формула боя написана заранее", color: "#a678e0",
     guaranteed: ["zeus", "cm", "primal"],
-    fill: ["tusk", "axe", "pudge", "sven", "morphling", "juggernaut", "pa", "dawnbreaker", "rubick", "invoker"],
+    fill: ["tusk", "axe", "pudge", "sven", "morphling", "juggernaut", "pa", "dawnbreaker",
+      "rubick", "invoker", "lina", "skywrath", "oracle", "storm_spirit", "outworld", "snapfire"],
     perk: "freeroll1", perkDesc: "Первый реролл каждой лавки бесплатен",
   },
 ];

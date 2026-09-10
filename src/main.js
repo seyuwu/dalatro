@@ -300,6 +300,11 @@
       case "open-modal":
         UI.UIState.modal = el.dataset.modal;
         if (el.dataset.modal === "collection") UI.UIState.collectionTab = "heroes";
+        // «Новый забег»: пикер ранга начинается с ранга текущего забега,
+        // а не с дефолтного Рекрута.
+        if (el.dataset.modal === "new" && state.phase !== "title" && state.run && state.run.rank) {
+          UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, state.run.rank));
+        }
         rerender();
         break;
       case "open-collection":

@@ -34,8 +34,17 @@ test("Состав колоды детерминирован сидом и ва�
   const a2 = archDeck(archRun("VAR1", "crit")).sort().join(",");
   assertEq(a1, a2, "тот же сид + тот же архетип = та же колода");
   const seen = new Set();
-  for (let i = 0; i < 8; i++) seen.add(archDeck(archRun("VAR" + (10 + i), "crit")).sort().join(","));
+  const union = new Set();
+  for (let i = 0; i < 8; i++) {
+    const deck = archDeck(archRun("VAR" + (10 + i), "crit"));
+    seen.add(deck.slice().sort().join(","));
+    for (const h of deck) union.add(h);
+  }
   assert(seen.size >= 2, "разные сиды дают разный состав (получено " + seen.size + " вариантов)");
+  // Регрессия на жалобу «кроме трёх базовых все не случайные»: узкий пул
+  // (10 кандидатов на 9 слотов) прокручивал только одного героя. Пул на 16
+  // обязан за 8 сидов показать заметно больше половины своих кандидатов.
+  assert(union.size >= 14, "добор реально вращается: " + union.size + " разных героев на 8 сидов");
 });
 
 test("Перк «Штурм» (gold1): +1G на старте", () => {

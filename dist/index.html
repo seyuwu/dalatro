@@ -445,6 +445,13 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .starter-card.active .starter-name { color: var(--accent, #dfe5d2); }
 .starter-trio { font-size: 8.5px; color: #8a987d; line-height: 1.5; text-align: center; min-height: 13px; }
 .starter-perk { font-size: 8.5px; color: #b8a468; line-height: 1.5; text-align: center; }
+/* В модалке «Новый забег» пикер компактнее — кнопки не уезжают за скролл. */
+.modal .starter-picker { gap: 6px; }
+.modal .starter-card { padding: 7px 5px 6px; }
+.modal .starter-emoji { font-size: 17px; }
+.modal .starter-name { font-size: 10.5px; letter-spacing: .8px; }
+.modal .starter-trio { display: none; }
+.modal .starter-perk { font-size: 8px; }
 
 /* ---------- лимит предметов (слоты и классы) ---------- */
 .cap-chips { display: flex; gap: 5px; }
@@ -1880,10 +1887,10 @@ const RANK_CURSES_DATA = [
 ];
 
 // --- Стартовые архетипы (спек §7): выбор задаёт НАПРАВЛЕНИЕ, не запирает игру.
-// Гарантированное трио + 9 карт из тематического пула (ролл по сиду, состав
-// колоды каждый забег чуть разный). Перк — микроскопический, эффекты по id
-// в game.js/combat.js. «standard» — классическая колода без перка (дефолт:
-// старые сиды и A/B-бот играют ровно как раньше).
+// Гарантированное трио + 9 карт из широкого тематического пула (ролл по сиду,
+// 9 из 16 → тысячи составов: старт каждый забег реально разный). Перк —
+// микроскопический, эффекты по id в game.js/combat.js. «standard» — классическая
+// колода без перка (дефолт: старые сиды и A/B-бот играют ровно как раньше).
 const ARCHETYPES_DATA = [
   {
     id: "standard", name: "Стандарт", emoji: "🎯", quote: "Классические двенадцать", color: "#97a39b",
@@ -1892,25 +1899,29 @@ const ARCHETYPES_DATA = [
   {
     id: "assault", name: "Штурм", emoji: "⚔", quote: "Ломай быстрее, чем чинят", color: "#d8b24f",
     guaranteed: ["juggernaut", "axe", "centaur"],
-    fill: ["tusk", "pudge", "sven", "morphling", "pa", "bounty", "dawnbreaker", "primal", "slark", "tiny"],
+    fill: ["tusk", "pudge", "sven", "morphling", "pa", "bounty", "dawnbreaker", "primal", "slark", "tiny",
+      "meepo", "anti_mage", "legion", "huskar", "marci", "void_spirit"],
     perk: "gold1", perkDesc: "+1G начального золота",
   },
   {
     id: "control", name: "Контроль", emoji: "❄", quote: "Мир замедляется — ты нет", color: "#5a9dd6",
     guaranteed: ["zeus", "cm", "morphling"],
-    fill: ["tusk", "axe", "pudge", "sven", "juggernaut", "pa", "dawnbreaker", "primal", "rubick", "oracle"],
+    fill: ["tusk", "axe", "pudge", "sven", "centaur", "juggernaut", "pa", "dawnbreaker", "primal",
+      "rubick", "oracle", "ogre_magi", "io", "muerta", "void_spirit", "kez"],
     perk: "tp1", perkDesc: "+1 ТП-сброс в акте 1",
   },
   {
     id: "crit", name: "Крит", emoji: "💀", quote: "Один удар. Одна ошибка врага", color: "#e0684e",
     guaranteed: ["pa", "sven", "dawnbreaker"],
-    fill: ["tusk", "axe", "pudge", "juggernaut", "morphling", "centaur", "bounty", "cm", "zeus", "primal"],
+    fill: ["tusk", "axe", "pudge", "juggernaut", "morphling", "centaur", "bounty", "cm", "zeus", "primal",
+      "legion", "anti_mage", "phantom_lancer", "marci", "kez", "void_spirit"],
     perk: "lasthit2", perkDesc: "+2G за точный ласт-хит",
   },
   {
     id: "arcane", name: "Магия", emoji: "✨", quote: "Формула боя написана заранее", color: "#a678e0",
     guaranteed: ["zeus", "cm", "primal"],
-    fill: ["tusk", "axe", "pudge", "sven", "morphling", "juggernaut", "pa", "dawnbreaker", "rubick", "invoker"],
+    fill: ["tusk", "axe", "pudge", "sven", "morphling", "juggernaut", "pa", "dawnbreaker",
+      "rubick", "invoker", "lina", "skywrath", "oracle", "storm_spirit", "outworld", "snapfire"],
     perk: "freeroll1", perkDesc: "Первый реролл каждой лавки бесплатен",
   },
 ];
@@ -6643,6 +6654,11 @@ const Art = (function () {
       case "open-modal":
         UI.UIState.modal = el.dataset.modal;
         if (el.dataset.modal === "collection") UI.UIState.collectionTab = "heroes";
+        // «Новый забег»: пикер ранга начинается с ранга текущего забега,
+        // а не с дефолтного Рекрута.
+        if (el.dataset.modal === "new" && state.phase !== "title" && state.run && state.run.rank) {
+          UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, state.run.rank));
+        }
         rerender();
         break;
       case "open-collection":
