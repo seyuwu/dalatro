@@ -68,6 +68,8 @@
   };
 
   const RARITY_NAMES = { common: "Обычный", rare: "Редкий", epic: "Эпический" };
+  const SLOT_CLASS_NAMES = { off: "Атака", def: "Защита", util: "Утилита" };
+  const SLOT_CLASS_ICONS = { off: "⚔", def: "🛡", util: "🔧" };
 
   // Короткие подписи правил лиги для пикера рангов (по id добавок).
   const RANK_MOD_LABELS = {
@@ -81,6 +83,7 @@
     mutations1: "Мутации башен: 1 на волну",
     adaptive: "Адаптация мира: частое комбо ×0.85",
     antihero: "Охота на героя: фаворит −2 силы",
+    capClass: "Лимит классов: ≤2 атаки / 2 защиты / 2 утилиты",
     discards2: "ТП-сбросы 2",
     tax1: "Налог зачистки −1G",
     curseChoice: "Проклятия забега: выбор в начале акта",
@@ -704,6 +707,13 @@
   function bottomBandHtml(state) {
     if (state.phase === "shop") {
       const items = state.player.items;
+      const cap = Game.itemCapacity(state);
+      const classChips = cap.perClass
+        ? ["off", "def", "util"].map((cls) => {
+          const used = items.filter((id) => Content.items.byId[id].slotClass === cls).length;
+          return `<span class="cap-chip ${used >= cap.perClass[cls] ? "full" : ""}">${SLOT_CLASS_ICONS[cls]} ${used}/${cap.perClass[cls]}</span>`;
+        }).join("")
+        : "";
       const slots = [];
       for (let i = 0; i < Math.max(5, items.length); i++) {
         const id = items[i];
@@ -723,7 +733,8 @@
       }
       return `<section class="bottom-band shop">
         <div class="band-top">
-          <h2 class="band-hand-title">Твой билд <span>${items.length}<small> слотов</small></span></h2>
+          <h2 class="band-hand-title">Твой билд <span>${items.length}<small>/${cap.total} слотов</small></span></h2>
+          <span class="cap-chips">${classChips}</span>
           <span class="hand-instruction">Клик по предмету — разбор и продажа за половину цены</span>
           <span class="spacer"></span>
         </div>
@@ -982,6 +993,7 @@
 
   function renderShop(state) {
     const inflation = Ranks.has(state, "inflation") ? (state.run.inflationBuys || 0) : 0;
+    const cap = Game.itemCapacity(state);
     // Следующая цель в шапке лавки (§1.4): башню видно до выхода в бой,
     // сайдбар и шапка никогда не показывают мёртвую башню.
     const nextId = Content.waves.order[state.run.waveIndex + 1];
@@ -991,6 +1003,10 @@
       const item = Content.items.byId[o.id];
       const cost = Game.itemCost(state, item.id);
       const afford = state.run.gold >= cost;
+      const blocked = Game.itemBlockedReason(state, item.id);
+      const blockedLabel = blocked === "full"
+        ? `Слоты ${state.player.items.length}/${cap.total}`
+        : blocked === "class" ? `Нет слота ${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}` : "";
       return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
@@ -1001,9 +1017,10 @@
         <div class="shop-card-art">${Art.itemIcon(item)}</div>
         <h3>${item.name}</h3>
         <p>${esc(item.desc)}</p>
+        <span class="slot-class-tag">${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}</span>
         ${cost !== item.cost ? `<span class="price-note">${cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
-        <button class="buy-button" ${afford ? "" : "disabled"} data-action="buy" data-id="${item.id}">
-          <span>${afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
+        <button class="buy-button" ${afford && !blocked ? "" : "disabled"} data-action="buy" data-id="${item.id}">
+          <span>${blocked && blockedLabel ? blockedLabel : afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
         </button>
       </div>`;
     }).join("");

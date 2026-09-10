@@ -445,6 +445,12 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .starter-card.active .starter-name { color: var(--accent, #dfe5d2); }
 .starter-trio { font-size: 8.5px; color: #8a987d; line-height: 1.5; text-align: center; min-height: 13px; }
 .starter-perk { font-size: 8.5px; color: #b8a468; line-height: 1.5; text-align: center; }
+
+/* ---------- лимит предметов (слоты и классы) ---------- */
+.cap-chips { display: flex; gap: 5px; }
+.cap-chip { font-size: 9.5px; font-weight: 700; letter-spacing: .5px; color: #9aa88b; border: 1px solid #3d4a35; background: #242d20; border-radius: 4px; padding: 3px 7px; white-space: nowrap; }
+.cap-chip.full { color: #d99281; border-color: #6b4038; background: #33221d; }
+.slot-class-tag { display: inline-block; font-size: 8.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #8a987d; border: 1px solid #3a4738; border-radius: 4px; padding: 2px 6px; margin-top: 7px; }
 .shop-next b { color: #dfe5d2; }
 .shop-gold { display: flex; align-items: center; gap: 9px; font-size: 33px; font-weight: 800; color: var(--gold); margin-left: auto; }
 .shop-section-title { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 16px; }
@@ -1554,17 +1560,17 @@ const HEROES_DATA = [
 const ITEMS_DATA = [
   // ---------- common ----------
   {
-    id: "battle_fury", name: "Battle Fury", cost: 7, emoji: "🌀", rarity: "common", category: "power",
+    id: "battle_fury", name: "Battle Fury", cost: 7, emoji: "🌀", rarity: "common", category: "power", slotClass: "off",
     desc: "Cleave: сила самой слабой сыгранной карты учитывается дважды.",
     ability: { name: "Cleave", event: "FIGHT_SCORING", effects: [{ type: "WEAKEST_POWER_DOUBLE" }] },
   },
   {
-    id: "meteor_hammer", name: "Meteor Hammer", cost: 6, emoji: "☄️", rarity: "common", category: "power",
+    id: "meteor_hammer", name: "Meteor Hammer", cost: 6, emoji: "☄️", rarity: "common", category: "power", slotClass: "util",
     desc: "Осада: башня получает +50 чистого урона сверх удара (глиф блокирует всё).",
     ability: { name: "Meteor", event: "FIGHT_SCORING", effects: [{ type: "TOWER_BURN", value: 50 }] },
   },
   {
-    id: "orb_corrosion", name: "Orb of Corrosion", cost: 6, emoji: "🧪", rarity: "common", category: "power",
+    id: "orb_corrosion", name: "Orb of Corrosion", cost: 6, emoji: "🧪", rarity: "common", category: "power", slotClass: "util",
     desc: "+3 силы; −4 к броне башни (в формациях).",
     ability: {
       name: "Corrode", event: "FIGHT_SCORING",
@@ -1572,48 +1578,48 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "dragon_lance", name: "Dragon Lance", cost: 6, emoji: "🔱", rarity: "common", category: "power",
+    id: "dragon_lance", name: "Dragon Lance", cost: 6, emoji: "🔱", rarity: "common", category: "power", slotClass: "off",
     desc: "Копьё длины: +3 силы за каждого соседа по слоту.",
     ability: { name: "Lance", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_NEIGHBOR", value: 3 }] },
   },
   {
-    id: "drum", name: "Drum of Endurance", cost: 7, emoji: "🥁", rarity: "common", category: "mult",
+    id: "drum", name: "Drum of Endurance", cost: 7, emoji: "🥁", rarity: "common", category: "mult", slotClass: "util",
     desc: "+0.25 к множителю за каждого сыгранного героя (пятёрка = +1.25).",
     ability: { name: "War Drums", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_PLAYED", value: 0.25 }] },
   },
   {
-    id: "midas", name: "Hand of Midas", cost: 7, emoji: "👑", rarity: "common", category: "economy",
+    id: "midas", name: "Hand of Midas", cost: 7, emoji: "👑", rarity: "common", category: "economy", slotClass: "util",
     desc: "Золото с оверкилла ×2.",
     ability: { name: "Transmute", event: "FIGHT_SCORING", effects: [{ type: "OVERKILL_RATE", value: 2 }] },
   },
   {
-    id: "bkb", name: "Black King Bar", cost: 7, emoji: "🛡️", rarity: "common", category: "rule",
+    id: "bkb", name: "Black King Bar", cost: 7, emoji: "🛡️", rarity: "common", category: "rule", slotClass: "def",
     desc: "Игнорирует модификаторы башен (Armor, Glyph, мины Techies). На Рошана не действует.",
     ability: { name: "Avatar", event: "FIGHT_SCORING", effects: [{ type: "IGNORE_TOWER_MODS" }] },
   },
   {
-    id: "kaya", name: "Kaya and Sange", cost: 8, emoji: "💎", rarity: "common", category: "power",
+    id: "kaya", name: "Kaya and Sange", cost: 8, emoji: "💎", rarity: "common", category: "power", slotClass: "off",
     desc: "+10 силы и +1 к множителю.",
     ability: { name: "State", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 10 }, { type: "ADD_MULT", value: 1 }] },
   },
   {
-    id: "vladmir", name: "Vladmir's Offering", cost: 8, emoji: "🩸", rarity: "common", category: "economy",
+    id: "vladmir", name: "Vladmir's Offering", cost: 8, emoji: "🩸", rarity: "common", category: "economy", slotClass: "util",
     desc: "+2 золота за каждый бой, даже проигранный.",
     ability: { name: "Vampiric Aura", event: "FIGHT_SCORING", effects: [{ type: "GOLD", value: 2 }] },
   },
   {
-    id: "sentry", name: "Sentry Ward", cost: 6, emoji: "👁️", rarity: "common", category: "rule",
+    id: "sentry", name: "Sentry Ward", cost: 6, emoji: "👁️", rarity: "common", category: "rule", slotClass: "def",
     desc: "Обезвреживает мины Techies: заминированные карты можно разыгрывать.",
   },
 
   // ---------- rare ----------
   {
-    id: "daedalus", name: "Daedalus", cost: 9, emoji: "💥", rarity: "rare", category: "mult",
+    id: "daedalus", name: "Daedalus", cost: 9, emoji: "💥", rarity: "rare", category: "mult", slotClass: "off",
     desc: "25% шанс крита: ×2 к множителю.",
     ability: { name: "Crit", event: "FIGHT_SCORING", chance: 0.25, effects: [{ type: "MULT_MULT", value: 2 }] },
   },
   {
-    id: "satanic", name: "Satanic", cost: 10, emoji: "😈", rarity: "rare", category: "mult",
+    id: "satanic", name: "Satanic", cost: 10, emoji: "😈", rarity: "rare", category: "mult", slotClass: "off",
     desc: "×1.5 к множителю, если комбо — пара или две пары.",
     ability: {
       name: "Unholy Rage", event: "FIGHT_SCORING",
@@ -1622,12 +1628,12 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "shadow_blade", name: "Shadow Blade", cost: 9, emoji: "🌑", rarity: "rare", category: "rule",
+    id: "shadow_blade", name: "Shadow Blade", cost: 9, emoji: "🌑", rarity: "rare", category: "rule", slotClass: "util",
     desc: "Самая сильная сыгранная карта может считаться соседним рангом (±1, игра выберет лучшее; сила не растёт).",
     ability: { name: "Shadow Walk", event: "PRE_DETECT", effects: [{ type: "BUMP_STRONGEST_RANK", value: 1 }] },
   },
   {
-    id: "heart", name: "Heart of Tarrasque", cost: 11, emoji: "❤️", rarity: "rare", category: "power",
+    id: "heart", name: "Heart of Tarrasque", cost: 11, emoji: "❤️", rarity: "rare", category: "power", slotClass: "def",
     desc: "+10 силы и +5 за каждую разрушенную казарму — чем страшнее забег, тем толще.",
     ability: {
       name: "Tarrasque", event: "FIGHT_SCORING",
@@ -1635,7 +1641,7 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "ethereal_blade", name: "Ethereal Blade", cost: 10, emoji: "👻", rarity: "rare", category: "mult",
+    id: "ethereal_blade", name: "Ethereal Blade", cost: 10, emoji: "👻", rarity: "rare", category: "mult", slotClass: "off",
     desc: "Магический урон (формации) или комбо «Стрит»/«Флеш»/«Фулл» (классика): ×1.4 множителя.",
     ability: {
       name: "Ethereal", event: "FIGHT_SCORING",
@@ -1644,7 +1650,7 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "mkb", name: "Monkey King Bar", cost: 10, emoji: "🐒", rarity: "rare", category: "power",
+    id: "mkb", name: "Monkey King Bar", cost: 10, emoji: "🐒", rarity: "rare", category: "power", slotClass: "off",
     desc: "Физический урон (формации) или малые комбо (классика): +10 силы и ×1.25.",
     ability: {
       name: "True Strike", event: "FIGHT_SCORING",
@@ -1653,7 +1659,7 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "skadi", name: "Eye of Skadi", cost: 11, emoji: "🧊", rarity: "rare", category: "power",
+    id: "skadi", name: "Eye of Skadi", cost: 11, emoji: "🧊", rarity: "rare", category: "power", slotClass: "def",
     desc: "+6 силы. Ледяной шок: боссы больше не возрождаются (Aegis заблокирован).",
     ability: {
       name: "Cold Burn", event: "FIGHT_SCORING",
@@ -1661,7 +1667,7 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "desolator", name: "Desolator", cost: 9, emoji: "🗡️", rarity: "rare", category: "power",
+    id: "desolator", name: "Desolator", cost: 9, emoji: "🗡️", rarity: "rare", category: "power", slotClass: "off",
     desc: "Коррозия: −10 к броне башни (в формациях). +6 силы в любом режиме.",
     ability: {
       name: "Corruption", event: "FIGHT_SCORING",
@@ -1669,7 +1675,7 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "pipe", name: "Pipe of Insight", cost: 8, emoji: "📕", rarity: "rare", category: "rule",
+    id: "pipe", name: "Pipe of Insight", cost: 8, emoji: "📕", rarity: "rare", category: "rule", slotClass: "def",
     desc: "Барьер: +1 к множителю. В формациях магический урон игнорирует сопротивление башни.",
     ability: {
       name: "Insight Barrier", event: "FIGHT_SCORING",
@@ -1677,39 +1683,39 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult",
+    id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult", slotClass: "util",
     desc: "Способности героев срабатывают дважды за бой.",
     ability: { name: "Refresh", event: "FIGHT_SCORING", effects: [{ type: "REFRESH_HERO_TRIGGERS" }] },
   },
   {
-    id: "bloodstone", name: "Bloodstone", cost: 10, emoji: "🔴", rarity: "rare", category: "mult",
+    id: "bloodstone", name: "Bloodstone", cost: 10, emoji: "🔴", rarity: "rare", category: "mult", slotClass: "util",
     desc: "+0.5 к множителю за каждую разрушенную казарму. Чем страшнее забег — тем злее камень.",
     ability: { name: "Blood Rite", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_LOST_BARRACKS", value: 0.5 }] },
   },
   {
-    id: "butterfly", name: "Butterfly", cost: 8, emoji: "🦋", rarity: "rare", category: "rule",
+    id: "butterfly", name: "Butterfly", cost: 8, emoji: "🦋", rarity: "rare", category: "rule", slotClass: "def",
     desc: "Самая слабая сыгранная карта может считаться соседним рангом (только для комбо). 25% шанс уклонить модификатор башни.",
     ability: { name: "Evasion", event: "PRE_DETECT", effects: [{ type: "WILD_RANK" }] },
   },
   {
-    id: "manta", name: "Manta Style", cost: 10, emoji: "✨", rarity: "rare", category: "rule",
+    id: "manta", name: "Manta Style", cost: 10, emoji: "✨", rarity: "rare", category: "rule", slotClass: "util",
     desc: "Иллюзия сильнейшего сыгранного героя: тот же ранг и атрибут, но 50% силы. Считается для комбо и силы, абилки не активирует.",
     ability: { name: "Mirror Image", event: "PRE_DETECT", effects: [{ type: "CREATE_ILLUSION", powerRatio: 0.5 }] },
   },
 
   // ---------- epic ----------
   {
-    id: "rapier", name: "Divine Rapier", cost: 12, emoji: "⚔️", rarity: "epic", category: "mult",
+    id: "rapier", name: "Divine Rapier", cost: 12, emoji: "⚔️", rarity: "epic", category: "mult", slotClass: "off",
     desc: "×2 к итоговому урону. Провалишь волну — рапиру заберёт враг: твой урон по нему ×0.5, пока он её держит. Убей — вернётся.",
     ability: { name: "Divine", event: "FIGHT_SCORING", effects: [{ type: "FINAL_MULT", value: 2 }] },
   },
   {
-    id: "radiance", name: "Radiance", cost: 13, emoji: "🔆", rarity: "epic", category: "power",
+    id: "radiance", name: "Radiance", cost: 13, emoji: "🔆", rarity: "epic", category: "power", slotClass: "off",
     desc: "+3 силы за каждого сыгранного героя. Полная пятёрка = +15.",
     ability: { name: "Immolate", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_PLAYED", value: 3 }] },
   },
   {
-    id: "bloodthorn", name: "Bloodthorn", cost: 13, emoji: "🌹", rarity: "epic", category: "mult",
+    id: "bloodthorn", name: "Bloodthorn", cost: 13, emoji: "🌹", rarity: "epic", category: "mult", slotClass: "off",
     desc: "35%: ×2.2 к множителю и +10 золота — крит отдаётся монетой.",
     ability: {
       name: "Blood Hunt", event: "FIGHT_SCORING", chance: 0.35,
@@ -1717,7 +1723,7 @@ const ITEMS_DATA = [
     },
   },
   {
-    id: "octarine", name: "Octarine Core", cost: 12, emoji: "🔮", rarity: "epic", category: "mult",
+    id: "octarine", name: "Octarine Core", cost: 12, emoji: "🔮", rarity: "epic", category: "mult", slotClass: "util",
     desc: "+1 к множителю за каждый твой предмет. Чем жирнее билд — тем сильнее ядро.",
     ability: { name: "Cooldown Reduction", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_ITEM", value: 1 }] },
   },
@@ -1852,7 +1858,7 @@ const RANKS_DATA = [
   { id: 4, name: "Легенда", roman: "IV", hpMult: 1.3, goldMult: 1.23, quote: "Нельзя полагаться на одного героя", color: "#a678e0", adds: ["fatigue"], notes: ["Усталость: каждые 5 боёв героя — −1 к его силе (до −3)"] },
   { id: 5, name: "Властелин", roman: "V", hpMult: 1.45, goldMult: 1.34, quote: "Позиция имеет значение", color: "#d8b24f", adds: ["unstable"], notes: ["Нестабильная позиция: каждая волна выбирает слот с −40% силы"] },
   { id: 6, name: "Божество", roman: "VI", hpMult: 1.65, goldMult: 1.49, quote: "Каждая башня уникальна", color: "#64d8ce", adds: ["hand6", "mutations1"], notes: ["Рука 6 карт вместо 7", "Мутации башен: 1 случайная способность на волну"] },
-  { id: 7, name: "Титан", roman: "VII", hpMult: 1.7, goldMult: 1.68, quote: "Враг изучает тебя", color: "#e0684e", adds: ["adaptive", "antihero"], notes: ["Адаптация мира: твоё самое частое комбо наносит ×0.85", "Охота на героя: самый используемый герой −2 к силе"] },
+  { id: 7, name: "Титан", roman: "VII", hpMult: 1.7, goldMult: 1.68, quote: "Враг изучает тебя", color: "#e0684e", adds: ["adaptive", "antihero", "capClass"], notes: ["Адаптация мира: твоё самое частое комбо наносит ×0.85", "Охота на героя: самый используемый герой −2 к силе", "Лимит классов: не больше 2 атак / 2 защит / 2 утилит"] },
   { id: 8, name: "Титан 10+", roman: "VIII", hpMult: 1.9, goldMult: 1.9, quote: "Ты платишь за всё", color: "#e25f43", adds: ["discards2", "tax1"], notes: ["ТП-сбросов 2 за волну", "Налог: зачистка приносит −1G"] },
   { id: 9, name: "Титан 100+", roman: "IX", hpMult: 2.15, goldMult: 2.2, quote: "Ты сам выбираешь свою боль", color: "#e4573d", adds: ["curseChoice"], notes: ["Проклятия забега: в начале каждого акта выбираешь 1 из 3"] },
   { id: 10, name: "Титан 1 000+", roman: "X", hpMult: 2.45, goldMult: 2.58, quote: "Правила больше не гарантированы", color: "#e84f36", adds: ["mutations2"], notes: ["Reality Break: 2 мутации башен на каждую волну"] },
@@ -2699,6 +2705,30 @@ const Game = (function () {
     return Combat.MAX_SLOTS;
   }
 
+  // Лимит предметов (спек §6.2): 6 всего всегда; класс-лимиты 2/2/2 — только
+  // с ранга Титан (мод capClass), чтобы сложность докручивала правило.
+  const ITEM_CAPACITY = { total: 6, perClass: { off: 2, def: 2, util: 2 } };
+
+  function itemCapacity(state) {
+    if (!Ranks.has(state, "capClass")) return { total: ITEM_CAPACITY.total, perClass: null };
+    return { total: ITEM_CAPACITY.total, perClass: { ...ITEM_CAPACITY.perClass } };
+  }
+
+  function classFull(state, cap, slotClass) {
+    return !!cap.perClass &&
+      state.player.items.filter((id) => Content.items.byId[id].slotClass === slotClass).length >= cap.perClass[slotClass];
+  }
+
+  // Причина, по которой предмет нельзя купить (null — можно): для UI лавки.
+  function itemBlockedReason(state, itemId) {
+    const item = Content.items.byId[itemId];
+    if (!item || state.player.items.includes(itemId)) return "owned";
+    const cap = itemCapacity(state);
+    if (state.player.items.length >= cap.total) return "full";
+    if (classFull(state, cap, item.slotClass)) return "class";
+    return null;
+  }
+
   function log(state, text) {
     state.log.push(text);
     if (state.log.length > 300) state.log.shift();
@@ -2921,14 +2951,14 @@ const Game = (function () {
         const item = Content.items.byId[action.itemId];
         const offerIdx = s.shop.offers.findIndex((o) => o.id === action.itemId);
         if (!item || offerIdx === -1) return s;
-        if (s.player.items.includes(action.itemId)) return s;
+        if (itemBlockedReason(s, action.itemId)) return s;
         const cost = itemCost(s, action.itemId);
         if (s.run.gold < cost) return s;
         s.run.gold -= cost;
         s.player.items.push(action.itemId);
         s.shop.offers.splice(offerIdx, 1);
         if (Ranks.has(s, "inflation")) s.run.inflationBuys += 1;
-        log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})`);
+        log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})${s.player.items.length >= itemCapacity(s).total ? " · слоты предметов заполнены" : ""}`);
         return s;
       }
 
@@ -3135,6 +3165,7 @@ const Game = (function () {
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
     assignMines, rankOf, maxSlots, recruitPrice, itemCost,
     archPerk, discardsPerWave, starterDeckIds,
+    itemCapacity, itemBlockedReason,
   };
 })();
 
@@ -4714,6 +4745,8 @@ const Art = (function () {
   };
 
   const RARITY_NAMES = { common: "Обычный", rare: "Редкий", epic: "Эпический" };
+  const SLOT_CLASS_NAMES = { off: "Атака", def: "Защита", util: "Утилита" };
+  const SLOT_CLASS_ICONS = { off: "⚔", def: "🛡", util: "🔧" };
 
   // Короткие подписи правил лиги для пикера рангов (по id добавок).
   const RANK_MOD_LABELS = {
@@ -4727,6 +4760,7 @@ const Art = (function () {
     mutations1: "Мутации башен: 1 на волну",
     adaptive: "Адаптация мира: частое комбо ×0.85",
     antihero: "Охота на героя: фаворит −2 силы",
+    capClass: "Лимит классов: ≤2 атаки / 2 защиты / 2 утилиты",
     discards2: "ТП-сбросы 2",
     tax1: "Налог зачистки −1G",
     curseChoice: "Проклятия забега: выбор в начале акта",
@@ -5350,6 +5384,13 @@ const Art = (function () {
   function bottomBandHtml(state) {
     if (state.phase === "shop") {
       const items = state.player.items;
+      const cap = Game.itemCapacity(state);
+      const classChips = cap.perClass
+        ? ["off", "def", "util"].map((cls) => {
+          const used = items.filter((id) => Content.items.byId[id].slotClass === cls).length;
+          return `<span class="cap-chip ${used >= cap.perClass[cls] ? "full" : ""}">${SLOT_CLASS_ICONS[cls]} ${used}/${cap.perClass[cls]}</span>`;
+        }).join("")
+        : "";
       const slots = [];
       for (let i = 0; i < Math.max(5, items.length); i++) {
         const id = items[i];
@@ -5369,7 +5410,8 @@ const Art = (function () {
       }
       return `<section class="bottom-band shop">
         <div class="band-top">
-          <h2 class="band-hand-title">Твой билд <span>${items.length}<small> слотов</small></span></h2>
+          <h2 class="band-hand-title">Твой билд <span>${items.length}<small>/${cap.total} слотов</small></span></h2>
+          <span class="cap-chips">${classChips}</span>
           <span class="hand-instruction">Клик по предмету — разбор и продажа за половину цены</span>
           <span class="spacer"></span>
         </div>
@@ -5628,6 +5670,7 @@ const Art = (function () {
 
   function renderShop(state) {
     const inflation = Ranks.has(state, "inflation") ? (state.run.inflationBuys || 0) : 0;
+    const cap = Game.itemCapacity(state);
     // Следующая цель в шапке лавки (§1.4): башню видно до выхода в бой,
     // сайдбар и шапка никогда не показывают мёртвую башню.
     const nextId = Content.waves.order[state.run.waveIndex + 1];
@@ -5637,6 +5680,10 @@ const Art = (function () {
       const item = Content.items.byId[o.id];
       const cost = Game.itemCost(state, item.id);
       const afford = state.run.gold >= cost;
+      const blocked = Game.itemBlockedReason(state, item.id);
+      const blockedLabel = blocked === "full"
+        ? `Слоты ${state.player.items.length}/${cap.total}`
+        : blocked === "class" ? `Нет слота ${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}` : "";
       return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
@@ -5647,9 +5694,10 @@ const Art = (function () {
         <div class="shop-card-art">${Art.itemIcon(item)}</div>
         <h3>${item.name}</h3>
         <p>${esc(item.desc)}</p>
+        <span class="slot-class-tag">${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}</span>
         ${cost !== item.cost ? `<span class="price-note">${cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
-        <button class="buy-button" ${afford ? "" : "disabled"} data-action="buy" data-id="${item.id}">
-          <span>${afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
+        <button class="buy-button" ${afford && !blocked ? "" : "disabled"} data-action="buy" data-id="${item.id}">
+          <span>${blocked && blockedLabel ? blockedLabel : afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
         </button>
       </div>`;
     }).join("");
@@ -6231,10 +6279,24 @@ const Art = (function () {
 // Dalatro — main: app state holder + event delegation. UI events become actions.
 // UI prefs (sound/motion/onboarding) live here, game state in Game.dispatch.
 (function () {
-  const SAVE_KEY = "dalatro_save_v2"; // v2: акты/новый баланс — старые сейфы несовместимы и не подхватываются
+  const SAVE_KEY = "dalatro_save_v3"; // v3: архетипы старта + слоты предметов (старые сейвы не подхватываются)
   const PREFS_KEY = "dalatro_prefs_v3";
   const ONBOARD_KEY = "dalatro_onboard_v3";
   const RANKS_KEY = "dalatro_ranks_v1"; // прогресс лиги: максимальный открытый ранг
+
+  // Мёрж дефолтов createInitialState: новые поля стейта (архетип, флаги перков,
+  // слоты) не роняют сейвы, сохранённые в более ранней точке этой же версии.
+  function normalizeState(s) {
+    const fresh = Game.createInitialState("");
+    return {
+      ...fresh, ...s,
+      run: { ...fresh.run, ...(s.run || {}) },
+      player: { ...fresh.player, ...(s.player || {}) },
+      combat: { ...fresh.combat, ...(s.combat || {}) },
+      shop: { ...fresh.shop, ...(s.shop || {}) },
+      stats: { ...fresh.stats, ...(s.stats || {}) },
+    };
+  }
 
   function loadUnlockedRank() {
     try {
@@ -6267,7 +6329,7 @@ const Art = (function () {
         rng.fastForward(s.rngCount || 0);
         Rng.setActive(rng);
       }
-      return s;
+      return normalizeState(s);
     } catch (e) { return null; }
   }
 

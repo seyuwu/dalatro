@@ -70,6 +70,30 @@ const Game = (function () {
     return Combat.MAX_SLOTS;
   }
 
+  // Лимит предметов (спек §6.2): 6 всего всегда; класс-лимиты 2/2/2 — только
+  // с ранга Титан (мод capClass), чтобы сложность докручивала правило.
+  const ITEM_CAPACITY = { total: 6, perClass: { off: 2, def: 2, util: 2 } };
+
+  function itemCapacity(state) {
+    if (!Ranks.has(state, "capClass")) return { total: ITEM_CAPACITY.total, perClass: null };
+    return { total: ITEM_CAPACITY.total, perClass: { ...ITEM_CAPACITY.perClass } };
+  }
+
+  function classFull(state, cap, slotClass) {
+    return !!cap.perClass &&
+      state.player.items.filter((id) => Content.items.byId[id].slotClass === slotClass).length >= cap.perClass[slotClass];
+  }
+
+  // Причина, по которой предмет нельзя купить (null — можно): для UI лавки.
+  function itemBlockedReason(state, itemId) {
+    const item = Content.items.byId[itemId];
+    if (!item || state.player.items.includes(itemId)) return "owned";
+    const cap = itemCapacity(state);
+    if (state.player.items.length >= cap.total) return "full";
+    if (classFull(state, cap, item.slotClass)) return "class";
+    return null;
+  }
+
   function log(state, text) {
     state.log.push(text);
     if (state.log.length > 300) state.log.shift();
@@ -292,14 +316,14 @@ const Game = (function () {
         const item = Content.items.byId[action.itemId];
         const offerIdx = s.shop.offers.findIndex((o) => o.id === action.itemId);
         if (!item || offerIdx === -1) return s;
-        if (s.player.items.includes(action.itemId)) return s;
+        if (itemBlockedReason(s, action.itemId)) return s;
         const cost = itemCost(s, action.itemId);
         if (s.run.gold < cost) return s;
         s.run.gold -= cost;
         s.player.items.push(action.itemId);
         s.shop.offers.splice(offerIdx, 1);
         if (Ranks.has(s, "inflation")) s.run.inflationBuys += 1;
-        log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})`);
+        log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})${s.player.items.length >= itemCapacity(s).total ? " · слоты предметов заполнены" : ""}`);
         return s;
       }
 
@@ -506,5 +530,6 @@ const Game = (function () {
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
     assignMines, rankOf, maxSlots, recruitPrice, itemCost,
     archPerk, discardsPerWave, starterDeckIds,
+    itemCapacity, itemBlockedReason,
   };
 })();

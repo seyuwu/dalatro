@@ -53,7 +53,7 @@ test("Перк «Контроль» (tp1): +1 ТП-сброс в акте 1, в 
 });
 
 test("Перк «Крит» (lasthit2): точный ласт-хит даёт +5+2 золота", () => {
-  const s = archRun("LH1", "crit");
+  const s = archRun("LH10", "crit");
   // Детерминированная пара без шанс-эффектов: Падж(7)+Джаггернаут(7) = 24×2 = 48.
   const uids = ["pudge", "juggernaut"].map((h) => Object.values(s.cards).find((c) => c.heroId === h).uid);
   assert(uids.every(Boolean), "падж и джаггернаут в колоде отряда «Крит»");

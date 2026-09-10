@@ -1,10 +1,24 @@
 // Dalatro — main: app state holder + event delegation. UI events become actions.
 // UI prefs (sound/motion/onboarding) live here, game state in Game.dispatch.
 (function () {
-  const SAVE_KEY = "dalatro_save_v2"; // v2: акты/новый баланс — старые сейфы несовместимы и не подхватываются
+  const SAVE_KEY = "dalatro_save_v3"; // v3: архетипы старта + слоты предметов (старые сейвы не подхватываются)
   const PREFS_KEY = "dalatro_prefs_v3";
   const ONBOARD_KEY = "dalatro_onboard_v3";
   const RANKS_KEY = "dalatro_ranks_v1"; // прогресс лиги: максимальный открытый ранг
+
+  // Мёрж дефолтов createInitialState: новые поля стейта (архетип, флаги перков,
+  // слоты) не роняют сейвы, сохранённые в более ранней точке этой же версии.
+  function normalizeState(s) {
+    const fresh = Game.createInitialState("");
+    return {
+      ...fresh, ...s,
+      run: { ...fresh.run, ...(s.run || {}) },
+      player: { ...fresh.player, ...(s.player || {}) },
+      combat: { ...fresh.combat, ...(s.combat || {}) },
+      shop: { ...fresh.shop, ...(s.shop || {}) },
+      stats: { ...fresh.stats, ...(s.stats || {}) },
+    };
+  }
 
   function loadUnlockedRank() {
     try {
@@ -37,7 +51,7 @@
         rng.fastForward(s.rngCount || 0);
         Rng.setActive(rng);
       }
-      return s;
+      return normalizeState(s);
     } catch (e) { return null; }
   }
 

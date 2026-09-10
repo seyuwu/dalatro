@@ -136,7 +136,7 @@ vm.runInContext(`
         Game.dispatch(state, { type: "ENTER_SHOP" });
         const affordable = state.shop.offers
           .map((o) => Content.items.byId[o.id])
-          .filter((i) => i && !state.player.items.includes(i.id) && i.cost <= state.run.gold)
+          .filter((i) => i && !state.player.items.includes(i.id) && i.cost <= state.run.gold && !Game.itemBlockedReason(state, i.id))
           .sort((a, b) => b.cost - a.cost);
         if (affordable[0]) { Game.dispatch(state, { type: "BUY_ITEM", itemId: affordable[0].id }); stats.items++; }
         // Нанимает рекрута, если остаётся запас: больше карт = лучше ротация
