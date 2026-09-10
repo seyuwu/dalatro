@@ -222,7 +222,7 @@ test("Проклятие Кровотока: урон ×1.15, награда ×0
   bareWave(s, 40); // пара 40×1.15 = 46 урона убивает башню
   const r = play(s, ["axe", "zeus"]);
   assertEq(r.damage, 46, "урон ×1.15");
-  assertEq(s.run.gold, 4 + Math.round(6 * (Ranks.goldMult(s) * Ranks.curseGoldMult(s))) - Ranks.taxPerWave(s), "зачистка с рангом, Кровотоком и налогом (+стартовые 4G)");
+  assertEq(s.run.gold, 4 + Math.round(6 * (Ranks.goldMult(s) * Ranks.curseGoldMult(s))) - Ranks.taxPerWave(s) + 3, "зачистка с рангом, Кровотоком, налогом (+4G старта) и бонусом скорости (+3G за 3 тимфайта)");
   const h = newRankedRun("HGR", 9);
   h.run.curses = ["hunger"];
   assertEq(Ranks.fightsPerWave(h), 3, "голод: −1 тимфайт");

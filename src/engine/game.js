@@ -18,7 +18,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -380,6 +380,12 @@ const Game = (function () {
           if (tax) clearGold = Math.max(0, clearGold - tax);
           // Улучшения лавки: плоское золото и шанс «Мелочи».
           s.run.failedLastWave = false;
+          // Бонус за скорость: каждый неиспользованный тимфайт — +1 золото.
+          const leftoverFights = s.player.fightsLeft;
+          if (leftoverFights > 0) {
+            clearGold += leftoverFights;
+            log(s, `Бонус скорости: +${leftoverFights}G за ${leftoverFights} неиспользованн${leftoverFights === 1 ? "ый тимфайт" : "ых тимфайта"}`);
+          }
           const streakGold = Upgrades.sum(s, "streakGold");
           if (streakGold && (s.run.momentum || 0) >= 2) clearGold = Math.round(clearGold * (1 + streakGold / 100));
           s.run.winCount = (s.run.winCount || 0) + 1;
@@ -472,6 +478,7 @@ const Game = (function () {
             DeckSys.moveToDiscard(s, [uid]);
           }
         }
+        s.combat.selectedUids = s.combat.selectedUids.filter((uid) => !uids.includes(uid));
         s.player.discardsLeft -= 1;
         DeckSys.draw(s, Rng.current());
         assignMines(s);
@@ -565,10 +572,13 @@ const Game = (function () {
           log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
         }
         s.shop.upgrades.splice(offerIdx, 1);
+        // Купил — слот сразу заполняется новым случайным предложением.
+        const refill = Upgrades.generateOffers(s, 1, s.shop.upgrades);
+        if (refill.length) s.shop.upgrades.push(refill[0]);
         return s;
       }
 
-      // Обновление предложений улучшений (фидбек): фиксированные 2G.
+      // Обновление предложений улучшений (фидбек): 1G.
       case "REROLL_UPGRADES": {
         if (s.phase !== "shop") return s;
         if (s.run.gold < Upgrades.REROLL_COST) return s;
@@ -875,6 +885,7 @@ const Game = (function () {
         }
         if (route.shopInflation) s.run.routeInflation = true;
         if (route.shopSlots) s.run.shopSlotsDelta = (s.run.shopSlotsDelta || 0) + route.shopSlots;
+        if (route.upgradeSlots) s.run.upgradeSlotsDelta = (s.run.upgradeSlotsDelta || 0) + route.upgradeSlots;
         // Одноразовые гарантии следующей лавки.
         s.run.pendingShopPrice = route.shopPrice !== undefined ? route.shopPrice : null;
         s.run.pendingItemRarity = route.itemRarity || null;

@@ -73,7 +73,7 @@ test("Перк «Крит» (lasthit2): точный ласт-хит даёт +5
   const goldBefore = s.run.gold;
   Game.dispatch(s, { type: "CONFIRM_FIGHT" });
   assertEq(s.combat.lastResolution.damage, 48, "урон пары = 48, башня снята в ноль");
-  assertEq(s.run.gold - goldBefore, 6 + 5 + 2, "зачистка 6G + ласт-хит 5G + перк 2G");
+  assertEq(s.run.gold - goldBefore, 6 + 5 + 2 + 3, "зачистка 6G + ласт-хит 5G + перк 2G + бонус скорости 3G (3 тимфайта не потрачены)");
   assert(s.combat.lastResolution.steps.some((st) => st.label.includes("Отряд «Крит»")), "шаг перка виден в стеке");
 });
 

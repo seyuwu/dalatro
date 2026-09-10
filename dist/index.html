@@ -2298,7 +2298,7 @@ const ROUTES_DATA = [
   { id: "blackmarket", name: "Чёрный рынок", emoji: "🕶️", group: "economy", weight: 9, minAct: 2,
     itemRarity: "rare", shopPrice: 1.1, desc: "В следующей лавке ждёт редкий товар (чуть дороже)." }, // #31
   { id: "salered", name: "Распродажа", emoji: "🏷️", group: "economy", weight: 9,
-    shopPrice: 0.7, shopSlots: -2, reward: 1.2, desc: "Лавка −30%, но на 2 товара беднее." }, // #32
+    shopPrice: 0.7, shopSlots: -2, upgradeSlots: -1, reward: 1.2, desc: "Лавка −30% и на 2 товара беднее, улучшений −1 карточка." }, // #32
   { id: "junkyard", name: "Уценка хлама", emoji: "🗑️", group: "economy", weight: 8,
     freeCommons: 2, desc: "Два слабых (обычных) товара в следующей лавке — бесплатно." }, // #33
   { id: "smuggling", name: "Контрабанда", emoji: "📦", group: "economy", weight: 7, minAct: 1,
@@ -3251,7 +3251,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -3613,6 +3613,12 @@ const Game = (function () {
           if (tax) clearGold = Math.max(0, clearGold - tax);
           // Улучшения лавки: плоское золото и шанс «Мелочи».
           s.run.failedLastWave = false;
+          // Бонус за скорость: каждый неиспользованный тимфайт — +1 золото.
+          const leftoverFights = s.player.fightsLeft;
+          if (leftoverFights > 0) {
+            clearGold += leftoverFights;
+            log(s, `Бонус скорости: +${leftoverFights}G за ${leftoverFights} неиспользованн${leftoverFights === 1 ? "ый тимфайт" : "ых тимфайта"}`);
+          }
           const streakGold = Upgrades.sum(s, "streakGold");
           if (streakGold && (s.run.momentum || 0) >= 2) clearGold = Math.round(clearGold * (1 + streakGold / 100));
           s.run.winCount = (s.run.winCount || 0) + 1;
@@ -3705,6 +3711,7 @@ const Game = (function () {
             DeckSys.moveToDiscard(s, [uid]);
           }
         }
+        s.combat.selectedUids = s.combat.selectedUids.filter((uid) => !uids.includes(uid));
         s.player.discardsLeft -= 1;
         DeckSys.draw(s, Rng.current());
         assignMines(s);
@@ -3798,10 +3805,13 @@ const Game = (function () {
           log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
         }
         s.shop.upgrades.splice(offerIdx, 1);
+        // Купил — слот сразу заполняется новым случайным предложением.
+        const refill = Upgrades.generateOffers(s, 1, s.shop.upgrades);
+        if (refill.length) s.shop.upgrades.push(refill[0]);
         return s;
       }
 
-      // Обновление предложений улучшений (фидбек): фиксированные 2G.
+      // Обновление предложений улучшений (фидбек): 1G.
       case "REROLL_UPGRADES": {
         if (s.phase !== "shop") return s;
         if (s.run.gold < Upgrades.REROLL_COST) return s;
@@ -4108,6 +4118,7 @@ const Game = (function () {
         }
         if (route.shopInflation) s.run.routeInflation = true;
         if (route.shopSlots) s.run.shopSlotsDelta = (s.run.shopSlotsDelta || 0) + route.shopSlots;
+        if (route.upgradeSlots) s.run.upgradeSlotsDelta = (s.run.upgradeSlotsDelta || 0) + route.upgradeSlots;
         // Одноразовые гарантии следующей лавки.
         s.run.pendingShopPrice = route.shopPrice !== undefined ? route.shopPrice : null;
         s.run.pendingItemRarity = route.itemRarity || null;
@@ -4733,7 +4744,7 @@ const DeckSys = (function () {
 // (эпик → мифик с 3-го уровня). Баланс: экспонента ограничивает сама,
 // естественный потолок — размер колоды; на высоких рангах лига режет руку.
 const Upgrades = (function () {
-  const REROLL_COST = 2;
+  const REROLL_COST = 1;
   const HAND_SLOT_ID = "hand_slot";
   const ATTR_POTION_ID = "attr_potion";
   const BASE_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
@@ -4797,9 +4808,10 @@ const Upgrades = (function () {
     };
   }
 
-  // Число карточек улучшений в лавке: 2 + бонус за удачу (макс 4).
+  // Число карточек улучшений в лавке: минимум 4, удача добавляет до 6,
+  // другие бонусы (например «Распродажа») могут уменьшать.
   function slotsFor(state) {
-    return 2 + Math.min(2, Math.floor(luck(state) / 3));
+    return Math.max(1, 4 + Math.min(2, Math.floor(luck(state) / 3)) + (state.run.upgradeSlotsDelta || 0));
   }
 
   function pickRarity(rng, weights) {
@@ -4815,14 +4827,16 @@ const Upgrades = (function () {
 
   // Карточки улучшений: без дублей; обычные — по одному разу за забег,
   // «Запасной слот» — повторяемый (максимум одна карточка в лавке).
-  function generateOffers(state, slots) {
+  function generateOffers(state, slots, exclude) {
     const l = luck(state);
     const count = slots || slotsFor(state);
     const weights = rarityWeights(l);
     const rng = Rng.current();
     const owned = new Set(state.run.upgrades || []);
+    const taken = new Set((exclude || []).map((o) => o.id || o));
     const offers = [];
-    let handSlotOffered = false;
+    let handSlotOffered = (taken.has(HAND_SLOT_ID) ? true : false);
+    let potionOffered = (taken.has(ATTR_POTION_ID) ? true : false);
     let guard = 60;
     while (offers.length < count && guard-- > 0) {
       const rarity = pickRarity(rng, weights);
@@ -4831,12 +4845,13 @@ const Upgrades = (function () {
         handSlotOffered = true;
         continue;
       }
-      if (rarity === "rare" && !offers.some((o) => o.id === ATTR_POTION_ID) && rng.next() < 0.3) {
+      if (rarity === "rare" && !potionOffered && rng.next() < 0.3) {
         offers.push({ id: ATTR_POTION_ID });
+        potionOffered = true;
         continue;
       }
       const pool = Content.upgrades.list
-        .filter((u) => u.rarity === rarity && !owned.has(u.id) && !offers.some((o) => o.id === u.id));
+        .filter((u) => u.rarity === rarity && !owned.has(u.id) && !taken.has(u.id) && !offers.some((o) => o.id === u.id));
       if (!pool.length) continue;
       const u = pool[Math.floor(rng.next() * pool.length)];
       offers.push({ id: u.id });

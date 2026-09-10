@@ -44,7 +44,7 @@ test("Примитивы hp/reward: Сильная башня толще и пл
   const goldBefore = s.run.gold;
   forceHandPlay(s, ["tusk"]);
   // 6 × 1.6 = 9.6 → 10, плюс 1 золото хараса (играл один герой)
-  assertEq(s.run.gold - goldBefore, Math.round((s.combat.wave.gold || 6) * 1.6) + 1, "зачистка с множителем маршрута + харас");
+  assertEq(s.run.gold - goldBefore, Math.round((s.combat.wave.gold || 6) * 1.6) + 1 + 3, "зачистка ×1.6 + харас 1G + бонус скорости 3G (2 героя, 4-1=3 тимфайта не потрачены)");
 });
 
 function forceHandPlay(s, heroIds) {
@@ -72,7 +72,7 @@ test("Примитив shopPrice: Распродажа −25% только на 
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
   const item = Content.items.byId[s.shop.offers[0].id];
-  assertEq(Game.itemCost(s, s.shop.offers[0].id), Math.max(1, Math.round(item.cost * 0.75)), "цена со скидкой");
+  assertEq(Game.itemCost(s, s.shop.offers[0].id), Math.max(1, Math.round(item.cost * 0.7)), "цена со скидкой (Распродажа ×0.7)");
   // После выхода множитель сброшен
   Game.dispatch(s, { type: "LEAVE_SHOP" });
   assertEq(s.run.shopPriceMult, 1, "множитель потрачен");
@@ -161,7 +161,7 @@ test("Лихва: заём +12G, возврат −15G после зачистк
   s.player.fightsLeft = 4;
   forceHandPlay(s, ["tusk"]);
   // Зачистка харасом даёт 6G — долг гасится частично, остаток висит
-  assert(s.run.debtGold === 15 - 6, "долг погашен насколько хватило: " + s.run.debtGold);
+  assert(s.run.debtGold === 15 - 9, "долг погашен с учётом бонуса скорости: " + s.run.debtGold);
   assert(s.run.gold >= 0, "золото не ушло в минус");
 });
 
@@ -221,4 +221,19 @@ test("Вторая жизнь: провал сохраняет последню�
   assert(!s.run.extraLife, "жизнь потрачена");
   assertEq(s.run.lifePenalty, 0.75, "награды урезаны");
   assertEq(s.phase, "wave", "забег продолжается");
+});
+
+test("Бонус скорости: +1G за каждый неиспользованный тимфайт", () => {
+  const s = rtFork(rtRun("RSPD1"));
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "normal" });
+  const uids = ["tusk"].map((h) => Object.values(s.cards).find((c) => c.heroId === h).uid);
+  s.player.handUids = [...uids, ...Object.keys(s.cards).filter((u) => !uids.includes(u))];
+  s.combat.selectedUids = uids.slice();
+  s.combat.wave.hp = 1; // лёгкое добивание
+  const gold0 = s.run.gold;
+  Game.dispatch(s, { type: "CONFIRM_FIGHT" });
+  assertEq(s.combat.outcome, "cleared");
+  // 4 тимфайта, потрачен 1 → +3G (харас +1G отдельно учтён в резолюции)
+  assert(s.run.gold - gold0 >= 6 + 1 + 3 - 1, "золото с бонусом скорости: " + (s.run.gold - gold0));
+  assert(s.log.some((l) => l.includes("Бонус скорости")), "лог бонуса");
 });

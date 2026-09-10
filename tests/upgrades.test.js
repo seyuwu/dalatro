@@ -45,7 +45,7 @@ test("Hook «Точный расчёт»: +3G за точный ласт-хит 
   s.combat.wave.maxHp = Math.max(s.combat.wave.maxHp, 48);
   const goldBefore = s.run.gold;
   Game.dispatch(s, { type: "CONFIRM_FIGHT" });
-  assertEq(s.run.gold - goldBefore, 6 + 5 + 3, "зачистка 6 + ласт-хит 5 + улучшение 3");
+  assertEq(s.run.gold - goldBefore, 6 + 5 + 3 + 3, "зачистка 6 + ласт-хит 5 + улучшение 3 + бонус скорости 3G");
 });
 
 test("Hook «Перелом»: башня ниже 25% HP даёт +3% урона", () => {
@@ -83,21 +83,29 @@ test("Удача: сдвигает веса редкостей и добавля
   const s = upRun("UPG15B");
   s.run.upgrades = ["podkova", "krolichya_lapka", "klever"]; // удача 6
   assertEq(Upgrades.luck(s), 6);
-  assertEq(Upgrades.slotsFor(s), 4, "с удачи 6 — четыре карточки");
+  assertEq(Upgrades.slotsFor(s), 6, "база 4 + удача 6 → шесть карточек");
   const w = Upgrades.rarityWeights(6);
   assert(w.common < 60 && w.epic > 4 && w.mythic > 1, "веса сдвинуты к топу");
   assert(w.common >= 15, "общие не выжигаются в ноль");
 });
 
-test("Реролл улучшений: 2G, новые предложения", () => {
+test("Реролл улучшений: 1G, новые предложения; покупка заполняет слот", () => {
   const s = upRun("UPG15C");
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
+  assertEq((s.shop.upgrades || []).length, 4, "база — 4 карточки");
   const first = JSON.stringify(s.shop.upgrades);
   s.run.gold = 10;
   Game.dispatch(s, { type: "REROLL_UPGRADES" });
-  assertEq(s.run.gold, 8, "2G списано");
-  assert((s.shop.upgrades || []).length >= 2, "предложения обновлены");
+  assertEq(s.run.gold, 9, "1G списано");
+  assertEq((s.shop.upgrades || []).length, 4, "предложения обновлены");
+  // Покупка: слот сразу заполняется новым предложением
+  s.shop.upgrades = [{ id: "ostryi_kraj" }, { id: "pereprodazha" }, { id: "meloch" }, { id: "sberezheniya" }];
+  const before = s.shop.upgrades.length;
+  Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "ostryi_kraj" });
+  assertEq(s.shop.upgrades.length, before, "слот немедленно заполнен");
+  assert((s.run.upgrades || []).includes("ostryi_kraj"), "куплено");
+  assert(!s.shop.upgrades.some((o) => o.id === "ostryi_kraj"), "купленного нет в предложениях");
 });
 
 test("Scalar реролл: «Сбережения» дешевеют только при 15+ золоте", () => {
@@ -121,7 +129,7 @@ test("Покупка улучшения: BUY_UPGRADE списывает золо
   const s = upRun("UPG18");
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
-  assert((s.shop.upgrades || []).length === 2, "2 предложения улучшений");
+  assert((s.shop.upgrades || []).length >= 2, "предложения улучшений на месте");
   s.shop.upgrades = [{ id: "ostryi_kraj", cost: 2 }];
   s.run.gold = 10;
   const itemsBefore = s.player.items.length;

@@ -222,7 +222,7 @@ test("Акт-переход: босс акта даёт +10 золота и ка
     hp: 100, maxHp: def.hp, gold: def.gold, modifiers: [], enemyItems: [], aegisUsed: false };
   ablPlay(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   assertEq(s.combat.outcome, "cleared");
-  assertEq(s.run.gold, goldBefore + 10 + 10 + 5, "зачистка 10 + акт-премия 10 + оверкилл 5 (кап)");
+  assertEq(s.run.gold, goldBefore + 10 + 10 + 5 + 3, "зачистка 10 + акт-премия 10 + оверкилл 5 (кап) + бонус скорости 3G");
   assert(s.log.some((l) => l.includes("АКТ 1 ПРОЙДЕН")), "лог акта");
   assertEq(s.phase, "wave", "победа только после акта 3");
   Game.dispatch(s, { type: "ENTER_SHOP" });

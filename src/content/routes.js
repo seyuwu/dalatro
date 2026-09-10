@@ -88,7 +88,7 @@ const ROUTES_DATA = [
   { id: "blackmarket", name: "Чёрный рынок", emoji: "🕶️", group: "economy", weight: 9, minAct: 2,
     itemRarity: "rare", shopPrice: 1.1, desc: "В следующей лавке ждёт редкий товар (чуть дороже)." }, // #31
   { id: "salered", name: "Распродажа", emoji: "🏷️", group: "economy", weight: 9,
-    shopPrice: 0.7, shopSlots: -2, reward: 1.2, desc: "Лавка −30%, но на 2 товара беднее." }, // #32
+    shopPrice: 0.7, shopSlots: -2, upgradeSlots: -1, reward: 1.2, desc: "Лавка −30% и на 2 товара беднее, улучшений −1 карточка." }, // #32
   { id: "junkyard", name: "Уценка хлама", emoji: "🗑️", group: "economy", weight: 8,
     freeCommons: 2, desc: "Два слабых (обычных) товара в следующей лавке — бесплатно." }, // #33
   { id: "smuggling", name: "Контрабанда", emoji: "📦", group: "economy", weight: 7, minAct: 1,

@@ -14,7 +14,7 @@
 // (эпик → мифик с 3-го уровня). Баланс: экспонента ограничивает сама,
 // естественный потолок — размер колоды; на высоких рангах лига режет руку.
 const Upgrades = (function () {
-  const REROLL_COST = 2;
+  const REROLL_COST = 1;
   const HAND_SLOT_ID = "hand_slot";
   const ATTR_POTION_ID = "attr_potion";
   const BASE_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
@@ -78,9 +78,10 @@ const Upgrades = (function () {
     };
   }
 
-  // Число карточек улучшений в лавке: 2 + бонус за удачу (макс 4).
+  // Число карточек улучшений в лавке: минимум 4, удача добавляет до 6,
+  // другие бонусы (например «Распродажа») могут уменьшать.
   function slotsFor(state) {
-    return 2 + Math.min(2, Math.floor(luck(state) / 3));
+    return Math.max(1, 4 + Math.min(2, Math.floor(luck(state) / 3)) + (state.run.upgradeSlotsDelta || 0));
   }
 
   function pickRarity(rng, weights) {
@@ -96,14 +97,16 @@ const Upgrades = (function () {
 
   // Карточки улучшений: без дублей; обычные — по одному разу за забег,
   // «Запасной слот» — повторяемый (максимум одна карточка в лавке).
-  function generateOffers(state, slots) {
+  function generateOffers(state, slots, exclude) {
     const l = luck(state);
     const count = slots || slotsFor(state);
     const weights = rarityWeights(l);
     const rng = Rng.current();
     const owned = new Set(state.run.upgrades || []);
+    const taken = new Set((exclude || []).map((o) => o.id || o));
     const offers = [];
-    let handSlotOffered = false;
+    let handSlotOffered = (taken.has(HAND_SLOT_ID) ? true : false);
+    let potionOffered = (taken.has(ATTR_POTION_ID) ? true : false);
     let guard = 60;
     while (offers.length < count && guard-- > 0) {
       const rarity = pickRarity(rng, weights);
@@ -112,12 +115,13 @@ const Upgrades = (function () {
         handSlotOffered = true;
         continue;
       }
-      if (rarity === "rare" && !offers.some((o) => o.id === ATTR_POTION_ID) && rng.next() < 0.3) {
+      if (rarity === "rare" && !potionOffered && rng.next() < 0.3) {
         offers.push({ id: ATTR_POTION_ID });
+        potionOffered = true;
         continue;
       }
       const pool = Content.upgrades.list
-        .filter((u) => u.rarity === rarity && !owned.has(u.id) && !offers.some((o) => o.id === u.id));
+        .filter((u) => u.rarity === rarity && !owned.has(u.id) && !taken.has(u.id) && !offers.some((o) => o.id === u.id));
       if (!pool.length) continue;
       const u = pool[Math.floor(rng.next() * pool.length)];
       offers.push({ id: u.id });
