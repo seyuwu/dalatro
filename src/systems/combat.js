@@ -204,11 +204,14 @@ const Combat = (function () {
     return a.basePower * a.baseMult > b.basePower * b.baseMult;
   }
 
-  // Числовая защита цели (formation): TOWER_DEFENSE по id башни. BKB обнуляет —
+  // Числовая защита цели (formation): TOWER_DEFENSE по id башни, множитель
+  // маршрута (batch-1 пока без defense-маршрутов). BKB обнуляет —
   // он и так выключает волновые модификаторы и проклятия.
   function towerDefenseOf(state) {
     if (state.combat.scoring && state.combat.scoring.flags.bkbBlocksMods) return { armor: 0, mr: 0 };
-    return Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
+    const base = Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
+    const dm = state.combat.wave.defenseMult || 1;
+    return dm === 1 ? base : { armor: Math.round(base.armor * dm), mr: Math.round(base.mr * dm * 100) / 100 };
   }
 
   function towerDamageMult(state, resolution, playedCount) {
@@ -352,6 +355,16 @@ const Combat = (function () {
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
+    // Бонус силы маршрута (Пустая рука/Вознесение/Дуэль) — всем боям волны.
+    if (state.combat.wave.powerBonus) {
+      state.combat.scoring.power += state.combat.wave.powerBonus;
+      state.combat.scoring.trace.routePower = (state.combat.scoring.trace.routePower || 0) + state.combat.wave.powerBonus;
+      Resolver.pushStep(resolution, {
+        icon: "🧭",
+        label: `Маршрут «${state.combat.wave.routeName}»: +${state.combat.wave.powerBonus} силы`,
+        kind: "info",
+      });
+    }
     // База для аудита: комбо + сыгранные карты до триггеров.
     state.combat.scoring.trace.comboId = combo.type;
     state.combat.scoring.trace.comboBase = combo.basePower;

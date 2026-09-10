@@ -47,7 +47,9 @@ test("LEAVE_SHOP открывает развилку; крип-лагерь да
   Game.dispatch(s, { type: "ENTER_SHOP" });
   Game.dispatch(s, { type: "LEAVE_SHOP" });
   assertEq(s.phase, "route", "развилка открыта");
-  assert(s.combat.route && Content.curses.includes(s.combat.route.curse), "проклятие из списка");
+  const ids = s.combat.routeOptions.map((o) => o.id);
+  assertEq(ids[0], "normal", "обычная башня всегда первая");
+  assert(ids.includes("camp"), "лагерь в опциях, пока не зачищен");
   const goldBefore = s.run.gold;
   const barracksBefore = s.run.barracks;
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "camp" });
@@ -58,6 +60,7 @@ test("LEAVE_SHOP открывает развилку; крип-лагерь да
   assert(s.combat.campTaken, "лагерь использован");
   Game.dispatch(s, { type: "LEAVE_SHOP" });
   assertEq(s.phase, "route", "снова развилка");
+  assert(!s.combat.routeOptions.some((o) => o.id === "camp"), "лагерь исключён из ролла после зачистки");
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "camp" });
   assertEq(s.phase, "route", "второй лагерь за волну невозможен");
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "normal" });
@@ -65,6 +68,7 @@ test("LEAVE_SHOP открывает развилку; крип-лагерь да
   const def = Content.waves.byId[Content.waves.order[s.run.waveIndex]];
   assertEq(s.combat.wave.hp, def.hp, "обычное HP");
   assert(!s.combat.wave.elite, "не элита");
+  assert(s.combat.routeOptions.length === 0, "опции развилки потрачены");
 });
 
 test("Перед боссом развилки нет — сразу волна Рошана", () => {
@@ -82,13 +86,14 @@ test("Элитный маршрут: HP ×1.5, проклятие в модиф�
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
   Game.dispatch(s, { type: "LEAVE_SHOP" });
-  const curse = s.combat.route.curse;
+  // Инжектим опции: элитка с фиксированным проклятием (ролл элитки не гарантирован).
+  s.combat.routeOptions = [{ id: "normal" }, { id: "elite", curse: "silence" }];
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "elite" });
   assertEq(s.phase, "wave");
   const def = Content.waves.byId[Content.waves.order[s.run.waveIndex]];
   assertEq(s.combat.wave.maxHp, Math.round(def.hp * 1.5), "HP ×1.5");
   assert(s.combat.wave.elite, "флаг элиты");
-  assert((s.combat.wave.modifiers || []).some((m) => m.id === curse), "проклятие на волне");
+  assert((s.combat.wave.modifiers || []).some((m) => m.id === "silence"), "проклятие на волне");
   s.combat.wave.hp = 1;
   s.player.fightsLeft = 4;
   play(s, ["tusk"]);

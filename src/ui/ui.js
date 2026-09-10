@@ -914,24 +914,65 @@
     ${toastHtml()}`;
   }
 
-  // ---------- route fork: три тропы после лавки ----------
+  // ---------- route fork: развилка после лавки (спек §4, данные из ROUTES_DATA) ----------
 
-  function routeCardHtml(state, kind, cls, emoji, title, lines, foot, disabled) {
-    return `<button class="route-card ${cls} ${disabled ? "disabled" : ""}" data-action="take-route" data-kind="${kind}" ${disabled ? "disabled" : ""}>
-      <span class="route-emoji">${emoji}</span>
-      <strong>${title}</strong>
+  const ROUTE_GROUP_FOOT = {
+    core: "Честный бой",
+    combat: "Риск · награда",
+    economy: "Золото сейчас",
+    hand: "Стиль волны",
+  };
+
+  function routeCardHtml(state, opt, route, lines, index) {
+    const cls = opt.id === "camp" ? "camp" : opt.id === "normal" ? "normal" : route.group;
+    return `<button class="route-card ${cls}" data-action="take-route" data-kind="${opt.id}">
+      <span class="route-emoji">${route.emoji}</span>
+      <strong>${route.name}</strong>
       <div class="route-lines">${lines.map((l) => `<span>${l}</span>`).join("")}</div>
-      <small>${foot}</small>
+      <small>${ROUTE_GROUP_FOOT[route.group] || "Путь"} <kbd>${index + 1}</kbd></small>
     </button>`;
+  }
+
+  // Строки карточки генерируются из примитивов маршрута — новый маршрут в
+  // ROUTES_DATA появляется на экране без правок UI.
+  function routeCardLines(opt, route, nextDef, nextHp, baseRules) {
+    const lines = [];
+    if (route.id === "normal") {
+      lines.push(`${nextDef.name} · ${fmt(nextHp)} HP`);
+      lines.push(baseRules);
+      lines.push("Полный темп забега");
+      return lines;
+    }
+    if (route.hp) lines.push(`HP ×${route.hp} → ${fmt(Math.round(nextHp * route.hp))} HP`);
+    if (opt.curse) {
+      const curse = Content.modifiers.byId[opt.curse];
+      lines.push(`Проклятие: ${curse.name} — ${curse.desc}`);
+    }
+    if (route.mods) lines.push("Правила: " + route.mods.map((id) => Content.modifiers.byId[id].name).join(", "));
+    if (route.modsRandom) lines.push(`Случайных правил на бой: ${route.modsRandom}`);
+    if (route.reward && route.hp) lines.push(`Награда ×${route.reward}`);
+    if (route.gold) lines.push(route.gold > 0 ? `Сразу +${route.gold} золота` : `Сразу ${route.gold} золота`);
+    if (route.gamble) lines.push(`${Math.round(route.gamble.chance * 100)}%: +${route.gamble.win} золота, иначе пусто`);
+    if (route.shopPrice) lines.push(route.shopPrice < 1
+      ? `Следующая лавка −${Math.round((1 - route.shopPrice) * 100)}%`
+      : `Следующая лавка +${Math.round((route.shopPrice - 1) * 100)}%`);
+    if (route.hand) lines.push(route.hand > 0 ? `+${route.hand} карты в руке на волну` : `${route.hand} карта в руке на волну`);
+    if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} тимфайт` : `−${-route.fights} тимфайт`);
+    if (route.power) lines.push(`+${route.power} силы каждому бою`);
+    if (route.itemRarity) lines.push(`В лавке ждёт ${route.itemRarity === "epic" ? "эпик" : "редкий"} товар`);
+    lines.push(route.desc);
+    return lines;
   }
 
   function renderRoute(state) {
     const nextIndex = state.run.waveIndex + 1;
     const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
-    const curse = state.combat.route ? Content.modifiers.byId[state.combat.route.curse] : null;
-    const baseRules = (nextDef.modifiers || []).map((m) => Content.modifiers.byId[m.id].name).join(" · ") || "без модификаторов";
-    const campDisabled = state.combat.campTaken;
     const nextHp = Math.round(nextDef.hp * Ranks.waveHpMult(state, nextIndex));
+    const baseRules = (nextDef.modifiers || []).map((m) => Content.modifiers.byId[m.id].name).join(" · ") || "без модификаторов";
+    const cards = (state.combat.routeOptions || []).map((opt, i) => {
+      const route = Content.routes.byId[opt.id];
+      return routeCardHtml(state, opt, route, routeCardLines(opt, route, nextDef, nextHp, baseRules), i);
+    }).join("");
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -942,24 +983,7 @@
               <span class="section-label mint">${icon("target", 15)}РАЗВИЛКА · ВОЛНА ${nextIndex + 1} ИЗ ${Content.waves.order.length}</span>
               <h2>Куда двинемся?</h2>
               <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${fmt(nextHp)} HP · ${baseRules}</p>
-              <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">
-                ${routeCardHtml(state, "normal", "normal", "🗼", "Обычная башня", [
-                  `${nextDef.name} · ${fmt(nextHp)} HP`,
-                  baseRules,
-                  "Полный темп забега",
-                ], "Честный бой <kbd>1</kbd>")}
-                ${routeCardHtml(state, "elite", "elite", "💀", "Элитная башня", [
-                  `HP ×1.5 → ${fmt(Math.round(nextHp * 1.5))} HP`,
-                  `Проклятие: ${curse ? curse.name : "—"} — ${curse ? curse.desc : ""}`,
-                  "Награда: золото ×1.5 и эпик в лавке",
-                ], "Риск · награда <kbd>2</kbd>")}
-                ${routeCardHtml(state, "camp", "camp", "🏕️", "Крип-лагерь", [
-                  "Бой пропускается",
-                  "+6 золота и привал: +1 казарма",
-                  "Бесплатное увольнение героя в лавке",
-                ], campDisabled ? "Лагерь уже зачищен" : "Безопасный темп <kbd>3</kbd>", campDisabled)}
-              </div>
-              ${curse ? `<div class="route-curse">Проклятие элитки выбрано заранее: <b>${curse.name}</b> — ${esc(curse.desc)} BKB игнорирует любые проклятия.</div>` : ""}
+              <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">${cards}</div>
             </section>
           </div>
         </div>

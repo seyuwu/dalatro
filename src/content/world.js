@@ -59,6 +59,87 @@ const MODIFIERS_DATA = [
 
 const CURSES = ["adaptation", "bastion", "fog", "silence", "disarm"];
 
+// --- Развилки после лавки (спек §4, фаза E). Контент сидит на 12 примитивах:
+//   hp/reward — множители башни и награды; mods — волновые модификаторы (тот же
+//   пайплайн, что у ранговых мутаций); gold — немедленная дельта; shopPrice —
+//   множитель цен следующей лавки; hand — слот руки на волну; fights — дельта
+//   тимфайтов; itemRarity/extraRecruit — гарантии следующей лавки; gamble —
+//   мгновенный бросок; power — бонус силы всем боям волны; defense — множитель
+//   числовой защиты башни (формации); curse — элитке вкатывается проклятие.
+// Ролл: normal + лагерь всегда, 2 слота спецвариантов по весам с фильтрами
+// minAct/minRank. Всё детерминировано сидом (Rng на LEAVE_SHOP).
+const ROUTES_DATA = [
+  // --- коревые пути (всегда в развилке) ---
+  { id: "normal", name: "Обычная башня", emoji: "🗼", group: "core", weight: 0,
+    desc: "Стандартный следующий бой; нормальная награда." },
+  { id: "camp", name: "Крип-лагерь", emoji: "🏕️", group: "core", weight: 0,
+    desc: "Бой пропускается: +6 золота, привал (+1 казарма), бесплатное увольнение." },
+
+  // --- боевые ---
+  { id: "strong", name: "Сильная башня", emoji: "🏗️", group: "combat", weight: 30,
+    hp: 1.35, reward: 1.6, desc: "Усиленная башня — и заметно жирнее награда." },
+  { id: "elite", name: "Элитная башня", emoji: "💀", group: "combat", weight: 22,
+    hp: 1.5, reward: 1.5, curse: true, itemRarity: "epic",
+    desc: "Очень сильная башня с проклятием; награда ×1.5 и эпик в лавке." },
+  { id: "fragile", name: "Хрупкая", emoji: "🧨", group: "combat", weight: 14,
+    hp: 0.45, mods: ["thorns"], desc: "Мало HP, но большой отряд она наказывает." },
+  { id: "berserk", name: "Берсерк", emoji: "😤", group: "combat", weight: 14,
+    hp: 0.7, mods: ["reflection"], desc: "Меньше HP, зато каждый чётный бой слабее." },
+  { id: "twin", name: "Двойная башня", emoji: "🗼", group: "combat", weight: 12, minAct: 2,
+    hp: 1.6, fights: 1, reward: 1.6, desc: "Как две цели: толще, на один бой дольше, награда ×1.6." },
+  { id: "siege", name: "Осадная", emoji: "🏰", group: "combat", weight: 12, minAct: 2,
+    hp: 1.5, shopPrice: 0.85, desc: "Толстая башня; после её падения лавка со скидкой." },
+  { id: "swift", name: "Быстрая", emoji: "💨", group: "combat", weight: 12,
+    hp: 0.5, fights: -1, reward: 1.3, desc: "Полбашни HP, но тимфайтов меньше — бей точно." },
+  { id: "reflector", name: "Отражатель", emoji: "🪞", group: "combat", weight: 10, minAct: 2,
+    mods: ["reflection"], reward: 1.3, desc: "Чётные бои наносят ×0.75. Награда за риск." },
+  { id: "devourer", name: "Пожиратель", emoji: "🕳️", group: "combat", weight: 10, minAct: 2,
+    mods: ["regen"], reward: 1.4, desc: "Лечится после каждого боя — не растягивай волну." },
+  { id: "shieldbearer", name: "Щитоносец", emoji: "🛡️", group: "combat", weight: 10,
+    hp: 1.15, mods: ["glyph"], reward: 1.4, desc: "Каждый 3-й бой блокируется глифом." },
+  { id: "disarmer", name: "Разоружитель", emoji: "🚫", group: "combat", weight: 10, minAct: 2,
+    mods: ["disarm"], reward: 1.5, desc: "Не больше 4 героев в отряде. Награда ×1.5." },
+  { id: "mutetower", name: "Немая", emoji: "🤐", group: "combat", weight: 10, minAct: 2,
+    mods: ["silence"], reward: 1.5, desc: "Способности героев отключены; предметы работают." },
+  { id: "thief", name: "Вор", emoji: "🦹", group: "combat", weight: 10, minAct: 2,
+    mods: ["greed"], reward: 1.4, desc: "Слабый бой — башня крадёт золото." },
+  { id: "anomaly", name: "Аномалия", emoji: "🌀", group: "combat", weight: 6, minRank: 6,
+    reward: 1.8, modsRandom: 2, desc: "Два случайных правила на этот бой. Награда ×1.8." },
+  { id: "papochka", name: "??? ПАПОЧКА", emoji: "👨", group: "combat", weight: 2, minRank: 10,
+    hp: 1.4, reward: 3, modsRandom: 2,
+    desc: "Он всё видел. Награда ×3 — если доживёшь." },
+
+  // --- экономика ---
+  { id: "goldvein", name: "Золотая жила", emoji: "⛏️", group: "economy", weight: 12,
+    gold: 8, hp: 1.3, desc: "Сразу +8 золота, но следующая башня толще на треть." },
+  { id: "banker", name: "Банкир", emoji: "🏦", group: "economy", weight: 10,
+    gold: -5, reward: 2.2, desc: "Инвестиция −5G сейчас — победа отдаст вдвое больше." },
+  { id: "greed", name: "Жадность", emoji: "💰", group: "economy", weight: 10,
+    gold: 14, shopPrice: 1.25, desc: "Много золота сразу, но следующая лавка дороже." },
+  { id: "sale", name: "Распродажа", emoji: "🏷️", group: "economy", weight: 10,
+    shopPrice: 0.75, desc: "Следующая лавка −25% на всё." },
+  { id: "casino", name: "Казино", emoji: "🎰", group: "economy", weight: 8,
+    gamble: { chance: 0.5, win: 12 }, desc: "50%: +12 золота. 50%: пусто." },
+  { id: "coinflip", name: "Монетка", emoji: "🪙", group: "economy", weight: 6,
+    gamble: { chance: 0.5, win: 20 }, desc: "Огромный куш или ничего." },
+  { id: "blackmarket", name: "Чёрный рынок", emoji: "🕶️", group: "economy", weight: 9, minAct: 2,
+    itemRarity: "rare", shopPrice: 1.1, desc: "В следующей лавке ждёт редкий товар (чуть дороже)." },
+
+  // --- рука и отряд ---
+  { id: "extendedhand", name: "Расширенная рука", emoji: "🖐️", group: "hand", weight: 10,
+    hand: 2, desc: "Следующая волна играется с +2 картами в руке." },
+  { id: "emptyhand", name: "Пустая рука", emoji: "🤏", group: "hand", weight: 8,
+    hand: -1, power: 8, desc: "−1 карта в руке, зато +8 силы каждому бою волны." },
+  { id: "duel", name: "Героическая дуэль", emoji: "⚔️", group: "hand", weight: 8, minAct: 2,
+    fights: -2, reward: 1.5, power: 5, desc: "Минимум движений: на 2 тимфайта меньше, награда ×1.5." },
+  { id: "ascension", name: "Вознесение", emoji: "🌟", group: "hand", weight: 8,
+    power: 8, reward: 0.8, desc: "+8 силы каждому бою волны — награда скромнее." },
+];
+
+// Приоритет спецслотов: сначала «сильные» пути (strong/elite), второй слот —
+// из общего пула. Реализовано весами; здесь только подсказка для баланса.
+const ROUTE_SPECIAL_SLOTS = 2;
+
 // --- Формации и связки: альтернативное ядро скоринга (state.rules = "formation").
 // Классика ("classic") эти таблицы не читает. Дизайн и миграция —
 // docs/REDESIGN_ANTI_BALATRO.md §12–13; правило выбора формации — максимум

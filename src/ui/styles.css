@@ -912,7 +912,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .selection-order { height: 18px; font-size: 8px; min-width: 28px; top: -9px; right: -4px; }
   .under-hand { margin-top: 12px; font-size: 9px; }
   .route-screen { padding: 20px 16px 24px; }
-  .route-cards { grid-template-columns: 1fr; }
+  .route-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .shop { padding: 17px 14px; }
   .shop-banner { padding-bottom: 18px; gap: 10px; position: relative; }
   .shop-banner h2 { font-size: 26px; }
@@ -974,7 +974,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .route-screen h2 { font-size: 33px; font-weight: 700; letter-spacing: -1.15px; color: #e2e8d8; margin: 12px 0 8px; }
 .route-sub { font-size: 13px; color: #9dad95; margin-bottom: 22px; }
 .route-sub b { color: #dde6cd; }
-.route-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.route-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .route-card { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 22px 16px 18px; border: 1px solid #40503a; border-bottom-width: 3px; border-radius: 9px; background: radial-gradient(ellipse at 50% 20%, #2c3827, #1d261c); text-align: center; transition: transform .18s, border-color .18s, box-shadow .18s; animation: routeIn .3s ease-out backwards; }
 .route-card:nth-child(2) { animation-delay: .07s; }
 .route-card:nth-child(3) { animation-delay: .14s; }
@@ -983,6 +983,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .route-card.normal { --rc: #9ab480; --rc-glow: #9ab48022; }
 .route-card.elite { --rc: #d1806c; --rc-glow: #d1806c26; }
 .route-card.camp { --rc: #86afc7; --rc-glow: #86afc722; }
+.route-card.combat { --rc: #d1806c; --rc-glow: #d1806c26; }
+.route-card.economy { --rc: #d8b24f; --rc-glow: #d8b24f22; }
+.route-card.hand { --rc: #a678e0; --rc-glow: #a678e022; }
+.route-card strong { font-size: 15.5px; }
+.route-card:nth-child(4) { animation-delay: .21s; }
 .route-card.disabled { opacity: .45; cursor: not-allowed; }
 .route-emoji { font-size: 46px; filter: drop-shadow(0 2px 10px #0008); }
 .route-card strong { font-size: 18px; font-weight: 800; color: #e6edcf; letter-spacing: -.3px; }

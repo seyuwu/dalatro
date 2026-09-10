@@ -923,7 +923,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .selection-order { height: 18px; font-size: 8px; min-width: 28px; top: -9px; right: -4px; }
   .under-hand { margin-top: 12px; font-size: 9px; }
   .route-screen { padding: 20px 16px 24px; }
-  .route-cards { grid-template-columns: 1fr; }
+  .route-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .shop { padding: 17px 14px; }
   .shop-banner { padding-bottom: 18px; gap: 10px; position: relative; }
   .shop-banner h2 { font-size: 26px; }
@@ -985,7 +985,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .route-screen h2 { font-size: 33px; font-weight: 700; letter-spacing: -1.15px; color: #e2e8d8; margin: 12px 0 8px; }
 .route-sub { font-size: 13px; color: #9dad95; margin-bottom: 22px; }
 .route-sub b { color: #dde6cd; }
-.route-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.route-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .route-card { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 22px 16px 18px; border: 1px solid #40503a; border-bottom-width: 3px; border-radius: 9px; background: radial-gradient(ellipse at 50% 20%, #2c3827, #1d261c); text-align: center; transition: transform .18s, border-color .18s, box-shadow .18s; animation: routeIn .3s ease-out backwards; }
 .route-card:nth-child(2) { animation-delay: .07s; }
 .route-card:nth-child(3) { animation-delay: .14s; }
@@ -994,6 +994,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .route-card.normal { --rc: #9ab480; --rc-glow: #9ab48022; }
 .route-card.elite { --rc: #d1806c; --rc-glow: #d1806c26; }
 .route-card.camp { --rc: #86afc7; --rc-glow: #86afc722; }
+.route-card.combat { --rc: #d1806c; --rc-glow: #d1806c26; }
+.route-card.economy { --rc: #d8b24f; --rc-glow: #d8b24f22; }
+.route-card.hand { --rc: #a678e0; --rc-glow: #a678e022; }
+.route-card strong { font-size: 15.5px; }
+.route-card:nth-child(4) { animation-delay: .21s; }
 .route-card.disabled { opacity: .45; cursor: not-allowed; }
 .route-emoji { font-size: 46px; filter: drop-shadow(0 2px 10px #0008); }
 .route-card strong { font-size: 18px; font-weight: 800; color: #e6edcf; letter-spacing: -.3px; }
@@ -1800,6 +1805,87 @@ const MODIFIERS_DATA = [
 
 const CURSES = ["adaptation", "bastion", "fog", "silence", "disarm"];
 
+// --- Развилки после лавки (спек §4, фаза E). Контент сидит на 12 примитивах:
+//   hp/reward — множители башни и награды; mods — волновые модификаторы (тот же
+//   пайплайн, что у ранговых мутаций); gold — немедленная дельта; shopPrice —
+//   множитель цен следующей лавки; hand — слот руки на волну; fights — дельта
+//   тимфайтов; itemRarity/extraRecruit — гарантии следующей лавки; gamble —
+//   мгновенный бросок; power — бонус силы всем боям волны; defense — множитель
+//   числовой защиты башни (формации); curse — элитке вкатывается проклятие.
+// Ролл: normal + лагерь всегда, 2 слота спецвариантов по весам с фильтрами
+// minAct/minRank. Всё детерминировано сидом (Rng на LEAVE_SHOP).
+const ROUTES_DATA = [
+  // --- коревые пути (всегда в развилке) ---
+  { id: "normal", name: "Обычная башня", emoji: "🗼", group: "core", weight: 0,
+    desc: "Стандартный следующий бой; нормальная награда." },
+  { id: "camp", name: "Крип-лагерь", emoji: "🏕️", group: "core", weight: 0,
+    desc: "Бой пропускается: +6 золота, привал (+1 казарма), бесплатное увольнение." },
+
+  // --- боевые ---
+  { id: "strong", name: "Сильная башня", emoji: "🏗️", group: "combat", weight: 30,
+    hp: 1.35, reward: 1.6, desc: "Усиленная башня — и заметно жирнее награда." },
+  { id: "elite", name: "Элитная башня", emoji: "💀", group: "combat", weight: 22,
+    hp: 1.5, reward: 1.5, curse: true, itemRarity: "epic",
+    desc: "Очень сильная башня с проклятием; награда ×1.5 и эпик в лавке." },
+  { id: "fragile", name: "Хрупкая", emoji: "🧨", group: "combat", weight: 14,
+    hp: 0.45, mods: ["thorns"], desc: "Мало HP, но большой отряд она наказывает." },
+  { id: "berserk", name: "Берсерк", emoji: "😤", group: "combat", weight: 14,
+    hp: 0.7, mods: ["reflection"], desc: "Меньше HP, зато каждый чётный бой слабее." },
+  { id: "twin", name: "Двойная башня", emoji: "🗼", group: "combat", weight: 12, minAct: 2,
+    hp: 1.6, fights: 1, reward: 1.6, desc: "Как две цели: толще, на один бой дольше, награда ×1.6." },
+  { id: "siege", name: "Осадная", emoji: "🏰", group: "combat", weight: 12, minAct: 2,
+    hp: 1.5, shopPrice: 0.85, desc: "Толстая башня; после её падения лавка со скидкой." },
+  { id: "swift", name: "Быстрая", emoji: "💨", group: "combat", weight: 12,
+    hp: 0.5, fights: -1, reward: 1.3, desc: "Полбашни HP, но тимфайтов меньше — бей точно." },
+  { id: "reflector", name: "Отражатель", emoji: "🪞", group: "combat", weight: 10, minAct: 2,
+    mods: ["reflection"], reward: 1.3, desc: "Чётные бои наносят ×0.75. Награда за риск." },
+  { id: "devourer", name: "Пожиратель", emoji: "🕳️", group: "combat", weight: 10, minAct: 2,
+    mods: ["regen"], reward: 1.4, desc: "Лечится после каждого боя — не растягивай волну." },
+  { id: "shieldbearer", name: "Щитоносец", emoji: "🛡️", group: "combat", weight: 10,
+    hp: 1.15, mods: ["glyph"], reward: 1.4, desc: "Каждый 3-й бой блокируется глифом." },
+  { id: "disarmer", name: "Разоружитель", emoji: "🚫", group: "combat", weight: 10, minAct: 2,
+    mods: ["disarm"], reward: 1.5, desc: "Не больше 4 героев в отряде. Награда ×1.5." },
+  { id: "mutetower", name: "Немая", emoji: "🤐", group: "combat", weight: 10, minAct: 2,
+    mods: ["silence"], reward: 1.5, desc: "Способности героев отключены; предметы работают." },
+  { id: "thief", name: "Вор", emoji: "🦹", group: "combat", weight: 10, minAct: 2,
+    mods: ["greed"], reward: 1.4, desc: "Слабый бой — башня крадёт золото." },
+  { id: "anomaly", name: "Аномалия", emoji: "🌀", group: "combat", weight: 6, minRank: 6,
+    reward: 1.8, modsRandom: 2, desc: "Два случайных правила на этот бой. Награда ×1.8." },
+  { id: "papochka", name: "??? ПАПОЧКА", emoji: "👨", group: "combat", weight: 2, minRank: 10,
+    hp: 1.4, reward: 3, modsRandom: 2,
+    desc: "Он всё видел. Награда ×3 — если доживёшь." },
+
+  // --- экономика ---
+  { id: "goldvein", name: "Золотая жила", emoji: "⛏️", group: "economy", weight: 12,
+    gold: 8, hp: 1.3, desc: "Сразу +8 золота, но следующая башня толще на треть." },
+  { id: "banker", name: "Банкир", emoji: "🏦", group: "economy", weight: 10,
+    gold: -5, reward: 2.2, desc: "Инвестиция −5G сейчас — победа отдаст вдвое больше." },
+  { id: "greed", name: "Жадность", emoji: "💰", group: "economy", weight: 10,
+    gold: 14, shopPrice: 1.25, desc: "Много золота сразу, но следующая лавка дороже." },
+  { id: "sale", name: "Распродажа", emoji: "🏷️", group: "economy", weight: 10,
+    shopPrice: 0.75, desc: "Следующая лавка −25% на всё." },
+  { id: "casino", name: "Казино", emoji: "🎰", group: "economy", weight: 8,
+    gamble: { chance: 0.5, win: 12 }, desc: "50%: +12 золота. 50%: пусто." },
+  { id: "coinflip", name: "Монетка", emoji: "🪙", group: "economy", weight: 6,
+    gamble: { chance: 0.5, win: 20 }, desc: "Огромный куш или ничего." },
+  { id: "blackmarket", name: "Чёрный рынок", emoji: "🕶️", group: "economy", weight: 9, minAct: 2,
+    itemRarity: "rare", shopPrice: 1.1, desc: "В следующей лавке ждёт редкий товар (чуть дороже)." },
+
+  // --- рука и отряд ---
+  { id: "extendedhand", name: "Расширенная рука", emoji: "🖐️", group: "hand", weight: 10,
+    hand: 2, desc: "Следующая волна играется с +2 картами в руке." },
+  { id: "emptyhand", name: "Пустая рука", emoji: "🤏", group: "hand", weight: 8,
+    hand: -1, power: 8, desc: "−1 карта в руке, зато +8 силы каждому бою волны." },
+  { id: "duel", name: "Героическая дуэль", emoji: "⚔️", group: "hand", weight: 8, minAct: 2,
+    fights: -2, reward: 1.5, power: 5, desc: "Минимум движений: на 2 тимфайта меньше, награда ×1.5." },
+  { id: "ascension", name: "Вознесение", emoji: "🌟", group: "hand", weight: 8,
+    power: 8, reward: 0.8, desc: "+8 силы каждому бою волны — награда скромнее." },
+];
+
+// Приоритет спецслотов: сначала «сильные» пути (strong/elite), второй слот —
+// из общего пула. Реализовано весами; здесь только подсказка для баланса.
+const ROUTE_SPECIAL_SLOTS = 2;
+
 // --- Формации и связки: альтернативное ядро скоринга (state.rules = "formation").
 // Классика ("classic") эти таблицы не читает. Дизайн и миграция —
 // docs/REDESIGN_ANTI_BALATRO.md §12–13; правило выбора формации — максимум
@@ -1952,6 +2038,8 @@ const Content = (function () {
   const rankCurses = { list: RANK_CURSES_DATA, byId: byId(RANK_CURSES_DATA) };
   // Стартовые архетипы (спек §7): направление старта, не запирание игры.
   const archetypes = { list: ARCHETYPES_DATA, byId: byId(ARCHETYPES_DATA) };
+  // Развилки после лавки (спек §4): коревые пути + пул спецвариантов.
+  const routes = { list: ROUTES_DATA, byId: byId(ROUTES_DATA) };
   // Альтернативное ядро скоринга (state.rules = "formation").
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
@@ -1960,7 +2048,7 @@ const Content = (function () {
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();
 
 </script>
@@ -2681,10 +2769,10 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
-      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null },
+      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
@@ -2765,10 +2853,12 @@ const Game = (function () {
     if (state.log.length > 300) state.log.shift();
   }
 
-  function setupWave(state, waveIndex, route) {
+  function setupWave(state, waveIndex, routeOpt) {
     const def = Content.waves.byId[Content.waves.order[waveIndex]];
-    const elite = !!(route && route.elite) && !def.isBoss;
-    const hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (elite ? 1.5 : 1));
+    // Параметры маршрута (фаза E): примитивы развилки поверх базовой волны.
+    const route = routeOpt ? Content.routes.byId[routeOpt.id] : null;
+    const elite = !!(route && route.curse);
+    const hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (route && route.hp ? route.hp : 1));
     state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
@@ -2777,9 +2867,15 @@ const Game = (function () {
       isBoss: !!def.isBoss,
       miniBoss: !!def.miniBoss,
       elite,
+      routeName: route ? route.name : null,
       hp,
       maxHp: hp,
-      modifiers: (def.modifiers || []).concat(elite && route.curse ? [{ id: route.curse }] : []).map((m) => ({ id: m.id })),
+      rewardMult: route && route.reward ? route.reward : 1,
+      powerBonus: route && route.power ? route.power : 0,
+      defenseMult: route && route.defense ? route.defense : 1,
+      modifiers: (def.modifiers || []).map((m) => ({ id: m.id }))
+        .concat(elite && routeOpt.curse ? [{ id: routeOpt.curse }] : [])
+        .concat((route && route.mods) ? route.mods.map((id) => ({ id })) : []),
       enemyItems: [],
       aegisUsed: false,
       enraged: false,
@@ -2793,6 +2889,10 @@ const Game = (function () {
     // Мутации башен (Божество+): случайные способности волны, детерминированные сидом.
     const mutations = Ranks.rollMutations(Ranks.mutationsPerWave(state));
     for (const id of mutations) state.combat.wave.modifiers.push({ id, rolled: true });
+    // Аномалия/Папочка-маршрут: маршрут докидывает свои случайные правила.
+    if (route && route.modsRandom) {
+      for (const id of Ranks.rollMutations(route.modsRandom)) state.combat.wave.modifiers.push({ id, rolled: true });
+    }
     // Нестабильная позиция (Властелин+): один слот волны с −40% силы.
     state.combat.forbiddenSlot = Ranks.has(state, "unstable") ? Rng.current().int(1, 5) : null;
     state.combat.fightIndex = 0;
@@ -2802,25 +2902,29 @@ const Game = (function () {
     state.combat.campTaken = false;
     state.run.campBoon = false;
     state.combat.route = null;
-    state.player.fightsLeft = Ranks.fightsPerWave(state);
+    // Примитивы на волну: рука и тимфайты с дельтой маршрута.
+    state.run.waveHandBonus = route && route.hand ? route.hand : 0;
+    state.player.fightsLeft = Ranks.fightsPerWave(state) + (route && route.fights ? route.fights : 0);
     state.player.discardsLeft = discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
+    const routeNote = route && route.hp ? ` (${route.name}: HP ×${route.hp})` : "";
     log(state, elite
-      ? `— Элитная волна (акт ${state.run.act}): ${def.name} — ${hp} HP (${Content.modifiers.byId[route.curse].name}!)`
-      : `— Акт ${state.run.act}, волна ${waveIndex % 5 + 1}: ${def.name} — ${def.hp} HP`);
+      ? `— Элитная волна (акт ${state.run.act}): ${def.name} — ${hp} HP (${Content.modifiers.byId[routeOpt.curse].name}!)`
+      : `— Акт ${state.run.act}, волна ${waveIndex % 5 + 1}: ${def.name} — ${def.hp} HP${routeNote}`);
     if (mutations.length) log(state, `Мутации башни: ${mutations.map((id) => Content.modifiers.byId[id].name).join(", ")}`);
     if (state.combat.forbiddenSlot) log(state, `Нестабильная позиция: слот ${state.combat.forbiddenSlot} даёт −40% силы`);
   }
 
-  // Цена предмета с ранговыми эффектами: голод −20%, инфляция +1G за каждую
-  // покупку в текущем визите в лавку.
+  // Цена предмета: ранговые эффекты (голод −20%, инфляция +1G за покупку)
+  // и множитель маршрута (Осадная/Жадность/Распродажа).
   function itemCost(state, itemId) {
     const item = Content.items.byId[itemId];
     let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
     if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
-    return cost;
+    const mult = state.run.shopPriceMult || 1;
+    return Math.max(1, Math.round(cost * mult));
   }
 
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
@@ -2865,6 +2969,35 @@ const Game = (function () {
       mines.push(pool.splice(Math.floor(Rng.current().next() * pool.length), 1)[0]);
     }
     state.combat.minedUids = mines;
+  }
+
+  // Ролл развилки: normal + лагерь (если ещё не зачищен) + 2 спецварианта по
+  // весам с фильтрами акт/ранг. Проклятие элитки кидается здесь же.
+  function rollRouteOptions(state, nextIndex) {
+    const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
+    const act = nextDef.act || (Math.floor(nextIndex / 5) + 1);
+    const options = [{ id: "normal" }];
+    if (!state.combat.campTaken) options.push({ id: "camp" });
+    const rng = Rng.current();
+    const rank = state.run.rank || 1;
+    const pool = Content.routes.list.filter((r) => r.weight > 0 && (r.minAct || 1) <= act && (r.minRank || 1) <= rank);
+    const specials = [];
+    let guard = 24;
+    while (specials.length < ROUTE_SPECIAL_SLOTS && guard-- > 0) {
+      const avail = pool.filter((r) => !specials.some((p) => p.id === r.id));
+      if (!avail.length) break;
+      const total = avail.reduce((a, r) => a + r.weight, 0);
+      let roll = rng.next() * total;
+      let chosen = avail[avail.length - 1];
+      for (const r of avail) {
+        roll -= r.weight;
+        if (roll < 0) { chosen = r; break; }
+      }
+      const opt = { id: chosen.id };
+      if (chosen.curse) opt.curse = Content.curses[Math.floor(rng.next() * Content.curses.length)];
+      specials.push(opt);
+    }
+    return options.concat(specials);
   }
 
   function dispatch(state, action) {
@@ -2913,13 +3046,14 @@ const Game = (function () {
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);
           s.combat.campTaken = false;
           const baseGold = s.combat.wave.gold || WAVE_CLEAR_GOLD;
-          let clearGold = baseGold * (s.combat.wave.elite ? 1.5 : 1);
+          const rewardMult = s.combat.wave.rewardMult || 1;
+          let clearGold = baseGold * rewardMult;
           clearGold *= Ranks.goldMult(s) * Ranks.curseGoldMult(s);
           clearGold = Math.round(clearGold);
           const tax = Ranks.taxPerWave(s);
           if (tax) clearGold = Math.max(0, clearGold - tax);
           s.run.gold += clearGold;
-          log(s, `Волна зачищена! +${clearGold} золота${s.combat.wave.elite ? " (элитная добыча ×1.5)" : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
+          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
             if (s.run.waveIndex >= Content.waves.order.length - 1) {
@@ -2972,7 +3106,14 @@ const Game = (function () {
         s.phase = "shop";
         s.run.inflationBuys = 0;
         s.run.freeRerollUsed = false;
-        s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], s.combat.wave.elite);
+        // Гарантии маршрута (Чёрный рынок/элитка — редкость; Таверна — рекрут)
+        // и ценовой множитель (Осадная/Жадность/Распродажа) — одноразовые.
+        const guaranteeRarity = s.run.pendingItemRarity || null;
+        s.run.pendingItemRarity = null;
+        s.run.pendingExtraRecruit = 0;
+        s.run.shopPriceMult = s.run.pendingShopPrice || 1;
+        s.run.pendingShopPrice = null;
+        s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], guaranteeRarity);
         s.shop.recruits = pickRecruits(s);
         return s;
       }
@@ -3044,6 +3185,7 @@ const Game = (function () {
 
       case "LEAVE_SHOP": {
         if (s.phase !== "shop") return s;
+        s.run.shopPriceMult = 1; // ценовой множитель действует только на эту лавку
         const nextIndex = s.run.waveIndex + 1;
         const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
         if (!nextDef) return s;
@@ -3051,33 +3193,55 @@ const Game = (function () {
           // перед боссом развилки нет — только его башня
           s.phase = "wave";
           s.run.waveIndex = nextIndex;
+          s.combat.routeOptions = [];
           setupWave(s, nextIndex, null);
           return s;
         }
-        const rng = Rng.current();
-        const curse = Content.curses[Math.floor(rng.next() * Content.curses.length)];
-        s.combat.route = { curse };
+        // Развилка: коревые пути + ролл спецвариантов по весам (сид-детерминизм).
+        s.combat.routeOptions = rollRouteOptions(s, nextIndex);
         s.phase = "route";
         return s;
       }
 
       case "TAKE_ROUTE": {
-        if (s.phase !== "route" || !s.combat.route) return s;
+        if (s.phase !== "route" || !s.combat.routeOptions.length) return s;
+        const opt = s.combat.routeOptions.find((o) => o.id === action.kind);
+        if (!opt) return s;
+        const route = Content.routes.byId[opt.id];
         const nextIndex = s.run.waveIndex + 1;
-        if (action.kind === "camp") {
+        if (opt.id === "camp") {
           if (s.combat.campTaken) return s;
           s.run.gold += 6;
           s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
           s.run.campBoon = true;
           s.combat.campTaken = true;
           s.combat.route = null;
+          s.combat.routeOptions = [];
           s.phase = "shop";
           log(s, "Крип-лагерь зачищен без боя: +6 золота, привал (+1 казарма), бесплатное увольнение в лавке");
           return s;
         }
+        // Немедленные эффекты маршрута: золото и гэмбл.
+        if (route.gold) {
+          s.run.gold = Math.max(0, s.run.gold + route.gold);
+          log(s, `${route.name}: ${route.gold > 0 ? "+" : ""}${route.gold} золота`);
+        }
+        if (route.gamble) {
+          const won = Rng.current().chance(route.gamble.chance);
+          if (won) {
+            s.run.gold += route.gamble.win;
+            log(s, `${route.name}: повезло — +${route.gamble.win} золота!`);
+          } else {
+            log(s, `${route.name}: не повезло, пусто.`);
+          }
+        }
+        // Одноразовые гарантии следующей лавки.
+        s.run.pendingShopPrice = route.shopPrice || null;
+        s.run.pendingItemRarity = route.itemRarity || null;
+        s.combat.routeOptions = [];
         s.phase = "wave";
         s.run.waveIndex = nextIndex;
-        setupWave(s, nextIndex, action.kind === "elite" ? { elite: true, curse: s.combat.route.curse } : null);
+        setupWave(s, nextIndex, opt);
         return s;
       }
 
@@ -3196,7 +3360,7 @@ const Game = (function () {
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
     assignMines, rankOf, maxSlots, recruitPrice, itemCost,
     archPerk, discardsPerWave, starterDeckIds,
-    itemCapacity, itemBlockedReason,
+    itemCapacity, itemBlockedReason, rollRouteOptions,
   };
 })();
 
@@ -3572,9 +3736,10 @@ const DeckSys = (function () {
   }
 
   // Draws until the hand reaches the current hand size (rank may cut it to 6/5,
-  // see Ranks.handSize) or deck+discard are empty.
+  // see Ranks.handSize; маршрут может дать ±слоты, run.waveHandBonus)
+  // or deck+discard are empty.
   function handSize(state) {
-    return Ranks.handSize(state);
+    return Ranks.handSize(state) + (state.run.waveHandBonus || 0);
   }
 
   function draw(state, rng) {
@@ -3827,11 +3992,14 @@ const Combat = (function () {
     return a.basePower * a.baseMult > b.basePower * b.baseMult;
   }
 
-  // Числовая защита цели (formation): TOWER_DEFENSE по id башни. BKB обнуляет —
+  // Числовая защита цели (formation): TOWER_DEFENSE по id башни, множитель
+  // маршрута (batch-1 пока без defense-маршрутов). BKB обнуляет —
   // он и так выключает волновые модификаторы и проклятия.
   function towerDefenseOf(state) {
     if (state.combat.scoring && state.combat.scoring.flags.bkbBlocksMods) return { armor: 0, mr: 0 };
-    return Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
+    const base = Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
+    const dm = state.combat.wave.defenseMult || 1;
+    return dm === 1 ? base : { armor: Math.round(base.armor * dm), mr: Math.round(base.mr * dm * 100) / 100 };
   }
 
   function towerDamageMult(state, resolution, playedCount) {
@@ -3975,6 +4143,16 @@ const Combat = (function () {
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
+    // Бонус силы маршрута (Пустая рука/Вознесение/Дуэль) — всем боям волны.
+    if (state.combat.wave.powerBonus) {
+      state.combat.scoring.power += state.combat.wave.powerBonus;
+      state.combat.scoring.trace.routePower = (state.combat.scoring.trace.routePower || 0) + state.combat.wave.powerBonus;
+      Resolver.pushStep(resolution, {
+        icon: "🧭",
+        label: `Маршрут «${state.combat.wave.routeName}»: +${state.combat.wave.powerBonus} силы`,
+        kind: "info",
+      });
+    }
     // База для аудита: комбо + сыгранные карты до триггеров.
     state.combat.scoring.trace.comboId = combo.type;
     state.combat.scoring.trace.comboBase = combo.basePower;
@@ -4235,8 +4413,8 @@ const Economy = (function () {
   }
 
   // Fills up to `slots` offers from items not owned and not already offered.
-  // guaranteeEpic: элитная башня — в лавке будет хотя бы один эпик.
-  function generateOffers(state, slots = OFFER_SLOTS, keepLocked = [], guaranteeEpic = false) {
+  // guaranteeRarity: маршрут/элитка гарантируют товар этой редкости в лавке.
+  function generateOffers(state, slots = OFFER_SLOTS, keepLocked = [], guaranteeRarity = null) {
     const rng = Rng.current();
     const offers = keepLocked.slice();
     const taken = new Set(offers.map((o) => o.id).concat(state.player.items));
@@ -4251,15 +4429,15 @@ const Economy = (function () {
       taken.add(id);
       offers.push({ id, locked: false });
     }
-    if (guaranteeEpic && !offers.some((o) => Content.items.byId[o.id].rarity === "epic")) {
-      const epics = Content.items.list
+    if (guaranteeRarity && !offers.some((o) => Content.items.byId[o.id].rarity === guaranteeRarity)) {
+      const pool = Content.items.list
         .map((i) => i.id)
-        .filter((id) => !taken.has(id) && Content.items.byId[id].rarity === "epic");
-      if (epics.length) {
+        .filter((id) => !taken.has(id) && Content.items.byId[id].rarity === guaranteeRarity);
+      if (pool.length) {
         const swapIdx = offers.findIndex((o) => !o.locked);
         if (swapIdx !== -1) {
           taken.delete(offers[swapIdx].id);
-          const id = rng.pick(epics);
+          const id = rng.pick(pool);
           offers[swapIdx] = { id, locked: false };
           taken.add(id);
         }
@@ -5667,24 +5845,65 @@ const Art = (function () {
     ${toastHtml()}`;
   }
 
-  // ---------- route fork: три тропы после лавки ----------
+  // ---------- route fork: развилка после лавки (спек §4, данные из ROUTES_DATA) ----------
 
-  function routeCardHtml(state, kind, cls, emoji, title, lines, foot, disabled) {
-    return `<button class="route-card ${cls} ${disabled ? "disabled" : ""}" data-action="take-route" data-kind="${kind}" ${disabled ? "disabled" : ""}>
-      <span class="route-emoji">${emoji}</span>
-      <strong>${title}</strong>
+  const ROUTE_GROUP_FOOT = {
+    core: "Честный бой",
+    combat: "Риск · награда",
+    economy: "Золото сейчас",
+    hand: "Стиль волны",
+  };
+
+  function routeCardHtml(state, opt, route, lines, index) {
+    const cls = opt.id === "camp" ? "camp" : opt.id === "normal" ? "normal" : route.group;
+    return `<button class="route-card ${cls}" data-action="take-route" data-kind="${opt.id}">
+      <span class="route-emoji">${route.emoji}</span>
+      <strong>${route.name}</strong>
       <div class="route-lines">${lines.map((l) => `<span>${l}</span>`).join("")}</div>
-      <small>${foot}</small>
+      <small>${ROUTE_GROUP_FOOT[route.group] || "Путь"} <kbd>${index + 1}</kbd></small>
     </button>`;
+  }
+
+  // Строки карточки генерируются из примитивов маршрута — новый маршрут в
+  // ROUTES_DATA появляется на экране без правок UI.
+  function routeCardLines(opt, route, nextDef, nextHp, baseRules) {
+    const lines = [];
+    if (route.id === "normal") {
+      lines.push(`${nextDef.name} · ${fmt(nextHp)} HP`);
+      lines.push(baseRules);
+      lines.push("Полный темп забега");
+      return lines;
+    }
+    if (route.hp) lines.push(`HP ×${route.hp} → ${fmt(Math.round(nextHp * route.hp))} HP`);
+    if (opt.curse) {
+      const curse = Content.modifiers.byId[opt.curse];
+      lines.push(`Проклятие: ${curse.name} — ${curse.desc}`);
+    }
+    if (route.mods) lines.push("Правила: " + route.mods.map((id) => Content.modifiers.byId[id].name).join(", "));
+    if (route.modsRandom) lines.push(`Случайных правил на бой: ${route.modsRandom}`);
+    if (route.reward && route.hp) lines.push(`Награда ×${route.reward}`);
+    if (route.gold) lines.push(route.gold > 0 ? `Сразу +${route.gold} золота` : `Сразу ${route.gold} золота`);
+    if (route.gamble) lines.push(`${Math.round(route.gamble.chance * 100)}%: +${route.gamble.win} золота, иначе пусто`);
+    if (route.shopPrice) lines.push(route.shopPrice < 1
+      ? `Следующая лавка −${Math.round((1 - route.shopPrice) * 100)}%`
+      : `Следующая лавка +${Math.round((route.shopPrice - 1) * 100)}%`);
+    if (route.hand) lines.push(route.hand > 0 ? `+${route.hand} карты в руке на волну` : `${route.hand} карта в руке на волну`);
+    if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} тимфайт` : `−${-route.fights} тимфайт`);
+    if (route.power) lines.push(`+${route.power} силы каждому бою`);
+    if (route.itemRarity) lines.push(`В лавке ждёт ${route.itemRarity === "epic" ? "эпик" : "редкий"} товар`);
+    lines.push(route.desc);
+    return lines;
   }
 
   function renderRoute(state) {
     const nextIndex = state.run.waveIndex + 1;
     const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
-    const curse = state.combat.route ? Content.modifiers.byId[state.combat.route.curse] : null;
-    const baseRules = (nextDef.modifiers || []).map((m) => Content.modifiers.byId[m.id].name).join(" · ") || "без модификаторов";
-    const campDisabled = state.combat.campTaken;
     const nextHp = Math.round(nextDef.hp * Ranks.waveHpMult(state, nextIndex));
+    const baseRules = (nextDef.modifiers || []).map((m) => Content.modifiers.byId[m.id].name).join(" · ") || "без модификаторов";
+    const cards = (state.combat.routeOptions || []).map((opt, i) => {
+      const route = Content.routes.byId[opt.id];
+      return routeCardHtml(state, opt, route, routeCardLines(opt, route, nextDef, nextHp, baseRules), i);
+    }).join("");
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -5695,24 +5914,7 @@ const Art = (function () {
               <span class="section-label mint">${icon("target", 15)}РАЗВИЛКА · ВОЛНА ${nextIndex + 1} ИЗ ${Content.waves.order.length}</span>
               <h2>Куда двинемся?</h2>
               <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${fmt(nextHp)} HP · ${baseRules}</p>
-              <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">
-                ${routeCardHtml(state, "normal", "normal", "🗼", "Обычная башня", [
-                  `${nextDef.name} · ${fmt(nextHp)} HP`,
-                  baseRules,
-                  "Полный темп забега",
-                ], "Честный бой <kbd>1</kbd>")}
-                ${routeCardHtml(state, "elite", "elite", "💀", "Элитная башня", [
-                  `HP ×1.5 → ${fmt(Math.round(nextHp * 1.5))} HP`,
-                  `Проклятие: ${curse ? curse.name : "—"} — ${curse ? curse.desc : ""}`,
-                  "Награда: золото ×1.5 и эпик в лавке",
-                ], "Риск · награда <kbd>2</kbd>")}
-                ${routeCardHtml(state, "camp", "camp", "🏕️", "Крип-лагерь", [
-                  "Бой пропускается",
-                  "+6 золота и привал: +1 казарма",
-                  "Бесплатное увольнение героя в лавке",
-                ], campDisabled ? "Лагерь уже зачищен" : "Безопасный темп <kbd>3</kbd>", campDisabled)}
-              </div>
-              ${curse ? `<div class="route-curse">Проклятие элитки выбрано заранее: <b>${curse.name}</b> — ${esc(curse.desc)} BKB игнорирует любые проклятия.</div>` : ""}
+              <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">${cards}</div>
             </section>
           </div>
         </div>
@@ -6814,13 +7016,13 @@ const Art = (function () {
       }
       return;
     }
-    // Развилка: 1/2/3 — выбор тропы.
-    if (state.phase === "route" && /^[1-3]$/.test(e.key)) {
-      const kinds = ["normal", "elite", "camp"];
-      const kind = kinds[Number(e.key) - 1];
-      if (kind === "camp" && state.combat.campTaken) return;
-      Sfx.play("path");
-      dispatchAndRender({ type: "TAKE_ROUTE", kind });
+    // Развилка: 1..N — выбор маршрута (опции лежат в стейте).
+    if (state.phase === "route" && /^[1-9]$/.test(e.key)) {
+      const opt = (state.combat.routeOptions || [])[Number(e.key) - 1];
+      if (opt) {
+        Sfx.play("path");
+        dispatchAndRender({ type: "TAKE_ROUTE", kind: opt.id });
+      }
     }
     if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.phase === "wave" && !state.combat.outcome) {
       if (state.combat.selectedUids.length && state.player.discardsLeft > 0) {

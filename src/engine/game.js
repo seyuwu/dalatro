@@ -15,10 +15,10 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
-      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null },
+      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
@@ -99,10 +99,12 @@ const Game = (function () {
     if (state.log.length > 300) state.log.shift();
   }
 
-  function setupWave(state, waveIndex, route) {
+  function setupWave(state, waveIndex, routeOpt) {
     const def = Content.waves.byId[Content.waves.order[waveIndex]];
-    const elite = !!(route && route.elite) && !def.isBoss;
-    const hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (elite ? 1.5 : 1));
+    // Параметры маршрута (фаза E): примитивы развилки поверх базовой волны.
+    const route = routeOpt ? Content.routes.byId[routeOpt.id] : null;
+    const elite = !!(route && route.curse);
+    const hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (route && route.hp ? route.hp : 1));
     state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
@@ -111,9 +113,15 @@ const Game = (function () {
       isBoss: !!def.isBoss,
       miniBoss: !!def.miniBoss,
       elite,
+      routeName: route ? route.name : null,
       hp,
       maxHp: hp,
-      modifiers: (def.modifiers || []).concat(elite && route.curse ? [{ id: route.curse }] : []).map((m) => ({ id: m.id })),
+      rewardMult: route && route.reward ? route.reward : 1,
+      powerBonus: route && route.power ? route.power : 0,
+      defenseMult: route && route.defense ? route.defense : 1,
+      modifiers: (def.modifiers || []).map((m) => ({ id: m.id }))
+        .concat(elite && routeOpt.curse ? [{ id: routeOpt.curse }] : [])
+        .concat((route && route.mods) ? route.mods.map((id) => ({ id })) : []),
       enemyItems: [],
       aegisUsed: false,
       enraged: false,
@@ -127,6 +135,10 @@ const Game = (function () {
     // Мутации башен (Божество+): случайные способности волны, детерминированные сидом.
     const mutations = Ranks.rollMutations(Ranks.mutationsPerWave(state));
     for (const id of mutations) state.combat.wave.modifiers.push({ id, rolled: true });
+    // Аномалия/Папочка-маршрут: маршрут докидывает свои случайные правила.
+    if (route && route.modsRandom) {
+      for (const id of Ranks.rollMutations(route.modsRandom)) state.combat.wave.modifiers.push({ id, rolled: true });
+    }
     // Нестабильная позиция (Властелин+): один слот волны с −40% силы.
     state.combat.forbiddenSlot = Ranks.has(state, "unstable") ? Rng.current().int(1, 5) : null;
     state.combat.fightIndex = 0;
@@ -136,25 +148,29 @@ const Game = (function () {
     state.combat.campTaken = false;
     state.run.campBoon = false;
     state.combat.route = null;
-    state.player.fightsLeft = Ranks.fightsPerWave(state);
+    // Примитивы на волну: рука и тимфайты с дельтой маршрута.
+    state.run.waveHandBonus = route && route.hand ? route.hand : 0;
+    state.player.fightsLeft = Ranks.fightsPerWave(state) + (route && route.fights ? route.fights : 0);
     state.player.discardsLeft = discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
+    const routeNote = route && route.hp ? ` (${route.name}: HP ×${route.hp})` : "";
     log(state, elite
-      ? `— Элитная волна (акт ${state.run.act}): ${def.name} — ${hp} HP (${Content.modifiers.byId[route.curse].name}!)`
-      : `— Акт ${state.run.act}, волна ${waveIndex % 5 + 1}: ${def.name} — ${def.hp} HP`);
+      ? `— Элитная волна (акт ${state.run.act}): ${def.name} — ${hp} HP (${Content.modifiers.byId[routeOpt.curse].name}!)`
+      : `— Акт ${state.run.act}, волна ${waveIndex % 5 + 1}: ${def.name} — ${def.hp} HP${routeNote}`);
     if (mutations.length) log(state, `Мутации башни: ${mutations.map((id) => Content.modifiers.byId[id].name).join(", ")}`);
     if (state.combat.forbiddenSlot) log(state, `Нестабильная позиция: слот ${state.combat.forbiddenSlot} даёт −40% силы`);
   }
 
-  // Цена предмета с ранговыми эффектами: голод −20%, инфляция +1G за каждую
-  // покупку в текущем визите в лавку.
+  // Цена предмета: ранговые эффекты (голод −20%, инфляция +1G за покупку)
+  // и множитель маршрута (Осадная/Жадность/Распродажа).
   function itemCost(state, itemId) {
     const item = Content.items.byId[itemId];
     let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
     if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
-    return cost;
+    const mult = state.run.shopPriceMult || 1;
+    return Math.max(1, Math.round(cost * mult));
   }
 
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
@@ -199,6 +215,35 @@ const Game = (function () {
       mines.push(pool.splice(Math.floor(Rng.current().next() * pool.length), 1)[0]);
     }
     state.combat.minedUids = mines;
+  }
+
+  // Ролл развилки: normal + лагерь (если ещё не зачищен) + 2 спецварианта по
+  // весам с фильтрами акт/ранг. Проклятие элитки кидается здесь же.
+  function rollRouteOptions(state, nextIndex) {
+    const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
+    const act = nextDef.act || (Math.floor(nextIndex / 5) + 1);
+    const options = [{ id: "normal" }];
+    if (!state.combat.campTaken) options.push({ id: "camp" });
+    const rng = Rng.current();
+    const rank = state.run.rank || 1;
+    const pool = Content.routes.list.filter((r) => r.weight > 0 && (r.minAct || 1) <= act && (r.minRank || 1) <= rank);
+    const specials = [];
+    let guard = 24;
+    while (specials.length < ROUTE_SPECIAL_SLOTS && guard-- > 0) {
+      const avail = pool.filter((r) => !specials.some((p) => p.id === r.id));
+      if (!avail.length) break;
+      const total = avail.reduce((a, r) => a + r.weight, 0);
+      let roll = rng.next() * total;
+      let chosen = avail[avail.length - 1];
+      for (const r of avail) {
+        roll -= r.weight;
+        if (roll < 0) { chosen = r; break; }
+      }
+      const opt = { id: chosen.id };
+      if (chosen.curse) opt.curse = Content.curses[Math.floor(rng.next() * Content.curses.length)];
+      specials.push(opt);
+    }
+    return options.concat(specials);
   }
 
   function dispatch(state, action) {
@@ -247,13 +292,14 @@ const Game = (function () {
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);
           s.combat.campTaken = false;
           const baseGold = s.combat.wave.gold || WAVE_CLEAR_GOLD;
-          let clearGold = baseGold * (s.combat.wave.elite ? 1.5 : 1);
+          const rewardMult = s.combat.wave.rewardMult || 1;
+          let clearGold = baseGold * rewardMult;
           clearGold *= Ranks.goldMult(s) * Ranks.curseGoldMult(s);
           clearGold = Math.round(clearGold);
           const tax = Ranks.taxPerWave(s);
           if (tax) clearGold = Math.max(0, clearGold - tax);
           s.run.gold += clearGold;
-          log(s, `Волна зачищена! +${clearGold} золота${s.combat.wave.elite ? " (элитная добыча ×1.5)" : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
+          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
             if (s.run.waveIndex >= Content.waves.order.length - 1) {
@@ -306,7 +352,14 @@ const Game = (function () {
         s.phase = "shop";
         s.run.inflationBuys = 0;
         s.run.freeRerollUsed = false;
-        s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], s.combat.wave.elite);
+        // Гарантии маршрута (Чёрный рынок/элитка — редкость; Таверна — рекрут)
+        // и ценовой множитель (Осадная/Жадность/Распродажа) — одноразовые.
+        const guaranteeRarity = s.run.pendingItemRarity || null;
+        s.run.pendingItemRarity = null;
+        s.run.pendingExtraRecruit = 0;
+        s.run.shopPriceMult = s.run.pendingShopPrice || 1;
+        s.run.pendingShopPrice = null;
+        s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], guaranteeRarity);
         s.shop.recruits = pickRecruits(s);
         return s;
       }
@@ -378,6 +431,7 @@ const Game = (function () {
 
       case "LEAVE_SHOP": {
         if (s.phase !== "shop") return s;
+        s.run.shopPriceMult = 1; // ценовой множитель действует только на эту лавку
         const nextIndex = s.run.waveIndex + 1;
         const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
         if (!nextDef) return s;
@@ -385,33 +439,55 @@ const Game = (function () {
           // перед боссом развилки нет — только его башня
           s.phase = "wave";
           s.run.waveIndex = nextIndex;
+          s.combat.routeOptions = [];
           setupWave(s, nextIndex, null);
           return s;
         }
-        const rng = Rng.current();
-        const curse = Content.curses[Math.floor(rng.next() * Content.curses.length)];
-        s.combat.route = { curse };
+        // Развилка: коревые пути + ролл спецвариантов по весам (сид-детерминизм).
+        s.combat.routeOptions = rollRouteOptions(s, nextIndex);
         s.phase = "route";
         return s;
       }
 
       case "TAKE_ROUTE": {
-        if (s.phase !== "route" || !s.combat.route) return s;
+        if (s.phase !== "route" || !s.combat.routeOptions.length) return s;
+        const opt = s.combat.routeOptions.find((o) => o.id === action.kind);
+        if (!opt) return s;
+        const route = Content.routes.byId[opt.id];
         const nextIndex = s.run.waveIndex + 1;
-        if (action.kind === "camp") {
+        if (opt.id === "camp") {
           if (s.combat.campTaken) return s;
           s.run.gold += 6;
           s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
           s.run.campBoon = true;
           s.combat.campTaken = true;
           s.combat.route = null;
+          s.combat.routeOptions = [];
           s.phase = "shop";
           log(s, "Крип-лагерь зачищен без боя: +6 золота, привал (+1 казарма), бесплатное увольнение в лавке");
           return s;
         }
+        // Немедленные эффекты маршрута: золото и гэмбл.
+        if (route.gold) {
+          s.run.gold = Math.max(0, s.run.gold + route.gold);
+          log(s, `${route.name}: ${route.gold > 0 ? "+" : ""}${route.gold} золота`);
+        }
+        if (route.gamble) {
+          const won = Rng.current().chance(route.gamble.chance);
+          if (won) {
+            s.run.gold += route.gamble.win;
+            log(s, `${route.name}: повезло — +${route.gamble.win} золота!`);
+          } else {
+            log(s, `${route.name}: не повезло, пусто.`);
+          }
+        }
+        // Одноразовые гарантии следующей лавки.
+        s.run.pendingShopPrice = route.shopPrice || null;
+        s.run.pendingItemRarity = route.itemRarity || null;
+        s.combat.routeOptions = [];
         s.phase = "wave";
         s.run.waveIndex = nextIndex;
-        setupWave(s, nextIndex, action.kind === "elite" ? { elite: true, curse: s.combat.route.curse } : null);
+        setupWave(s, nextIndex, opt);
         return s;
       }
 
@@ -530,6 +606,6 @@ const Game = (function () {
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
     assignMines, rankOf, maxSlots, recruitPrice, itemCost,
     archPerk, discardsPerWave, starterDeckIds,
-    itemCapacity, itemBlockedReason,
+    itemCapacity, itemBlockedReason, rollRouteOptions,
   };
 })();

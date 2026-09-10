@@ -19,9 +19,10 @@ const DeckSys = (function () {
   }
 
   // Draws until the hand reaches the current hand size (rank may cut it to 6/5,
-  // see Ranks.handSize) or deck+discard are empty.
+  // see Ranks.handSize; маршрут может дать ±слоты, run.waveHandBonus)
+  // or deck+discard are empty.
   function handSize(state) {
-    return Ranks.handSize(state);
+    return Ranks.handSize(state) + (state.run.waveHandBonus || 0);
   }
 
   function draw(state, rng) {

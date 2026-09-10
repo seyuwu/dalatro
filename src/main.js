@@ -458,13 +458,13 @@
       }
       return;
     }
-    // Развилка: 1/2/3 — выбор тропы.
-    if (state.phase === "route" && /^[1-3]$/.test(e.key)) {
-      const kinds = ["normal", "elite", "camp"];
-      const kind = kinds[Number(e.key) - 1];
-      if (kind === "camp" && state.combat.campTaken) return;
-      Sfx.play("path");
-      dispatchAndRender({ type: "TAKE_ROUTE", kind });
+    // Развилка: 1..N — выбор маршрута (опции лежат в стейте).
+    if (state.phase === "route" && /^[1-9]$/.test(e.key)) {
+      const opt = (state.combat.routeOptions || [])[Number(e.key) - 1];
+      if (opt) {
+        Sfx.play("path");
+        dispatchAndRender({ type: "TAKE_ROUTE", kind: opt.id });
+      }
     }
     if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.phase === "wave" && !state.combat.outcome) {
       if (state.combat.selectedUids.length && state.player.discardsLeft > 0) {
