@@ -211,27 +211,37 @@ const Combat = (function () {
     return Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
   }
 
-  function towerDamageMult(state, resolution) {
+  function towerDamageMult(state, resolution, playedCount) {
     const tower = state.combat.wave;
     if (state.combat.scoring.flags.bkbBlocksMods) return 1;
+    let mult = 1;
     for (const mod of tower.modifiers || []) {
       if (mod.id === "armor" && state.combat.fightIndex === 0) {
         // fightIndex is 0-based: 0 = first fight of the wave.
         // Butterfly evasion, one roll per fight (BKB already handled globally).
         if (state.player.items.includes("butterfly") && Rng.current().chance(0.25)) {
           Resolver.pushStep(resolution, { icon: "🎲", label: "Butterfly: броня башни уклонена!", kind: "item" });
-          return 1;
+        } else {
+          Resolver.pushStep(resolution, { icon: "☠", label: "Armor T2: первый бой волны — урон ×0.5", kind: "modifier" });
+          mult *= 0.5;
         }
-        Resolver.pushStep(resolution, { icon: "☠", label: "Armor T2: первый бой волны — урон ×0.5", kind: "modifier" });
-        return 0.5;
       }
       if (mod.id === "glyph" && state.combat.fightIndex % 3 === 2) {
         // every 3rd fight: #3, #6, ...
         Resolver.pushStep(resolution, { icon: "☠", label: "Glyph T3: бой заблокирован полностью!", kind: "modifier" });
         return 0;
       }
+      // Мутации башен (ранги Божество+).
+      if (mod.id === "reflection" && state.combat.fightIndex % 2 === 1) {
+        mult *= 0.75;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Отражение: чётный бой — урон ×0.75", kind: "modifier" });
+      }
+      if (mod.id === "thorns" && playedCount >= 4) {
+        mult *= 0.85;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Шипы: большой отряд — урон ×0.85", kind: "modifier" });
+      }
     }
-    return 1;
+    return mult;
   }
 
   function enemyShieldMult(state) {
@@ -292,16 +302,26 @@ const Combat = (function () {
       });
     }
 
-    // 3. Base power + played card powers (туман: ранг ≤4 не даёт силы).
+    // 3. Base power + played card powers (туман: ранг ≤4 не даёт силы;
+    // нестабильная позиция: герой в запретном слоте волны даёт −40%).
     const fog = curses.includes("fog");
     state.combat.scoring.power = combo.basePower;
     let cardPowerSum = 0;
+    let forbiddenHit = false;
     for (const card of effective) {
-      if (fog && card.power <= 4) continue;
-      cardPowerSum += card.power;
+      let power = card.power;
+      if (fog && power <= 4) continue;
+      if (state.combat.forbiddenSlot && card.slotIndex === state.combat.forbiddenSlot - 1) {
+        power = Math.floor(power * 0.6);
+        forbiddenHit = true;
+      }
+      cardPowerSum += power;
     }
     if (fog && effective.some((c) => c.power <= 4)) {
       Resolver.pushStep(resolution, { icon: "☠", label: "Туман войны: герои ранга ≤4 не дают силы", kind: "modifier" });
+    }
+    if (forbiddenHit) {
+      Resolver.pushStep(resolution, { icon: "☠", label: `Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы`, kind: "modifier" });
     }
     state.combat.scoring.power += cardPowerSum;
     state.combat.scoring.mult = combo.baseMult;
@@ -342,7 +362,13 @@ const Combat = (function () {
       });
     }
 
-    // 7. Tower modifiers + проклятия элиты.
+    // 6.7 Проклятие забега «Кровоток»: весь урон ×1.15.
+    if (Ranks.hasCurse(state, "blood")) {
+      state.combat.scoring.finalMult *= 1.15;
+      Resolver.pushStep(resolution, { icon: "🩸", label: "Кровоток: урон ×1.15", kind: "modifier" });
+    }
+
+    // 7. Tower modifiers + проклятия элиты + правила ранга.
     let curseMultiplier = 1;
     if (curses.includes("adaptation") && state.combat.lastComboType === combo.type) {
       curseMultiplier *= 0.5;
@@ -352,7 +378,21 @@ const Combat = (function () {
       curseMultiplier *= 0.5;
       Resolver.pushStep(resolution, { icon: "☠", label: "Фортификация: малое комбо ×0.5", kind: "modifier" });
     }
-    const towerMult = towerDamageMult(state, resolution) * enemyShieldMult(state) * curseMultiplier;
+    // Память башен (Рыцарь): тот же тип удара, что в прошлом бою волны, — ×0.9.
+    if (Ranks.has(state, "memory") && state.combat.lastComboType === combo.type) {
+      curseMultiplier *= 0.9;
+      Resolver.pushStep(resolution, { icon: "☠", label: "Память башен: тот же тип удара — ×0.9", kind: "modifier" });
+    }
+    // Адаптация мира (Титан): самое частое комбо забега — ×0.85. BKB не снимает:
+    // это правило лиги, а не модификатор башни.
+    if (Ranks.has(state, "adaptive")) {
+      const hunted = Ranks.mostUsedCombo(state);
+      if (hunted && hunted.id === combo.type) {
+        curseMultiplier *= 0.85;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Адаптация мира: изученное комбо — ×0.85", kind: "modifier" });
+      }
+    }
+    const towerMult = towerDamageMult(state, resolution, played.length) * enemyShieldMult(state) * curseMultiplier;
     resolution.blocked = towerMult === 0;
 
     // 8. Damage.
@@ -420,6 +460,29 @@ const Combat = (function () {
       }
     }
 
+    // 9.5 Мутации башни, дожившей до конца боя (ранги Божество+, BKB снимает).
+    let greedSteal = false;
+    if (!resolution.killed && tower.hp > 0 && !s.flags.bkbBlocksMods) {
+      const hasMut = (id) => (tower.modifiers || []).some((m) => m.id === id);
+      if (hasMut("regen")) {
+        const heal = Math.max(1, Math.round(tower.maxHp * 0.04));
+        tower.hp = Math.min(tower.maxHp, tower.hp + heal);
+        tower.regenTotal += heal;
+        Resolver.pushStep(resolution, { icon: "☠", label: `Регенерация: башня лечит ${heal} HP`, kind: "modifier" });
+      }
+      if (hasMut("enrage") && !tower.enraged && tower.hp < tower.maxHp * 0.25) {
+        tower.enraged = true;
+        const heal = Math.max(1, Math.round(tower.maxHp * 0.1));
+        tower.hp = Math.min(tower.maxHp, tower.hp + heal);
+        Resolver.pushStep(resolution, { icon: "☠", label: `Ярость: башня исцеляется на ${heal} HP`, kind: "modifier" });
+      }
+      if (hasMut("greed") && damage < hpBefore * 0.3) {
+        greedSteal = true;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Жадность: слабый бой — башня забирает 1 золото", kind: "modifier" });
+      }
+      resolution.towerHpAfter = Math.max(0, tower.hp);
+    }
+
     // 10. Gold from overkill + exact last hit.
     let gold = overkillGold(state, overkill);
     if (gold > 0) {
@@ -440,6 +503,9 @@ const Combat = (function () {
     }
     resolution.goldGained = gold;
     state.run.gold += gold;
+    if (greedSteal && state.run.gold > 0) {
+      state.run.gold -= 1;
+    }
 
     state.stats.totalDamage += damage;
     if (damage > state.stats.biggestHit) state.stats.biggestHit = damage;
@@ -450,7 +516,13 @@ const Combat = (function () {
     DeckSys.draw(state, Rng.current());
     state.player.fightsLeft -= 1;
     state.combat.fightIndex += 1;
-    state.combat.lastComboType = combo.type; // для проклятия «Адаптация»
+    state.combat.lastComboType = combo.type; // для проклятия «Адаптация» и памяти башен
+    // Ранги Легенда/Титан: мир считает, чем ты играешь — усталость героев,
+    // охота на героя и адаптация мира читают эти счётчики.
+    state.run.comboUses[combo.type] = (state.run.comboUses[combo.type] || 0) + 1;
+    for (const card of played) {
+      state.run.heroUses[card.heroId] = (state.run.heroUses[card.heroId] || 0) + 1;
+    }
     state.combat.lastResolution = resolution;
     state.combat.scoring = null;
     return resolution;

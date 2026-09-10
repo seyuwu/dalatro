@@ -4,6 +4,18 @@
   const SAVE_KEY = "dalatro_save_v2"; // v2: акты/новый баланс — старые сейфы несовместимы и не подхватываются
   const PREFS_KEY = "dalatro_prefs_v3";
   const ONBOARD_KEY = "dalatro_onboard_v3";
+  const RANKS_KEY = "dalatro_ranks_v1"; // прогресс лиги: максимальный открытый ранг
+
+  function loadUnlockedRank() {
+    try {
+      const raw = Number(localStorage.getItem(RANKS_KEY));
+      return raw >= 1 && raw <= Ranks.MAX_RANK ? raw : 1;
+    } catch (e) { return 1; }
+  }
+
+  function saveUnlockedRank(rank) {
+    try { localStorage.setItem(RANKS_KEY, String(rank)); } catch (e) { /* приватный режим */ }
+  }
 
   function saveState() {
     try {
@@ -44,6 +56,7 @@
   }
 
   loadPrefs();
+  UI.UIState.unlockedRank = loadUnlockedRank();
   let state = loadState() || Game.createInitialState("");
   let fighting = false;
 
@@ -78,6 +91,18 @@
     state = Game.dispatch(state, action);
     saveState();
 
+    // Победа на ранге N открывает N+1 навсегда (localStorage). Плашка — на
+    // экране победы; сбросится при старте нового забега.
+    if (state.phase === "victory" && !fighting) {
+      const cleared = state.run.rank || 1;
+      if (cleared >= UI.UIState.unlockedRank && UI.UIState.unlockedRank < Ranks.MAX_RANK) {
+        const next = Math.min(Ranks.MAX_RANK, cleared + 1);
+        UI.UIState.unlockedRank = next;
+        UI.UIState.unlockBanner = Content.ranks.byId[next].name;
+        saveUnlockedRank(next);
+      }
+    }
+
     // Fight: animate the resolution stack first, then reveal the result.
     if (action.type === "CONFIRM_FIGHT" && state.combat.lastResolution) {
       fighting = true;
@@ -105,10 +130,71 @@
     rerender();
   }
 
+  // Перетаскивание героев по слотам формации: занятые меняются местами,
+  // пустой слот принимает героя на это место. Порядок = позиции в бою.
+  // Pointer-события вместо HTML5 DnD — работают с любым вводом и не зависят
+  // от нативного dragstart.
+  let drag = null;
+
+  function reorderSelection(from, to) {
+    const uids = state.combat.selectedUids;
+    if (from === to || from < 0 || !uids[from]) return;
+    if (uids[to]) {
+      [uids[from], uids[to]] = [uids[to], uids[from]];
+    } else {
+      const [moved] = uids.splice(from, 1);
+      uids.splice(to, 0, moved);
+    }
+    rerender();
+  }
+
+  function clearDragMarks() {
+    document.querySelectorAll(".formation-slot.dragging, .formation-slot.drag-over")
+      .forEach((el) => el.classList.remove("dragging", "drag-over"));
+  }
+
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || state.phase !== "wave" || state.combat.outcome || fighting) return;
+    const slot = e.target.closest && e.target.closest(".formation-slot.occupied[data-idx]");
+    if (!slot) return;
+    drag = { from: Number(slot.dataset.idx), started: false, x: e.clientX, y: e.clientY };
+  });
+
+  document.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.started) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      drag.started = true;
+      document.querySelector(`.formation-slot[data-idx="${drag.from}"]`)?.classList.add("dragging");
+    }
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = under && under.closest(".formation-slot[data-idx]");
+    document.querySelectorAll(".formation-slot.drag-over").forEach((el) => el.classList.remove("drag-over"));
+    if (slot && Number(slot.dataset.idx) !== drag.from) slot.classList.add("drag-over");
+  });
+
+  document.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const { from, started } = drag;
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = under && under.closest(".formation-slot[data-idx]");
+    drag = null;
+    clearDragMarks();
+    if (!started || !slot) return;
+    const to = Number(slot.dataset.idx);
+    if (to !== from) reorderSelection(from, to);
+  });
+
+  document.addEventListener("pointercancel", () => {
+    drag = null;
+    clearDragMarks();
+  });
+
   function startRun(seedCode) {
     // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
     const urlRules = new URLSearchParams(location.search).get("rules");
-    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft });
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1 });
+    UI.UIState.unlockBanner = null;
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
       UI.UIState.onboarding = true;
@@ -130,6 +216,17 @@
       case "select": Sfx.play("select"); dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
       case "toggle-rules":
         UI.UIState.rulesDraft = el.dataset.rules;
+        rerender();
+        break;
+      case "pick-rank":
+        UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, Number(el.dataset.rank) || 1));
+        Sfx.play("select");
+        rerender();
+        break;
+      case "choose-curse":
+        Sfx.play("lose");
+        dispatchAndRender({ type: "CHOOSE_CURSE", curseId: el.dataset.curse });
+        UI.toast(state, "Проклятие забега принято. До конца забега.");
         rerender();
         break;
       case "fight": dispatchAndRender({ type: "CONFIRM_FIGHT" }); break;
@@ -320,13 +417,14 @@
         const offer = (state.shop.offers || [])[Number(e.key) - 1];
         if (offer) {
           const item = Content.items.byId[offer.id];
-          if (state.run.gold >= item.cost) {
+          const cost = Game.itemCost(state, offer.id);
+          if (state.run.gold >= cost) {
             Sfx.play("buy");
             dispatchAndRender({ type: "BUY_ITEM", itemId: offer.id });
-          } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${item.cost}.`);
+          } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${cost}.`);
         }
       }
-      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Economy.REROLL_COST) {
+      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Ranks.rerollCost(state)) {
         dispatchAndRender({ type: "REROLL_SHOP" });
       }
       if (e.key === "Enter") {

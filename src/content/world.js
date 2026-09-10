@@ -49,6 +49,12 @@ const MODIFIERS_DATA = [
   { id: "fog", name: "Туман войны", desc: "Герои ранга ≤4 не дают своей силы.", curse: true },
   { id: "silence", name: "Безмолвие", desc: "Способности героев отключены (предметы и комбинации работают).", curse: true },
   { id: "disarm", name: "Обезоруживание", desc: "В тимфайт можно взять не более 4 героев.", curse: true },
+  // Мутации башен (выдаются рангами Божество+): одна волновая способность.
+  { id: "regen", name: "Регенерация", desc: "Башня лечит 4% от макс. HP после каждого боя, пока волна не зачищена.", mutation: true },
+  { id: "reflection", name: "Отражение", desc: "Каждый чётный бой наносит по башне ×0.75 урона.", mutation: true },
+  { id: "enrage", name: "Ярость", desc: "Падая ниже 25% HP, башня раз в волну исцеляется на 10%.", mutation: true },
+  { id: "thorns", name: "Шипы", desc: "Отряды из 4–5 героев наносят по башне ×0.85.", mutation: true },
+  { id: "greed", name: "Жадность", desc: "Бой, не снявший 30% её текущего HP, отдаёт башне 1 золото.", mutation: true },
 ];
 
 const CURSES = ["adaptation", "bastion", "fog", "silence", "disarm"];
@@ -108,3 +114,33 @@ const TOWER_DEFENSE = {
 };
 
 const DAMAGE_TYPE_NAMES = { physical: "физический", magical: "магический", pure: "чистый" };
+
+// --- Ранги сложности (лига DALATRO): Рекрут → ... → Титаны → Папочка.
+// Ранг N = союз добавок рангов 1..N (правила наслаиваются). hpMult/goldMult —
+// абсолютные множители ранга (не накапливаются): HP башен и награда за зачистку.
+const RANKS_DATA = [
+  { id: 1, name: "Рекрут", roman: "I", hpMult: 1.0, goldMult: 1.0, quote: "Мир терпит ошибки", color: "#97a39b", adds: ["mercy"], notes: ["Милосердие: после провала башня восстанавливает 70% HP"] },
+  { id: 2, name: "Рыцарь", roman: "II", hpMult: 1.08, goldMult: 1.06, quote: "Мир начинает сопротивляться", color: "#7fb069", adds: ["memory"], notes: ["Память башен: тот же тип удара, что в прошлом бою — ×0.9"] },
+  { id: 3, name: "Герой", roman: "III", hpMult: 1.18, goldMult: 1.14, quote: "Ресурсы имеют цену", color: "#5a9dd6", adds: ["inflation", "reroll3"], notes: ["Инфляция лавки: каждая покупка в визите дороже на 1G", "Реролл стоит 3G"] },
+  { id: 4, name: "Легенда", roman: "IV", hpMult: 1.3, goldMult: 1.23, quote: "Нельзя полагаться на одного героя", color: "#a678e0", adds: ["fatigue"], notes: ["Усталость: каждые 5 боёв героя — −1 к его силе (до −3)"] },
+  { id: 5, name: "Властелин", roman: "V", hpMult: 1.45, goldMult: 1.34, quote: "Позиция имеет значение", color: "#d8b24f", adds: ["unstable"], notes: ["Нестабильная позиция: каждая волна выбирает слот с −40% силы"] },
+  { id: 6, name: "Божество", roman: "VI", hpMult: 1.65, goldMult: 1.49, quote: "Каждая башня уникальна", color: "#64d8ce", adds: ["hand6", "mutations1"], notes: ["Рука 6 карт вместо 7", "Мутации башен: 1 случайная способность на волну"] },
+  { id: 7, name: "Титан", roman: "VII", hpMult: 1.7, goldMult: 1.68, quote: "Враг изучает тебя", color: "#e0684e", adds: ["adaptive", "antihero"], notes: ["Адаптация мира: твоё самое частое комбо наносит ×0.85", "Охота на героя: самый используемый герой −2 к силе"] },
+  { id: 8, name: "Титан 10+", roman: "VIII", hpMult: 1.9, goldMult: 1.9, quote: "Ты платишь за всё", color: "#e25f43", adds: ["discards2", "tax1"], notes: ["ТП-сбросов 2 за волну", "Налог: зачистка приносит −1G"] },
+  { id: 9, name: "Титан 100+", roman: "IX", hpMult: 2.15, goldMult: 2.2, quote: "Ты сам выбираешь свою боль", color: "#e4573d", adds: ["curseChoice"], notes: ["Проклятия забега: в начале каждого акта выбираешь 1 из 3"] },
+  { id: 10, name: "Титан 1 000+", roman: "X", hpMult: 2.45, goldMult: 2.58, quote: "Правила больше не гарантированы", color: "#e84f36", adds: ["mutations2"], notes: ["Reality Break: 2 мутации башен на каждую волну"] },
+  { id: 11, name: "Титан 10 000+", roman: "XI", hpMult: 2.8, goldMult: 3.03, quote: "Всё против тебя", color: "#ec472f", adds: ["fights3"], notes: ["Тимфайтов 3 за волну"] },
+  { id: 12, name: "Титан 100 000+", roman: "XII", hpMult: 3.2, goldMult: 3.55, quote: "Последние стены", color: "#f03f28", adds: ["reroll4", "tax2"], notes: ["Реролл стоит 4G", "Налог: зачистка приносит −2G"] },
+  { id: 13, name: "Титан 1 000 000+", roman: "XIII", hpMult: 3.7, goldMult: 4.15, quote: "Предел. Дальше — только он", color: "#f43722", adds: ["hand5"], notes: ["Рука 5 карт"] },
+  { id: 14, name: "Папочка", roman: "XIV", hpMult: 4.5, goldMult: 5.13, quote: "Он всё видел. Он всё помнит.", color: "#ffb03a", papochka: true, adds: ["fights2", "discards1"], notes: ["Тимфайтов 2, ТП-сбросов 1", "Трон становится Папочкой. Он всё видел."] },
+];
+
+// Проклятия забега (Титан 100+): игрок выбирает 1 из 3 в начале каждого акта.
+// Минус и компенсация зашиты в описание; эффекты — по id в game.js/combat.js.
+const RANK_CURSES_DATA = [
+  { id: "blood", name: "Кровоток", emoji: "🩸", desc: "Зачистки дают ×0.75 золота, но весь урон ×1.15." },
+  { id: "web", name: "Паутина", emoji: "🕸", desc: "−1 ТП-сброс за волну, зато зачистки дают ×1.2 золота." },
+  { id: "hunger", name: "Голод", emoji: "☠", desc: "−1 тимфайт за волну, зато товары в лавке дешевле на 20%." },
+  { id: "time", name: "Время", emoji: "⏳", desc: "Реролл дороже на 2G, зато +1 ТП-сброс за волну." },
+  { id: "chaos", name: "Хаос", emoji: "🎲", desc: "Каждая волна получает +1 случайную мутацию, зачистки ×1.15 золота." },
+];

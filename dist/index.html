@@ -54,15 +54,15 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .blue-bg { background: #719eb8 !important; }
 .full-width { width: 100%; }
 
-.app { min-height: 100vh; background: radial-gradient(ellipse at 75% 35%, #1b271c35, transparent 65%); }
+.app, #app { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: radial-gradient(ellipse at 75% 35%, #1b271c35, transparent 65%); }
 
 /* ---------- topbar ---------- */
-.topbar { height: 80px; padding: 0 3.2%; display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--border); background: #141a16; }
+.topbar { height: 64px; padding: 0 3.2%; display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--border); background: #141a16; flex-shrink: 0; }
 .brand { display: flex; align-items: center; gap: 12px; color: #e3e4d9; cursor: pointer; }
-.brand svg { height: 32px; width: 32px; color: #d39b65; }
-.brand > span { font-family: 'Oswald', sans-serif; letter-spacing: 2.1px; font-size: 33px; font-weight: 600; }
+.brand svg { height: 28px; width: 28px; color: #d39b65; }
+.brand > span { font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 29px; font-weight: 600; }
 .brand-dot { color: var(--gold); }
-.brand-divider { width: 1px; height: 27px; background: var(--border); margin-left: 1px; }
+.brand-divider { width: 1px; height: 22px; background: var(--border); margin-left: 1px; }
 .brand-caption { color: #7b897e; font-size: 9px; line-height: 1.8; letter-spacing: 1.15px; font-weight: 750; }
 .main-nav { display: flex; align-self: stretch; align-items: stretch; gap: 29px; margin-left: auto; margin-right: auto; }
 .main-nav button { font-size: 14px; color: #8d998f; position: relative; display: flex; gap: 8px; align-items: center; padding: 0 2px; white-space: nowrap; }
@@ -77,7 +77,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .icon-button.small { width: 21px; height: 21px; }
 
 /* ---------- topbar run meta (run-bar слит в шапку) ---------- */
-.page-shell { max-width: 1536px; margin: auto; padding: 18px 3.2% 0; min-height: calc(100vh - 80px); display: flex; flex-direction: column; }
+.page-shell { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 22px 0; max-width: 1900px; margin: 0 auto; width: 100%; }
 .run-meta { display: flex; align-items: center; gap: 8px; }
 .run-id { font-size: 11px; color: #677469; white-space: nowrap; }
 .act-pill { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #a1b798; background: #263025; border: 1px solid #394936; border-radius: 4px; display: flex; align-items: center; gap: 6px; padding: 4px 7px; white-space: nowrap; }
@@ -85,10 +85,10 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .subtle-button { display: flex; gap: 7px; align-items: center; color: #9aa398; font-size: 12px; white-space: nowrap; }
 .subtle-button:hover { color: var(--gold); }
 
-/* ---------- layout: sidebar | scene | context ---------- */
-.game-layout { display: grid; grid-template-columns: 232px minmax(0, 1fr) 252px; gap: 22px; align-items: stretch; padding-bottom: 18px; }
-.game-layout.two { grid-template-columns: 232px minmax(0, 1fr); align-items: start; }
-.sidebar { display: flex; flex-direction: column; gap: 13px; }
+/* ---------- layout: sidebar | scene | context (всё на одном экране) ---------- */
+.game-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 244px minmax(0, 1fr) 292px; gap: 18px; align-items: stretch; margin-bottom: 12px; }
+.game-layout.two { grid-template-columns: 244px minmax(0, 1fr); }
+.sidebar { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; min-height: 0; }
 .panel { background: linear-gradient(125deg, #1b221c, #171e19); border: 1px solid var(--border); border-radius: 8px; }
 .section-label { font-size: 10px; font-weight: 750; letter-spacing: 1.45px; display: flex; align-items: center; justify-content: space-between; color: #8d9b8d; gap: 7px; }
 .section-label > span:first-child, .section-label.gold, .section-label.mint { display: flex; gap: 7px; align-items: center; justify-content: flex-start; }
@@ -140,7 +140,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .combo-guide:hover { border-color: #6d7553; }
 
 /* ---------- inventory (полоса билда внизу / карточки в лавке) ---------- */
-.play-area { min-width: 0; display: flex; flex-direction: column; gap: 17px; }
+.play-area { min-width: 0; display: flex; flex-direction: column; gap: 17px; overflow-y: auto; min-height: 0; }
 .inventory-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
 .inventory-heading .section-label { gap: 14px; }
 .slot-count { font-size: 12px; color: #c8d4c1; letter-spacing: 0; }
@@ -162,42 +162,54 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .item-slot.legendary { border-color: #867044; background: linear-gradient(120deg, #342f2166, #222b1e50); }
 
 /* ---------- нижняя полоса: билд + рука во всю ширину ---------- */
-.bottom-band { margin-top: auto; padding: 13px 16px 12px; border: 1px solid var(--border); border-radius: 8px; background: linear-gradient(125deg, #161d17, #131914); display: flex; flex-direction: column; gap: 12px; }
+.bottom-band { flex-shrink: 0; padding: 9px 16px 8px; border: 1px solid var(--border); border-radius: 8px; background: linear-gradient(125deg, #161d17, #131914); display: flex; flex-direction: column; gap: 7px; }
 .bottom-band.shop { gap: 10px; }
-.band-build { display: flex; align-items: center; gap: 12px; }
-.band-label { font-size: 10px; font-weight: 750; letter-spacing: 1.45px; color: #8d9b8d; display: flex; align-items: center; gap: 7px; width: 88px; flex-shrink: 0; }
+.band-top { display: flex; align-items: center; gap: 12px; margin: 0 1px; }
+.band-top .spacer { flex: 1; }
+.band-hand-title { font-size: 15px; font-weight: 750; display: flex; align-items: center; gap: 8px; white-space: nowrap; margin: 0; }
+.band-hand-title > span { font-size: 12px; color: #b1bfa7; border: 1px solid #354431; border-radius: 4px; padding: 1px 5px; font-weight: 600; }
+.band-hand-title small { color: #66795f; font-weight: 500; }
+.band-build { display: flex; align-items: center; gap: 8px; }
+.band-label { font-size: 10px; font-weight: 750; letter-spacing: 1.45px; color: #8d9b8d; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .build-strip { display: flex; gap: 7px; }
-.build-icon { position: relative; width: 54px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid #46513a; border-radius: 5px; background: linear-gradient(120deg, #30352380, #222b1e50); color: #b4b779; padding: 3px; }
+.build-icon { position: relative; width: 46px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #46513a; border-radius: 5px; background: linear-gradient(120deg, #30352380, #222b1e50); color: #b4b779; padding: 3px; }
 .build-icon .item-gem { background: none; border: none; box-shadow: none; width: 100%; height: 100%; }
 .build-icon .item-gem img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; }
 .build-icon:hover { border-color: #9a9d62; background: #303924; }
 .build-icon.empty { border-style: dashed; color: #51674c; background: #1b241935; }
 .build-icon.legendary { border-color: #867044; }
-.band-hand { max-width: 1210px; margin: 0 auto; width: 100%; }
-.bottom-band .hero-art { height: 138px; }
-.bottom-band .hero-card-bottom { min-height: 66px; }
-.bottom-band .hero-card.selected, .bottom-band .hero-card:hover { transform: translateY(-7px); }
+.bottom-band .hero-hand, .bottom-band .under-hand { max-width: 1340px; width: 100%; margin-left: auto; margin-right: auto; }
+.bottom-band .hero-hand { padding: 0; }
+.bottom-band .hero-art { height: 100px; }
+.bottom-band .hero-card-bottom { min-height: 54px; }
+.bottom-band .hero-card.selected, .bottom-band .hero-card:hover { transform: translateY(-6px); }
 
 /* ---------- battle scene: центр = место принятия решения ---------- */
-.battle-scene { position: relative; isolation: isolate; overflow: hidden; border-radius: 8px; border: 1px solid #435039; background: #26352b url('images/battlefield.jpg') center 42% / cover; min-height: 452px; display: flex; flex-direction: column; }
+.battle-scene { position: relative; isolation: isolate; overflow: hidden; border-radius: 8px; border: 1px solid #435039; background: #26352b url('images/battlefield.jpg') center 42% / cover; min-height: 0; display: flex; flex-direction: column; }
 .battle-scene:after { content: ''; position: absolute; inset: 5px; border: 1px solid #afc8a115; border-radius: 4px; pointer-events: none; }
 .scene-shade { position: absolute; inset: 0; background: linear-gradient(90deg, #0d1a12e6 0%, #0d1a12c0 42%, #0d1a1266 72%, #14261d99 100%), linear-gradient(0deg, #0f1d14d5, transparent 52%); z-index: -1; }
-.scene-inner { padding: 20px 24px 22px; position: relative; z-index: 2; display: flex; flex-direction: column; gap: 13px; flex: 1; }
-.scene-target { display: flex; align-items: center; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid #afc8a116; }
+.scene-inner { padding: 14px 20px 16px; position: relative; z-index: 2; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.scene-target { display: flex; align-items: center; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid #afc8a116; flex-shrink: 0; }
 .scene-emblem { width: 46px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #d1ae6f; background: linear-gradient(140deg, #3d42263b, #2b312123); border: 1px solid #695e3344; border-radius: 9px; transform: rotate(45deg); }
 .scene-emblem > svg { transform: rotate(-45deg); filter: drop-shadow(0 2px 8px #d8bb5438); }
 .scene-emblem.boss { color: var(--danger); border-color: #6b4038; }
 .scene-title { min-width: 0; }
 .scene-title .section-label { justify-content: flex-start; }
-.scene-title h2 { font-size: 23px; font-weight: 750; letter-spacing: -.7px; color: #e2e8d8; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-title h2 { font-size: 21px; font-weight: 750; letter-spacing: -.6px; color: #e2e8d8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scene-hp { margin-left: auto; }
-.scene-hp-num { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; color: #9aae8d; font-size: 13px; }
+.scene-hp-num { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; color: #9aae8d; font-size: 12px; }
 .scene-hp-num svg { align-self: center; }
-.scene-hp-num strong { font-family: 'Oswald', sans-serif; font-size: 37px; line-height: 1; font-weight: 600; color: #d9e2cf; letter-spacing: -.5px; }
-.scene-hp-num > span { color: #6d7f66; font-size: 13px; }
-.scene-hp .health-track { width: 236px; margin: 8px 0 0 auto; }
-.health-track { height: 7px; border-radius: 3px; background: #31372d; overflow: hidden; }
-.health-track > div { height: 100%; background: linear-gradient(90deg, #7c9a70, #a5b78c); border-radius: 3px; transition: width .7s; }
+.scene-hp-num strong { font-family: 'Oswald', sans-serif; font-size: 33px; line-height: 1; font-weight: 600; color: #d9e2cf; letter-spacing: -.5px; }
+.scene-hp-num > span { color: #6d7f66; font-size: 12px; }
+.scene-hp .health-track { width: 280px; margin: 8px 0 0 auto; }
+.health-track { position: relative; height: 12px; border-radius: 4px; background: #232a22; overflow: hidden; box-shadow: inset 0 1px 3px #0007; }
+.health-track > div { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+.health-track .hp-base { left: 0; background: #4e6047; opacity: .55; transition: width .5s; }
+.health-track .hp-remain { left: 0; background: linear-gradient(90deg, #7c9a70, #a5b78c); transition: width .45s; }
+.health-track .hp-damage { min-width: 7px; background: repeating-linear-gradient(-55deg, #c95841 0 6px, #a53f2c 6px 12px); box-shadow: 0 0 10px #c9584155; transition: left .35s, width .35s; }
+.health-track.dead .hp-remain { width: 0 !important; }
+.health-track.dead .hp-damage { left: 0 !important; width: 100% !important; animation: deadPulse .9s ease-in-out infinite alternate; }
+@keyframes deadPulse { from { filter: brightness(.92); } to { filter: brightness(1.25); } }
 .scene-reward { text-align: right; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; padding-left: 16px; border-left: 1px solid #afc8a116; align-self: stretch; justify-content: center; }
 .scene-reward > span { font-size: 10px; letter-spacing: 1px; color: #828976; font-weight: 700; }
 .scene-reward b { display: flex; align-items: center; gap: 5px; font-size: 17px; color: var(--gold); }
@@ -216,11 +228,17 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 @keyframes chipPulse { from { box-shadow: 0 0 0 #d1806c00; } to { box-shadow: 0 0 14px #d1806c38; } }
 
 /* сцена: слева формация + формула, справа приговор + CTA */
-.scene-stage { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 22px; align-items: end; flex: 1; padding-top: 4px; }
-.scene-play { display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+.scene-stage { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: end; flex: 1; min-height: 0; padding-top: 2px; }
+.scene-play { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .scene-formation { display: flex; gap: 14px; align-items: center; }
 .formation-cards { display: flex; gap: 8px; }
-.formation-slot { width: 52px; height: 62px; display: flex; align-items: center; justify-content: center; border: 1px dashed #9ab48045; border-radius: 5px; background: #18271d73; position: relative; color: #6a855c; }
+.formation-slot { width: 48px; height: 58px; display: flex; align-items: center; justify-content: center; border: 1px dashed #9ab48045; border-radius: 5px; background: #18271d73; position: relative; color: #6a855c; }
+.formation-slot.occupied { cursor: grab; }
+.formation-slot.occupied:active { cursor: grabbing; }
+.formation-slot { user-select: none; -webkit-user-select: none; }
+.formation-slot img { -webkit-user-drag: none; pointer-events: none; }
+.formation-slot.dragging { opacity: .4; }
+.formation-slot.drag-over { border-color: #d6b782 !important; box-shadow: 0 0 0 1px #d6b78266, 0 0 16px #d4ab6244; }
 .formation-slot .slot-idx { position: absolute; top: 3px; left: 5px; color: #a9bd90; font-size: 9px; z-index: 2; font-weight: 800; text-shadow: 0 1px 3px #000; }
 .formation-slot.occupied { border: 1px solid #a7b68d77; box-shadow: 0 3px 12px #0003; background: #29332a; }
 .formation-slot .hero-art { position: absolute; inset: 0; height: 100%; border-radius: 4px; }
@@ -234,12 +252,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .damage-burst small { display: block; font-family: 'Manrope', sans-serif; font-size: 9px; letter-spacing: 3px; text-align: center; }
 
 /* ---------- рука в нижней полосе ---------- */
-.hand-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 1px 12px; gap: 12px; }
-.hand-heading > div:first-child { display: flex; align-items: center; gap: 14px; }
-.hand-heading h2 { font-size: 16px; font-weight: 750; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
-.hand-heading h2 > span { font-size: 12px; color: #b1bfa7; border: 1px solid #354431; border-radius: 4px; padding: 2px 5px; font-weight: 600; }
-.hand-heading h2 small { color: #66795f; font-weight: 500; }
-.hand-instruction { font-size: 10px; color: #74866b; }
+.hand-instruction { font-size: 10px; color: #74866b; white-space: nowrap; }
 .hand-tools { display: flex; align-items: center; gap: 5px; }
 .hand-tools > span { font-size: 9px; color: #63785b; margin-right: 4px; }
 .sort-button { font-size: 10px; color: #889d7d; padding: 4px 7px; display: flex; align-items: center; gap: 4px; border: 1px solid transparent; border-radius: 4px; }
@@ -314,13 +327,13 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 /* ---------- сцена: формула (главное число экрана), приговор, CTA ---------- */
 .combo-preview { text-align: left; padding: 0; align-self: flex-start; }
 .combo-preview .section-label { font-size: 9px; letter-spacing: 1.3px; color: #859c78; justify-content: flex-start; }
-.combo-preview > strong { display: flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 750; letter-spacing: -.6px; color: #dde6cd; margin: 6px 0 4px; }
+.combo-preview > strong { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 750; letter-spacing: -.6px; color: #dde6cd; margin: 6px 0 4px; }
 .combo-preview > strong svg { color: #80956b; }
 .combo-preview > small { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #879978; }
 .combo-preview:hover > strong { color: #ffffff; }
 .score-formula { display: flex; align-items: center; gap: 12px; }
-.score-block { width: 78px; height: 66px; border: 1px solid; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
-.score-block strong { font-family: 'Oswald', sans-serif; font-size: 34px; font-weight: 600; line-height: 1.1; letter-spacing: -.5px; }
+.score-block { width: 70px; height: 60px; border: 1px solid; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.score-block strong { font-family: 'Oswald', sans-serif; font-size: 30px; font-weight: 600; line-height: 1.1; letter-spacing: -.5px; }
 .score-block > span { font-size: 9px; letter-spacing: 1.2px; font-weight: 700; }
 .score-block.power { border-color: #4a6a56; background: #344e3f; color: #b5d9b8; }
 .score-block.multiplier { background: #5d422a; border-color: #82633f; color: #efd0a0; }
@@ -328,12 +341,12 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .times { display: flex; }
 .equals { font-size: 22px; }
 .total-score { text-align: center; min-width: 96px; }
-.total-score strong { font-family: 'Oswald', sans-serif; font-size: 52px; line-height: 1; color: #e3e7ca; font-weight: 600; letter-spacing: -.5px; }
+.total-score strong { font-family: 'Oswald', sans-serif; font-size: 46px; line-height: 1; color: #e3e7ca; font-weight: 600; letter-spacing: -.5px; }
 .total-score > span { display: flex; justify-content: center; gap: 3px; font-size: 9px; color: #97a27f; letter-spacing: 1.4px; margin-top: 6px; }
-.scene-side { display: flex; flex-direction: column; gap: 10px; min-width: 256px; }
-.scene-verdict { display: flex; flex-direction: column; gap: 4px; padding: 12px 15px; border-radius: 7px; border: 1px solid #3a4a30; background: #1d2719d9; }
-.scene-verdict > b { display: flex; align-items: center; gap: 8px; font-family: 'Oswald', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: 1.1px; color: #b7c2ab; }
-.scene-verdict > small { font-size: 10.5px; line-height: 1.55; color: #7d8b72; }
+.scene-side { display: flex; flex-direction: column; gap: 8px; min-width: 246px; }
+.scene-verdict { display: flex; flex-direction: column; gap: 3px; padding: 10px 13px; border-radius: 7px; border: 1px solid #3a4a30; background: #1d2719d9; }
+.scene-verdict > b { display: flex; align-items: center; gap: 8px; font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 1.1px; color: #b7c2ab; }
+.scene-verdict > small { font-size: 10px; line-height: 1.5; color: #7d8b72; }
 .scene-verdict.kill { border-color: #4d6a3b; background: #26371fd9; }
 .scene-verdict.kill > b { color: #a9d29d; }
 .scene-verdict.kill > small { color: #93a67f; }
@@ -353,15 +366,15 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .primary-button { background: linear-gradient(120deg, #e3be83, #d7aa72); color: #312b1d; border: 1px solid #edcd98; border-bottom: 3px solid #9c7748; border-radius: 5px; padding: 11px 19px; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 9px; box-shadow: 0 3px 12px #060d0640; }
 .primary-button:hover:not(:disabled) { background: linear-gradient(120deg, #f0cf9b, #e6bb85); box-shadow: 0 4px 14px #d2b37617; }
 .primary-button:disabled { opacity: .5; }
-.attack-button { padding: 12px 14px; font-size: 17px; }
+.attack-button { padding: 10px 14px; font-size: 16px; }
 .attack-button kbd { border-color: #5a4b293d; color: #685336; margin-left: 16px; font-size: 12px; }
 .discard-button { display: flex; justify-content: center; align-items: center; gap: 8px; color: #a7b09a; font-size: 12.5px; padding: 4px 10px; }
 .discard-button kbd { font-size: 9px; margin-left: 15px; color: #99a185; }
 .discard-button:hover:not(:disabled) { color: #d6e4cb; }
 
 /* ---------- context panel (правая колонка: контекст решения) ---------- */
-.context-panel { min-width: 0; display: flex; flex-direction: column; gap: 13px; position: sticky; top: 14px; }
-.context-inner { padding: 14px 13px; }
+.context-panel { min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; min-height: 0; padding-right: 2px; }
+.context-inner { padding: 12px 13px; flex-shrink: 0; }
 .context-inner .section-label { font-size: 9.5px; }
 .active-formation { padding-top: 12px; }
 .active-formation strong { display: block; font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .4px; color: #e6edcf; }
@@ -408,19 +421,8 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .combo-legend .dot.hit { background: #a9c284; }
 .combo-legend .dot.ready { background: #556b47; }
 
-/* ---------- footer ---------- */
-.footer { border-top: 1px solid #2b3926; margin-top: 25px; padding: 16px 0 21px; display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: auto; }
-.act-progress { display: flex; gap: 12px; align-items: center; }
-.act-progress > span { display: flex; align-items: center; gap: 5px; color: #4d6145; font-size: 9px; font-weight: 750; letter-spacing: .3px; }
-.act-progress .current { color: #b3bb8d; }
-.act-progress .complete { color: #83ac80; }
-.act-progress i { width: 17px; height: 1px; background: #3a4b30; margin-left: 7px; }
-.footer-tagline { font-size: 10px; color: #677c5c; }
-.footer-ver { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; color: #9ba285; letter-spacing: 1px; }
-.footer-ver > span { font-size: 9px; color: #637558; font-weight: 500; letter-spacing: 0; }
-
 /* ---------- shop ---------- */
-.shop { padding: 24px; flex: 1; min-height: 570px; }
+.shop { padding: 20px 24px; overflow-y: auto; min-height: 0; }
 .shop-banner { display: flex; align-items: center; gap: 17px; padding-bottom: 25px; border-bottom: 1px solid var(--border); }
 .shop-emblem { background: #3b3424; border: 1px solid #625136; border-radius: 12px; color: var(--gold); width: 60px; height: 64px; display: flex; justify-content: center; align-items: center; }
 .shop-banner h2 { font-size: 31px; letter-spacing: -.7px; margin: 5px 0; }
@@ -670,30 +672,32 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 
 /* ---------- responsive ---------- */
 @media (min-width: 1500px) {
-  .topbar { padding-left: max(3.2%, calc((100vw - 1440px) / 2)); padding-right: max(3.2%, calc((100vw - 1440px) / 2)); }
-  .game-layout { grid-template-columns: 250px minmax(0, 1fr) 264px; gap: 26px; }
-  .game-layout.two { grid-template-columns: 250px minmax(0, 1fr); }
-  .scene-inner { padding: 24px 28px 26px; }
-  .scene-title h2 { font-size: 26px; }
-  .scene-hp-num strong { font-size: 42px; }
-  .scene-hp .health-track { width: 280px; }
-  .formation-slot { width: 56px; height: 66px; }
-  .score-block { width: 86px; height: 72px; }
-  .score-block strong { font-size: 38px; }
-  .total-score strong { font-size: 58px; }
-  .combo-preview > strong { font-size: 23px; }
-  .scene-side { min-width: 284px; }
-  .bottom-band .hero-art { height: 152px; }
+  .topbar { padding-left: 28px; padding-right: 28px; }
+  .page-shell { padding: 14px 28px 0; }
+  .game-layout { grid-template-columns: 256px minmax(0, 1fr) 308px; gap: 20px; }
+  .game-layout.two { grid-template-columns: 256px minmax(0, 1fr); }
+  .scene-inner { padding: 16px 24px 18px; }
+  .scene-title h2 { font-size: 23px; }
+  .scene-hp-num strong { font-size: 37px; }
+  .scene-hp .health-track { width: 330px; }
+  .formation-slot { width: 52px; height: 62px; }
+  .score-block { width: 76px; height: 64px; }
+  .score-block strong { font-size: 32px; }
+  .total-score strong { font-size: 50px; }
+  .combo-preview > strong { font-size: 20px; }
+  .scene-side { min-width: 262px; }
+  .bottom-band .hero-art { height: 108px; }
   .bottom-band .hero-name { font-size: 13px; }
   .bottom-band .hero-ability { font-size: 9px; }
-  .item-slot { height: 58px; }
+  .item-slot { height: 56px; }
   .item-slot strong { font-size: 12px; }
   .item-slot small { font-size: 9.5px; }
 }
 @media (max-width: 1420px) {
   .brand-caption { display: none; }
-  .game-layout { grid-template-columns: 210px minmax(0, 1fr) 224px; gap: 15px; }
-  .game-layout.two { grid-template-columns: 210px minmax(0, 1fr); }
+  .game-layout { grid-template-columns: 208px minmax(0, 1fr) 244px; gap: 14px; }
+  .game-layout.two { grid-template-columns: 208px minmax(0, 1fr); }
+  .page-shell { padding: 10px 16px 0; }
   .context-inner { padding: 11px 10px; }
   .combo-row { padding: 7px 7px; }
   .scene-stage { gap: 15px; }
@@ -710,12 +714,9 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .main-nav { gap: 20px; }
   .header-right { gap: 10px; }
   .run-meta { gap: 6px; }
-  .page-shell { padding: 16px 2.5% 0; }
-  .game-layout { grid-template-columns: 210px minmax(0, 1fr); }
-  .game-layout.two { grid-template-columns: 210px minmax(0, 1fr); }
-  .context-panel { grid-column: 1 / -1; position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; align-items: start; }
-  .combo-rows { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-  .combo-row { margin-bottom: 0; }
+  .page-shell { padding: 10px 14px 0; }
+  .game-layout { grid-template-columns: 200px minmax(0, 1fr) 218px; gap: 13px; }
+  .game-layout.two { grid-template-columns: 200px minmax(0, 1fr); }
   .combo-legend { display: none; }
   .scene-stage { grid-template-columns: 1fr; }
   .scene-side { min-width: 0; }
@@ -735,7 +736,6 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .hero-ability { font-size: 7px; }
   .hero-attribute { font-size: 6.5px; }
   .hero-rank { font-size: 29px; left: 5px; }
-  .footer-tagline { font-size: 9px; }
   .shop { padding: 20px; }
   .shop-items { gap: 9px; }
   .shop-card { padding: 10px; }
@@ -749,11 +749,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .topbar { height: 70px; }
   .main-nav { gap: 25px; }
   .run-meta .autosave, .run-meta .run-id { display: none; }
-  .game-layout { grid-template-columns: 185px minmax(0, 1fr); gap: 14px; }
-  .game-layout.two { grid-template-columns: 185px minmax(0, 1fr); }
-  .sidebar { gap: 11px; }
+  .game-layout { grid-template-columns: 178px minmax(0, 1fr) 196px; gap: 12px; }
+  .game-layout.two { grid-template-columns: 178px minmax(0, 1fr); }
+  .sidebar { gap: 10px; }
   .play-area { gap: 14px; }
-  .combo-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .battle-scene { overflow-y: auto; }
   .scene-inner { padding: 16px 16px 18px; gap: 11px; }
   .scene-target { gap: 12px; }
   .scene-title h2 { font-size: 19px; }
@@ -775,10 +775,10 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .action-buttons { flex-direction: row; }
   .action-buttons .primary-button { flex: 1; }
   .discard-button { flex: 1; border: 1px solid #526243; border-radius: 4px; padding: 9px 10px; }
-  .band-build { flex-wrap: wrap; }
-  .band-hand { max-width: none; }
-  .hand-heading h2 { font-size: 14px; }
+  .band-top { flex-wrap: wrap; }
+  .band-hand-title { font-size: 14px; }
   .hand-tools > span { display: none; }
+  .bottom-band .hero-hand { max-width: none; }
   .bottom-band .hero-art { height: 92px; }
   .hero-name { font-size: 9px; bottom: 6px; line-height: 1.4; }
   .hero-rank { font-size: 26px; }
@@ -789,7 +789,6 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .card-foot { margin-top: 6px; font-size: 8px; }
   .hero-hand { gap: 5px; }
   .under-hand { font-size: 9px; }
-  .footer-tagline { display: none; }
   .journal-entries p { font-size: 10px; }
   .combo-guide { padding: 11px 9px; gap: 7px; }
   .guide-icon { width: 28px; }
@@ -825,7 +824,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .onboarding-body { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
-  .topbar { height: 66px; padding: 0 18px; gap: 12px; }
+  /* мобильный режим: обычная прокрутка страницы */
+  #app { height: auto; min-height: 100vh; overflow: visible; }
+  .page-shell { padding: 10px 14px 0; }
+  .game-layout, .game-layout.two { flex: none; }
+  .topbar { height: 60px; padding: 0 18px; gap: 12px; }
   .brand > span { font-size: 28px; letter-spacing: 1.3px; }
   .brand { gap: 8px; }
   .brand svg { width: 27px; height: 27px; }
@@ -837,8 +840,8 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .header-right .icon-button { width: 28px; }
   .header-right .subtle-button { font-size: 0; gap: 0; }
   .header-right .subtle-button svg { width: 15px; height: 15px; }
-  .page-shell { padding: 0 14px; min-height: calc(100vh - 66px); }
-  .run-meta { margin-top: 10px; }
+  .topbar { height: 60px; }
+  .run-meta { display: none; }
   .game-layout, .game-layout.two { display: flex; flex-direction: column; gap: 14px; }
   .sidebar { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; }
   .run-panel { grid-row: span 2; }
@@ -869,9 +872,9 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .arena-label { display: none; }
   .band-label { width: 100%; }
   .build-strip { flex-wrap: wrap; }
-  .hand-heading { flex-wrap: wrap; gap: 8px; }
-  .hand-heading h2 { font-size: 15px; gap: 8px; }
-  .hand-heading h2 > span { font-size: 10px; }
+  .band-top { flex-wrap: wrap; gap: 8px; }
+  .band-hand-title { font-size: 15px; gap: 8px; }
+  .band-hand-title > span { font-size: 10px; }
   .sort-button { font-size: 9px; padding: 4px 5px; }
   .deck-button { padding-left: 8px; margin-left: 4px; font-size: 10px; }
   .deck-button svg { width: 15px; }
@@ -887,10 +890,6 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .hero-card.selected, .hero-card:hover { transform: translateY(-5px); }
   .selection-order { height: 18px; font-size: 8px; min-width: 28px; top: -9px; right: -4px; }
   .under-hand { margin-top: 12px; font-size: 9px; }
-  .footer { margin-top: 20px; padding: 16px 0 22px; }
-  .act-progress { gap: 7px; }
-  .act-progress > span { font-size: 8px; gap: 4px; }
-  .act-progress i { width: 10px; margin-left: 4px; }
   .route-screen { padding: 20px 16px 24px; }
   .route-cards { grid-template-columns: 1fr; }
   .shop { padding: 17px 14px; }
@@ -1044,6 +1043,68 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 }
 .rule-beta { opacity: 0.65; font-size: 12px; margin-left: 6px; border: 1px solid currentColor; border-radius: 6px; padding: 0 5px; }
 .act-pill.rules-formation { color: #7ad6a0; border-color: rgba(110, 210, 160, 0.5); }
+
+/* --- лига DALATRO: пикер рангов, медали, проклятия забега --- */
+.rank-picker { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 620px; }
+.modal .rank-picker { justify-content: flex-start; }
+.rank-medal {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 7px 9px; border-radius: 8px; cursor: pointer; font: inherit; color: inherit;
+  border: 1px solid #33402c; background: #182015a8; transition: border-color .15s, background .15s;
+}
+.rank-medal:hover:not(.locked) { border-color: #5b7048; background: #202b1db8; }
+.rank-medal.active { border-color: var(--gold); background: #2a2f1cf0; box-shadow: 0 0 0 1px #d6b78255, 0 0 18px #d4ab6233; }
+.rank-medal.locked { opacity: .38; cursor: not-allowed; }
+.medal-gem {
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Oswald', sans-serif; font-size: 11px; font-weight: 600; color: #10160f;
+  background: var(--medal, #97a39b); clip-path: polygon(50% 0, 100% 28%, 82% 100%, 18% 100%, 0 28%);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--medal, #97a39b) 55%, transparent));
+}
+.medal-gem.big { width: 42px; height: 42px; font-size: 15px; }
+.medal-gem.small { width: 17px; height: 17px; font-size: 8px; clip-path: polygon(50% 0, 100% 28%, 82% 100%, 18% 100%, 0 28%); }
+.medal-gem.papochka { background: linear-gradient(160deg, #ffd76a, #ff6a3d); }
+.medal-name { font-size: 9px; font-weight: 700; letter-spacing: .4px; color: #aebb9e; max-width: 74px; text-align: center; line-height: 1.2; }
+.rank-medal.active .medal-name { color: #e6ecd9; }
+.medal-lock { position: absolute; top: 3px; right: 4px; font-size: 9px; }
+.rank-detail { margin-top: 10px; text-align: left; background: #141c13bb; border: 1px solid #313d29; border-radius: 8px; padding: 11px 14px; max-width: 620px; }
+.modal .rank-detail { max-width: 100%; }
+.rank-detail-head { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.rank-detail-head strong { font-size: 16px; letter-spacing: -.3px; }
+.rank-detail-head small { display: block; color: #8d9b7e; font-size: 10.5px; }
+.rank-notes { margin: 0; padding: 0 0 0 16px; display: flex; flex-direction: column; gap: 3px; }
+.rank-notes li { font-size: 11px; color: #97a889; line-height: 1.55; }
+.rank-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 750; letter-spacing: .8px; color: var(--medal, #97a39b); }
+.rank-badge.papochka { background: linear-gradient(90deg, #ffd76a, #ff6a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.run-row.rank-row { align-items: center; }
+/* усталость и запретный слот */
+.fatigue-mark { position: absolute; right: 6px; top: 5px; z-index: 5; font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600; color: #ff9a7a; background: #000000a8; border: 1px solid #a3544488; border-radius: 5px; padding: 1px 5px; }
+.hero-rank.weakened { color: #ffb08a; }
+.formation-slot.forbidden { border-style: solid; border-color: #a35444aa; background: #2a1712d5; }
+.formation-slot.forbidden .forbidden-mark { color: #ff9a7a; font-size: 15px; font-weight: 800; }
+/* проклятия забега */
+.effect-row.curse { color: #d89583; }
+.effect-row.curse svg { color: #d89583; }
+.effect-row.curse small { color: #b07f70; }
+.curse-cards { display: flex; gap: 10px; margin-top: 6px; }
+.curse-card {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: 14px 12px; border-radius: 10px; cursor: pointer; font: inherit; color: inherit;
+  border: 1px solid #6b4038; background: #241713; transition: border-color .15s, transform .15s;
+}
+.curse-card:hover { border-color: #d89583; transform: translateY(-2px); }
+.curse-card strong { font-size: 15px; }
+.curse-card p { font-size: 11px; color: #b09a8f; line-height: 1.55; }
+.curse-emoji { font-size: 26px; }
+/* конец забега: медаль ранга + открытие */
+.end-rank { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 10px 18px; border: 1px solid #3a4630; border-radius: 10px; background: #161e13cc; text-align: left; }
+.end-rank small { display: block; font-size: 9px; letter-spacing: 1.2px; color: #7d8b72; font-weight: 750; }
+.end-rank strong { display: block; font-size: 19px; color: var(--medal, #c0d4a9); letter-spacing: -.3px; }
+.end-rank em { display: block; font-size: 10.5px; color: #819875; font-style: normal; }
+.unlock-banner { display: flex; align-items: center; gap: 9px; margin: 6px 0 2px; padding: 10px 16px; border-radius: 9px; border: 1px solid #d6b78266; background: #d4ab6218; color: #e8d9ad; font-size: 12.5px; animation: deadPulse 1.4s ease-in-out infinite alternate; }
+.unlock-banner b { letter-spacing: .5px; }
+/* цена предмета с ранговыми эффектами */
+.price-note { display: block; text-align: center; font-size: 9.5px; color: #d8a56b; margin: -4px 0 6px; }
 
 </style>
 </head>
@@ -1670,17 +1731,17 @@ const WAVES_DATA = [
   { id: "techies", act: 1, name: "Techies", emoji: "💣", hp: 1750, gold: 8, miniBoss: true, modifiers: [{ id: "mines" }] },
   { id: "roshan", act: 1, name: "Roshan", emoji: "👹", hp: 2800, gold: 10, isBoss: true, modifiers: [{ id: "aegis" }] },
   // --- АКТ 2 «Тёмный лес» ---
-  { id: "f1", act: 2, name: "Руины", emoji: "🌲", hp: 1100, gold: 8, modifiers: [] },
-  { id: "f2", act: 2, name: "Сторожевой лагерь", emoji: "⛺", hp: 2050, gold: 8, modifiers: [{ id: "armor" }] },
-  { id: "f3", act: 2, name: "Цитадель", emoji: "🏯", hp: 3400, gold: 8, modifiers: [{ id: "glyph" }] },
-  { id: "fmini", act: 2, name: "Сапёры", emoji: "💣", hp: 4200, gold: 10, miniBoss: true, modifiers: [{ id: "mines" }] },
-  { id: "fboss", act: 2, name: "Древний Рошан", emoji: "🐲", hp: 6700, gold: 12, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
+  { id: "f1", act: 2, name: "Руины", emoji: "🌲", hp: 1500, gold: 8, modifiers: [] },
+  { id: "f2", act: 2, name: "Сторожевой лагерь", emoji: "⛺", hp: 2800, gold: 8, modifiers: [{ id: "armor" }] },
+  { id: "f3", act: 2, name: "Цитадель", emoji: "🏯", hp: 4600, gold: 8, modifiers: [{ id: "glyph" }] },
+  { id: "fmini", act: 2, name: "Сапёры", emoji: "💣", hp: 5800, gold: 10, miniBoss: true, modifiers: [{ id: "mines" }] },
+  { id: "fboss", act: 2, name: "Древний Рошан", emoji: "🐲", hp: 9200, gold: 12, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
   // --- АКТ 3 «Трон» ---
-  { id: "p1", act: 3, name: "Пепелище", emoji: "🌑", hp: 2650, gold: 10, modifiers: [{ id: "fog" }] },
-  { id: "p2", act: 3, name: "Бастион", emoji: "🗼", hp: 4900, gold: 10, modifiers: [{ id: "silence" }] },
-  { id: "p3", act: 3, name: "Сердце тьмы", emoji: "🏯", hp: 8150, gold: 12, modifiers: [{ id: "glyph" }, { id: "disarm" }] },
-  { id: "pmini", act: 3, name: "Шахты Трона", emoji: "💣", hp: 10100, gold: 14, miniBoss: true, modifiers: [{ id: "mines" }] },
-  { id: "pfinal", act: 3, name: "Трон", emoji: "👑", hp: 16100, gold: 20, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
+  { id: "p1", act: 3, name: "Пепелище", emoji: "🌑", hp: 6400, gold: 10, modifiers: [{ id: "fog" }] },
+  { id: "p2", act: 3, name: "Бастион", emoji: "🗼", hp: 12000, gold: 10, modifiers: [{ id: "silence" }] },
+  { id: "p3", act: 3, name: "Сердце тьмы", emoji: "🏯", hp: 19600, gold: 12, modifiers: [{ id: "glyph" }, { id: "disarm" }] },
+  { id: "pmini", act: 3, name: "Шахты Трона", emoji: "💣", hp: 24400, gold: 14, miniBoss: true, modifiers: [{ id: "mines" }] },
+  { id: "pfinal", act: 3, name: "Трон", emoji: "👑", hp: 38000, gold: 20, isBoss: true, modifiers: [{ id: "aegis" }, { id: "adaptation" }] },
 ];
 
 const ACT_NAMES = { 1: "На линии", 2: "Тёмный лес", 3: "Трон" };
@@ -1696,6 +1757,12 @@ const MODIFIERS_DATA = [
   { id: "fog", name: "Туман войны", desc: "Герои ранга ≤4 не дают своей силы.", curse: true },
   { id: "silence", name: "Безмолвие", desc: "Способности героев отключены (предметы и комбинации работают).", curse: true },
   { id: "disarm", name: "Обезоруживание", desc: "В тимфайт можно взять не более 4 героев.", curse: true },
+  // Мутации башен (выдаются рангами Божество+): одна волновая способность.
+  { id: "regen", name: "Регенерация", desc: "Башня лечит 4% от макс. HP после каждого боя, пока волна не зачищена.", mutation: true },
+  { id: "reflection", name: "Отражение", desc: "Каждый чётный бой наносит по башне ×0.75 урона.", mutation: true },
+  { id: "enrage", name: "Ярость", desc: "Падая ниже 25% HP, башня раз в волну исцеляется на 10%.", mutation: true },
+  { id: "thorns", name: "Шипы", desc: "Отряды из 4–5 героев наносят по башне ×0.85.", mutation: true },
+  { id: "greed", name: "Жадность", desc: "Бой, не снявший 30% её текущего HP, отдаёт башне 1 золото.", mutation: true },
 ];
 
 const CURSES = ["adaptation", "bastion", "fog", "silence", "disarm"];
@@ -1743,18 +1810,48 @@ const TOWER_DEFENSE = {
   // Акт 2
   f1: { armor: 8, mr: 0 },
   f2: { armor: 20, mr: 0 },
-  f3: { armor: 34, mr: 0.4 },
+  f3: { armor: 38, mr: 0.4 },
   fmini: { armor: 18, mr: 0 },
-  fboss: { armor: 50, mr: 0.45 },
+  fboss: { armor: 54, mr: 0.5 },
   // Акт 3
-  p1: { armor: 14, mr: 0.1 },
-  p2: { armor: 32, mr: 0.15 },
-  p3: { armor: 44, mr: 0.5 },
-  pmini: { armor: 24, mr: 0 },
-  pfinal: { armor: 56, mr: 0.6 },
+  p1: { armor: 20, mr: 0.15 },
+  p2: { armor: 40, mr: 0.2 },
+  p3: { armor: 52, mr: 0.55 },
+  pmini: { armor: 30, mr: 0 },
+  pfinal: { armor: 64, mr: 0.65 },
 };
 
 const DAMAGE_TYPE_NAMES = { physical: "физический", magical: "магический", pure: "чистый" };
+
+// --- Ранги сложности (лига DALATRO): Рекрут → ... → Титаны → Папочка.
+// Ранг N = союз добавок рангов 1..N (правила наслаиваются). hpMult/goldMult —
+// абсолютные множители ранга (не накапливаются): HP башен и награда за зачистку.
+const RANKS_DATA = [
+  { id: 1, name: "Рекрут", roman: "I", hpMult: 1.0, goldMult: 1.0, quote: "Мир терпит ошибки", color: "#97a39b", adds: ["mercy"], notes: ["Милосердие: после провала башня восстанавливает 70% HP"] },
+  { id: 2, name: "Рыцарь", roman: "II", hpMult: 1.08, goldMult: 1.06, quote: "Мир начинает сопротивляться", color: "#7fb069", adds: ["memory"], notes: ["Память башен: тот же тип удара, что в прошлом бою — ×0.9"] },
+  { id: 3, name: "Герой", roman: "III", hpMult: 1.18, goldMult: 1.14, quote: "Ресурсы имеют цену", color: "#5a9dd6", adds: ["inflation", "reroll3"], notes: ["Инфляция лавки: каждая покупка в визите дороже на 1G", "Реролл стоит 3G"] },
+  { id: 4, name: "Легенда", roman: "IV", hpMult: 1.3, goldMult: 1.23, quote: "Нельзя полагаться на одного героя", color: "#a678e0", adds: ["fatigue"], notes: ["Усталость: каждые 5 боёв героя — −1 к его силе (до −3)"] },
+  { id: 5, name: "Властелин", roman: "V", hpMult: 1.45, goldMult: 1.34, quote: "Позиция имеет значение", color: "#d8b24f", adds: ["unstable"], notes: ["Нестабильная позиция: каждая волна выбирает слот с −40% силы"] },
+  { id: 6, name: "Божество", roman: "VI", hpMult: 1.65, goldMult: 1.49, quote: "Каждая башня уникальна", color: "#64d8ce", adds: ["hand6", "mutations1"], notes: ["Рука 6 карт вместо 7", "Мутации башен: 1 случайная способность на волну"] },
+  { id: 7, name: "Титан", roman: "VII", hpMult: 1.7, goldMult: 1.68, quote: "Враг изучает тебя", color: "#e0684e", adds: ["adaptive", "antihero"], notes: ["Адаптация мира: твоё самое частое комбо наносит ×0.85", "Охота на героя: самый используемый герой −2 к силе"] },
+  { id: 8, name: "Титан 10+", roman: "VIII", hpMult: 1.9, goldMult: 1.9, quote: "Ты платишь за всё", color: "#e25f43", adds: ["discards2", "tax1"], notes: ["ТП-сбросов 2 за волну", "Налог: зачистка приносит −1G"] },
+  { id: 9, name: "Титан 100+", roman: "IX", hpMult: 2.15, goldMult: 2.2, quote: "Ты сам выбираешь свою боль", color: "#e4573d", adds: ["curseChoice"], notes: ["Проклятия забега: в начале каждого акта выбираешь 1 из 3"] },
+  { id: 10, name: "Титан 1 000+", roman: "X", hpMult: 2.45, goldMult: 2.58, quote: "Правила больше не гарантированы", color: "#e84f36", adds: ["mutations2"], notes: ["Reality Break: 2 мутации башен на каждую волну"] },
+  { id: 11, name: "Титан 10 000+", roman: "XI", hpMult: 2.8, goldMult: 3.03, quote: "Всё против тебя", color: "#ec472f", adds: ["fights3"], notes: ["Тимфайтов 3 за волну"] },
+  { id: 12, name: "Титан 100 000+", roman: "XII", hpMult: 3.2, goldMult: 3.55, quote: "Последние стены", color: "#f03f28", adds: ["reroll4", "tax2"], notes: ["Реролл стоит 4G", "Налог: зачистка приносит −2G"] },
+  { id: 13, name: "Титан 1 000 000+", roman: "XIII", hpMult: 3.7, goldMult: 4.15, quote: "Предел. Дальше — только он", color: "#f43722", adds: ["hand5"], notes: ["Рука 5 карт"] },
+  { id: 14, name: "Папочка", roman: "XIV", hpMult: 4.5, goldMult: 5.13, quote: "Он всё видел. Он всё помнит.", color: "#ffb03a", papochka: true, adds: ["fights2", "discards1"], notes: ["Тимфайтов 2, ТП-сбросов 1", "Трон становится Папочкой. Он всё видел."] },
+];
+
+// Проклятия забега (Титан 100+): игрок выбирает 1 из 3 в начале каждого акта.
+// Минус и компенсация зашиты в описание; эффекты — по id в game.js/combat.js.
+const RANK_CURSES_DATA = [
+  { id: "blood", name: "Кровоток", emoji: "🩸", desc: "Зачистки дают ×0.75 золота, но весь урон ×1.15." },
+  { id: "web", name: "Паутина", emoji: "🕸", desc: "−1 ТП-сброс за волну, зато зачистки дают ×1.2 золота." },
+  { id: "hunger", name: "Голод", emoji: "☠", desc: "−1 тимфайт за волну, зато товары в лавке дешевле на 20%." },
+  { id: "time", name: "Время", emoji: "⏳", desc: "Реролл дороже на 2G, зато +1 ТП-сброс за волну." },
+  { id: "chaos", name: "Хаос", emoji: "🎲", desc: "Каждая волна получает +1 случайную мутацию, зачистки ×1.15 золота." },
+];
 
 </script>
   <script>
@@ -1776,6 +1873,10 @@ const Content = (function () {
   const waves = { list: WAVES_DATA, byId: byId(WAVES_DATA), order: WAVES_DATA.map((w) => w.id) };
   const modifiers = { list: MODIFIERS_DATA, byId: byId(MODIFIERS_DATA) };
   const curses = CURSES.filter((id) => modifiers.byId[id]);
+  // Ранги сложности, мутации башен и проклятия забега (Титаны).
+  const ranks = { list: RANKS_DATA, byId: byId(RANKS_DATA), max: RANKS_DATA.length };
+  const mutations = MODIFIERS_DATA.filter((m) => m.mutation).map((m) => m.id);
+  const rankCurses = { list: RANK_CURSES_DATA, byId: byId(RANK_CURSES_DATA) };
   // Альтернативное ядро скоринга (state.rules = "formation").
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
@@ -1784,9 +1885,186 @@ const Content = (function () {
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();
 
+</script>
+  <script>
+// Dalatro — ranks: лига сложности (Рекрут → ... → Титаны → Папочка).
+// Ранг N = союз добавок рангов 1..N (правила наслаиваются). Здесь только
+// чтение конфига и вычисления; мутации state — game.js/combat.js.
+const Ranks = (function () {
+  const MAX_RANK = 14;
+
+  function rankIndex(state) {
+    return Math.min(MAX_RANK, Math.max(1, (state && state.run && state.run.rank) || 1));
+  }
+
+  function rankOf(state) {
+    return Content.ranks.byId[rankIndex(state)] || Content.ranks.byId[1];
+  }
+
+  // Все активные модификаторы: ранги наслаиваются, 1..N.
+  function activeMods(state) {
+    const top = rankIndex(state);
+    const set = [];
+    for (let r = 1; r <= top; r++) {
+      for (const m of Content.ranks.byId[r].adds) if (!set.includes(m)) set.push(m);
+    }
+    return set;
+  }
+
+  function has(state, modId) {
+    return activeMods(state).includes(modId);
+  }
+
+  function hasCurse(state, curseId) {
+    return (state.run.curses || []).includes(curseId);
+  }
+
+  function hpMult(state) {
+    return rankOf(state).hpMult;
+  }
+
+  // Множитель HP конкретной волны: ранговый прирост растягивается по актам —
+  // в 1 акте игрок ещё не скейлится золотом (якорь ×0.1–0.2), в 3 акте билд
+  // собран и держит полный множитель. Боссы актов с Aegis и так удваивают
+  // эффективное HP — поэтому ранние якоря низкие.
+  function waveHpMult(state, waveIndex) {
+    const m = rankOf(state).hpMult;
+    const act = Math.min(3, Math.floor(waveIndex / 5) + 1);
+    const pos = ((waveIndex % 5) + 5) % 5;
+    const anchors = { 1: [0.08, 0.22], 2: [0.35, 0.65], 3: [0.8, 1.0] };
+    const [a, b] = anchors[act];
+    const w = a + (b - a) * (pos / 4);
+    return 1 + (m - 1) * w;
+  }
+
+  function goldMult(state) {
+    return rankOf(state).goldMult;
+  }
+
+  // Множитель награды от проклятий забега (blood/web/chaos).
+  function curseGoldMult(state) {
+    let m = 1;
+    if (hasCurse(state, "blood")) m *= 0.75;
+    if (hasCurse(state, "web")) m *= 1.2;
+    if (hasCurse(state, "chaos")) m *= 1.15;
+    return m;
+  }
+
+  function fightsPerWave(state) {
+    let n = Game.FIGHTS_PER_WAVE;
+    if (has(state, "fights3")) n -= 1;
+    if (has(state, "fights2")) n -= 1;
+    if (hasCurse(state, "hunger")) n -= 1;
+    return Math.max(2, n);
+  }
+
+  function discardsPerWave(state) {
+    let n = Game.DISCARDS_PER_WAVE;
+    if (has(state, "discards2")) n -= 1;
+    if (has(state, "discards1")) n -= 1;
+    if (hasCurse(state, "time")) n += 1;
+    if (hasCurse(state, "web")) n -= 1;
+    return Math.max(1, Math.min(3, n));
+  }
+
+  function handSize(state) {
+    let n = DeckSys.HAND_SIZE;
+    if (has(state, "hand6")) n -= 1;
+    if (has(state, "hand5")) n -= 1;
+    return Math.max(4, n);
+  }
+
+  function rerollCost(state) {
+    let c = Economy.REROLL_COST;
+    if (has(state, "reroll3")) c = 3;
+    if (has(state, "reroll4")) c = 4;
+    if (hasCurse(state, "time")) c += 2;
+    return c;
+  }
+
+  function taxPerWave(state) {
+    if (has(state, "tax2")) return 2;
+    if (has(state, "tax1")) return 1;
+    return 0;
+  }
+
+  function mutationsPerWave(state) {
+    let n = 0;
+    if (has(state, "mutations1")) n = 1;
+    if (has(state, "mutations2")) n = 2;
+    if (hasCurse(state, "chaos")) n += 1;
+    return Math.min(3, n);
+  }
+
+  // Усталость: каждые 5 использований героя −1 к силе, кап −3.
+  function fatiguePenalty(uses) {
+    return Math.min(3, Math.floor((uses || 0) / 5));
+  }
+
+  function mostUsedHero(state) {
+    const uses = state.run.heroUses || {};
+    let best = null;
+    let bestCount = 0;
+    let tie = false;
+    for (const id in uses) {
+      if (uses[id] > bestCount) { best = id; bestCount = uses[id]; tie = false; }
+      else if (uses[id] === bestCount) tie = true;
+    }
+    return bestCount >= 4 && !tie ? best : null;
+  }
+
+  function heroPenalty(state, heroId) {
+    let pen = 0;
+    if (has(state, "fatigue")) pen += fatiguePenalty((state.run.heroUses || {})[heroId]);
+    if (has(state, "antihero") && mostUsedHero(state) === heroId) pen += 2;
+    return pen;
+  }
+
+  // Адаптация мира: самое частое комбо/формация забега (≥3 применений, без ничьих).
+  function mostUsedCombo(state) {
+    const uses = state.run.comboUses || {};
+    let best = null;
+    let bestCount = 0;
+    let tie = false;
+    for (const id in uses) {
+      if (uses[id] > bestCount) { best = id; bestCount = uses[id]; tie = false; }
+      else if (uses[id] === bestCount) tie = true;
+    }
+    return bestCount >= 3 && !tie ? { id: best, count: bestCount } : null;
+  }
+
+  // Детерминированный выбор: мутации волны и карточки проклятий (Rng.current()).
+  function rollMutations(count) {
+    const rng = Rng.current();
+    const copy = Content.mutations.slice();
+    const picked = [];
+    while (picked.length < count && copy.length) {
+      picked.push(copy.splice(Math.floor(rng.next() * copy.length), 1)[0]);
+    }
+    return picked;
+  }
+
+  function rollCurseChoices() {
+    const rng = Rng.current();
+    const copy = Content.rankCurses.list.map((c) => c.id);
+    const picks = [];
+    while (picks.length < 3 && copy.length) {
+      picks.push(copy.splice(Math.floor(rng.next() * copy.length), 1)[0]);
+    }
+    return picks;
+  }
+
+  return {
+    MAX_RANK, rankIndex, rankOf, activeMods, has, hasCurse,
+    hpMult, waveHpMult, goldMult, curseGoldMult,
+    fightsPerWave, discardsPerWave, handSize, rerollCost, taxPerWave, mutationsPerWave,
+    fatiguePenalty, heroPenalty, mostUsedHero, mostUsedCombo,
+    rollMutations, rollCurseChoices,
+  };
+})();
 </script>
   <script>
 // Dalatro — event bus.
@@ -2304,10 +2582,10 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
-      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false },
+      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null },
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
@@ -2317,10 +2595,12 @@ const Game = (function () {
     };
   }
 
-  // Ранг героя с учётом тренировки в лаборатории колоды.
+  // Ранг героя с учётом тренировки в лаборатории колоды, усталости и охоты
+  // на героя (ранги Легенда/Титан). Это ЭФФЕКТИВНАЯ сила — она и в бою, и на карте.
   function rankOf(state, heroId) {
     const overrides = state.run.ranks || {};
-    return overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
+    const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
+    return Math.max(1, base - Ranks.heroPenalty(state, heroId));
   }
 
   // Обезоруживание: проклятие элитки режет слоты до 4 (BKB снимает).
@@ -2340,7 +2620,7 @@ const Game = (function () {
   function setupWave(state, waveIndex, route) {
     const def = Content.waves.byId[Content.waves.order[waveIndex]];
     const elite = !!(route && route.elite) && !def.isBoss;
-    const hp = elite ? Math.round(def.hp * 1.5) : def.hp;
+    const hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (elite ? 1.5 : 1));
     state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
@@ -2354,7 +2634,19 @@ const Game = (function () {
       modifiers: (def.modifiers || []).concat(elite && route.curse ? [{ id: route.curse }] : []).map((m) => ({ id: m.id })),
       enemyItems: [],
       aegisUsed: false,
+      enraged: false,
+      regenTotal: 0,
     };
+    // Папочка (ранг XIV): Трон здоровается лично.
+    if (Ranks.rankOf(state).papochka && def.isBoss && waveIndex >= Content.waves.order.length - 1) {
+      state.combat.wave.name = "ПАПОЧКА";
+      state.combat.wave.emoji = "👨";
+    }
+    // Мутации башен (Божество+): случайные способности волны, детерминированные сидом.
+    const mutations = Ranks.rollMutations(Ranks.mutationsPerWave(state));
+    for (const id of mutations) state.combat.wave.modifiers.push({ id, rolled: true });
+    // Нестабильная позиция (Властелин+): один слот волны с −40% силы.
+    state.combat.forbiddenSlot = Ranks.has(state, "unstable") ? Rng.current().int(1, 5) : null;
     state.combat.fightIndex = 0;
     state.combat.selectedUids = [];
     state.combat.outcome = null;
@@ -2362,14 +2654,25 @@ const Game = (function () {
     state.combat.campTaken = false;
     state.run.campBoon = false;
     state.combat.route = null;
-    state.player.fightsLeft = FIGHTS_PER_WAVE;
-    state.player.discardsLeft = DISCARDS_PER_WAVE;
+    state.player.fightsLeft = Ranks.fightsPerWave(state);
+    state.player.discardsLeft = Ranks.discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
     log(state, elite
       ? `— Элитная волна (акт ${state.run.act}): ${def.name} — ${hp} HP (${Content.modifiers.byId[route.curse].name}!)`
       : `— Акт ${state.run.act}, волна ${waveIndex % 5 + 1}: ${def.name} — ${def.hp} HP`);
+    if (mutations.length) log(state, `Мутации башни: ${mutations.map((id) => Content.modifiers.byId[id].name).join(", ")}`);
+    if (state.combat.forbiddenSlot) log(state, `Нестабильная позиция: слот ${state.combat.forbiddenSlot} даёт −40% силы`);
+  }
+
+  // Цена предмета с ранговыми эффектами: голод −20%, инфляция +1G за каждую
+  // покупку в текущем визите в лавку.
+  function itemCost(state, itemId) {
+    const item = Content.items.byId[itemId];
+    let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
+    if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
+    return cost;
   }
 
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
@@ -2423,11 +2726,12 @@ const Game = (function () {
         const code = Rng.normalizeSeedCode(action.seedCode) || Rng.randomSeedCode();
         const fresh = createInitialState(code);
         fresh.rules = action.rules === "formation" ? "formation" : "classic";
+        fresh.run.rank = Math.min(14, Math.max(1, action.rank || 1));
         fresh.phase = "wave";
         Rng.setActive(Rng.create(code));
         DeckSys.createFromHeroes(fresh, Content.heroes.startingIds);
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""}`);
+        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»`);
         return fresh;
       }
 
@@ -2457,9 +2761,13 @@ const Game = (function () {
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);
           s.combat.campTaken = false;
           const baseGold = s.combat.wave.gold || WAVE_CLEAR_GOLD;
-          const clearGold = s.combat.wave.elite ? Math.round(baseGold * 1.5) : baseGold;
+          let clearGold = baseGold * (s.combat.wave.elite ? 1.5 : 1);
+          clearGold *= Ranks.goldMult(s) * Ranks.curseGoldMult(s);
+          clearGold = Math.round(clearGold);
+          const tax = Ranks.taxPerWave(s);
+          if (tax) clearGold = Math.max(0, clearGold - tax);
           s.run.gold += clearGold;
-          log(s, `Волна зачищена! +${clearGold} золота${s.combat.wave.elite ? " (элитная добыча ×1.5)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
+          log(s, `Волна зачищена! +${clearGold} золота${s.combat.wave.elite ? " (элитная добыча ×1.5)" : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
             if (s.run.waveIndex >= Content.waves.order.length - 1) {
@@ -2470,6 +2778,11 @@ const Game = (function () {
               s.run.gold += 10;
               s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
               log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота, +1 казарма (восстановление)`);
+              // Лига Титанов: перед новым актом игрок выбирает проклятие забега.
+              if (Ranks.has(s, "curseChoice")) {
+                s.run.pendingCurse = Ranks.rollCurseChoices();
+                log(s, "Лига Титанов: выбери проклятие забега — оно останется до конца.");
+              }
             }
           }
         } else if (s.player.fightsLeft <= 0) {
@@ -2503,8 +2816,9 @@ const Game = (function () {
       }
 
       case "ENTER_SHOP": {
-        if (s.phase !== "wave" || s.combat.outcome !== "cleared") return s;
+        if (s.phase !== "wave" || s.combat.outcome !== "cleared" || s.run.pendingCurse) return s;
         s.phase = "shop";
+        s.run.inflationBuys = 0;
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], s.combat.wave.elite);
         s.shop.recruits = pickRecruits(s);
         return s;
@@ -2516,11 +2830,13 @@ const Game = (function () {
         const offerIdx = s.shop.offers.findIndex((o) => o.id === action.itemId);
         if (!item || offerIdx === -1) return s;
         if (s.player.items.includes(action.itemId)) return s;
-        if (s.run.gold < item.cost) return s;
-        s.run.gold -= item.cost;
+        const cost = itemCost(s, action.itemId);
+        if (s.run.gold < cost) return s;
+        s.run.gold -= cost;
         s.player.items.push(action.itemId);
         s.shop.offers.splice(offerIdx, 1);
-        log(s, `Куплено: ${item.name} (−${item.cost} золота)`);
+        if (Ranks.has(s, "inflation")) s.run.inflationBuys += 1;
+        log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})`);
         return s;
       }
 
@@ -2545,11 +2861,23 @@ const Game = (function () {
       }
 
       case "REROLL_SHOP": {
-        if (s.phase !== "shop" || s.run.gold < Economy.REROLL_COST) return s;
-        s.run.gold -= Economy.REROLL_COST;
+        const cost = Ranks.rerollCost(s);
+        if (s.phase !== "shop" || s.run.gold < cost) return s;
+        s.run.gold -= cost;
         const locked = s.shop.offers.filter((o) => o.locked);
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, locked);
         s.shop.recruits = pickRecruits(s);
+        return s;
+      }
+
+      // Лига Титанов: выбор проклятия забега после босса акта. Пока не выбрано —
+      // лавка закрыта.
+      case "CHOOSE_CURSE": {
+        if (!s.run.pendingCurse || !s.run.pendingCurse.includes(action.curseId)) return s;
+        s.run.curses.push(action.curseId);
+        s.run.pendingCurse = null;
+        const curse = Content.rankCurses.byId[action.curseId];
+        log(s, `Проклятие забега: ${curse.emoji} «${curse.name}» — ${curse.desc}`);
         return s;
       }
 
@@ -2662,11 +2990,14 @@ const Game = (function () {
           s.combat.wave.enemyItems.push("rapier");
           log(s, "Divine Rapier у врага! Твой урон по этой башне ×0.5, пока он её держит.");
         }
-        s.combat.wave.hp = s.combat.wave.maxHp;
+        s.combat.wave.hp = Ranks.has(s, "mercy") ? Math.ceil(s.combat.wave.maxHp * 0.7) : s.combat.wave.maxHp;
+        if (Ranks.has(s, "mercy") && s.combat.wave.hp < s.combat.wave.maxHp) {
+          log(s, "Милосердие мира: башня восстановила только 70% HP.");
+        }
         s.combat.fightIndex = 0;
         s.combat.outcome = null;
-        s.player.fightsLeft = FIGHTS_PER_WAVE;
-        s.player.discardsLeft = DISCARDS_PER_WAVE;
+        s.player.fightsLeft = Ranks.fightsPerWave(s);
+        s.player.discardsLeft = Ranks.discardsPerWave(s);
         DeckSys.resetAll(s, Rng.current());
         DeckSys.draw(s, Rng.current());
         assignMines(s);
@@ -2702,7 +3033,7 @@ const Game = (function () {
     createInitialState, dispatch,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
-    assignMines, rankOf, maxSlots, recruitPrice,
+    assignMines, rankOf, maxSlots, recruitPrice, itemCost,
   };
 })();
 
@@ -3077,9 +3408,15 @@ const DeckSys = (function () {
     state.player.discardUids = [];
   }
 
-  // Draws until the hand reaches HAND_SIZE (or deck+discard are empty).
+  // Draws until the hand reaches the current hand size (rank may cut it to 6/5,
+  // see Ranks.handSize) or deck+discard are empty.
+  function handSize(state) {
+    return Ranks.handSize(state);
+  }
+
   function draw(state, rng) {
-    while (state.player.handUids.length < HAND_SIZE) {
+    const size = handSize(state);
+    while (state.player.handUids.length < size) {
       if (state.player.deckUids.length === 0) {
         if (state.player.discardUids.length === 0) return;
         state.player.deckUids = rng.shuffle(state.player.discardUids.slice());
@@ -3116,7 +3453,7 @@ const DeckSys = (function () {
     return uid;
   }
 
-  return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, HAND_SIZE };
+  return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, handSize, HAND_SIZE };
 })();
 
 </script>
@@ -3334,27 +3671,37 @@ const Combat = (function () {
     return Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
   }
 
-  function towerDamageMult(state, resolution) {
+  function towerDamageMult(state, resolution, playedCount) {
     const tower = state.combat.wave;
     if (state.combat.scoring.flags.bkbBlocksMods) return 1;
+    let mult = 1;
     for (const mod of tower.modifiers || []) {
       if (mod.id === "armor" && state.combat.fightIndex === 0) {
         // fightIndex is 0-based: 0 = first fight of the wave.
         // Butterfly evasion, one roll per fight (BKB already handled globally).
         if (state.player.items.includes("butterfly") && Rng.current().chance(0.25)) {
           Resolver.pushStep(resolution, { icon: "🎲", label: "Butterfly: броня башни уклонена!", kind: "item" });
-          return 1;
+        } else {
+          Resolver.pushStep(resolution, { icon: "☠", label: "Armor T2: первый бой волны — урон ×0.5", kind: "modifier" });
+          mult *= 0.5;
         }
-        Resolver.pushStep(resolution, { icon: "☠", label: "Armor T2: первый бой волны — урон ×0.5", kind: "modifier" });
-        return 0.5;
       }
       if (mod.id === "glyph" && state.combat.fightIndex % 3 === 2) {
         // every 3rd fight: #3, #6, ...
         Resolver.pushStep(resolution, { icon: "☠", label: "Glyph T3: бой заблокирован полностью!", kind: "modifier" });
         return 0;
       }
+      // Мутации башен (ранги Божество+).
+      if (mod.id === "reflection" && state.combat.fightIndex % 2 === 1) {
+        mult *= 0.75;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Отражение: чётный бой — урон ×0.75", kind: "modifier" });
+      }
+      if (mod.id === "thorns" && playedCount >= 4) {
+        mult *= 0.85;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Шипы: большой отряд — урон ×0.85", kind: "modifier" });
+      }
     }
-    return 1;
+    return mult;
   }
 
   function enemyShieldMult(state) {
@@ -3371,7 +3718,7 @@ const Combat = (function () {
     const fast = Math.min(overkill, halfCap);
     const slow = Math.max(0, overkill - halfCap);
     const raw = Math.floor(fast / 60) + Math.floor(slow / 120);
-    const cap = (wave.gold || 6) * 3;
+    const cap = 5; // жёсткий кап: оверкилл — бонус точности, а не печать золота
     return Math.min(cap, Math.floor(raw * state.combat.scoring.flags.overkillRate));
   }
 
@@ -3415,16 +3762,26 @@ const Combat = (function () {
       });
     }
 
-    // 3. Base power + played card powers (туман: ранг ≤4 не даёт силы).
+    // 3. Base power + played card powers (туман: ранг ≤4 не даёт силы;
+    // нестабильная позиция: герой в запретном слоте волны даёт −40%).
     const fog = curses.includes("fog");
     state.combat.scoring.power = combo.basePower;
     let cardPowerSum = 0;
+    let forbiddenHit = false;
     for (const card of effective) {
-      if (fog && card.power <= 4) continue;
-      cardPowerSum += card.power;
+      let power = card.power;
+      if (fog && power <= 4) continue;
+      if (state.combat.forbiddenSlot && card.slotIndex === state.combat.forbiddenSlot - 1) {
+        power = Math.floor(power * 0.6);
+        forbiddenHit = true;
+      }
+      cardPowerSum += power;
     }
     if (fog && effective.some((c) => c.power <= 4)) {
       Resolver.pushStep(resolution, { icon: "☠", label: "Туман войны: герои ранга ≤4 не дают силы", kind: "modifier" });
+    }
+    if (forbiddenHit) {
+      Resolver.pushStep(resolution, { icon: "☠", label: `Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы`, kind: "modifier" });
     }
     state.combat.scoring.power += cardPowerSum;
     state.combat.scoring.mult = combo.baseMult;
@@ -3465,7 +3822,13 @@ const Combat = (function () {
       });
     }
 
-    // 7. Tower modifiers + проклятия элиты.
+    // 6.7 Проклятие забега «Кровоток»: весь урон ×1.15.
+    if (Ranks.hasCurse(state, "blood")) {
+      state.combat.scoring.finalMult *= 1.15;
+      Resolver.pushStep(resolution, { icon: "🩸", label: "Кровоток: урон ×1.15", kind: "modifier" });
+    }
+
+    // 7. Tower modifiers + проклятия элиты + правила ранга.
     let curseMultiplier = 1;
     if (curses.includes("adaptation") && state.combat.lastComboType === combo.type) {
       curseMultiplier *= 0.5;
@@ -3475,7 +3838,21 @@ const Combat = (function () {
       curseMultiplier *= 0.5;
       Resolver.pushStep(resolution, { icon: "☠", label: "Фортификация: малое комбо ×0.5", kind: "modifier" });
     }
-    const towerMult = towerDamageMult(state, resolution) * enemyShieldMult(state) * curseMultiplier;
+    // Память башен (Рыцарь): тот же тип удара, что в прошлом бою волны, — ×0.9.
+    if (Ranks.has(state, "memory") && state.combat.lastComboType === combo.type) {
+      curseMultiplier *= 0.9;
+      Resolver.pushStep(resolution, { icon: "☠", label: "Память башен: тот же тип удара — ×0.9", kind: "modifier" });
+    }
+    // Адаптация мира (Титан): самое частое комбо забега — ×0.85. BKB не снимает:
+    // это правило лиги, а не модификатор башни.
+    if (Ranks.has(state, "adaptive")) {
+      const hunted = Ranks.mostUsedCombo(state);
+      if (hunted && hunted.id === combo.type) {
+        curseMultiplier *= 0.85;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Адаптация мира: изученное комбо — ×0.85", kind: "modifier" });
+      }
+    }
+    const towerMult = towerDamageMult(state, resolution, played.length) * enemyShieldMult(state) * curseMultiplier;
     resolution.blocked = towerMult === 0;
 
     // 8. Damage.
@@ -3543,6 +3920,29 @@ const Combat = (function () {
       }
     }
 
+    // 9.5 Мутации башни, дожившей до конца боя (ранги Божество+, BKB снимает).
+    let greedSteal = false;
+    if (!resolution.killed && tower.hp > 0 && !s.flags.bkbBlocksMods) {
+      const hasMut = (id) => (tower.modifiers || []).some((m) => m.id === id);
+      if (hasMut("regen")) {
+        const heal = Math.max(1, Math.round(tower.maxHp * 0.04));
+        tower.hp = Math.min(tower.maxHp, tower.hp + heal);
+        tower.regenTotal += heal;
+        Resolver.pushStep(resolution, { icon: "☠", label: `Регенерация: башня лечит ${heal} HP`, kind: "modifier" });
+      }
+      if (hasMut("enrage") && !tower.enraged && tower.hp < tower.maxHp * 0.25) {
+        tower.enraged = true;
+        const heal = Math.max(1, Math.round(tower.maxHp * 0.1));
+        tower.hp = Math.min(tower.maxHp, tower.hp + heal);
+        Resolver.pushStep(resolution, { icon: "☠", label: `Ярость: башня исцеляется на ${heal} HP`, kind: "modifier" });
+      }
+      if (hasMut("greed") && damage < hpBefore * 0.3) {
+        greedSteal = true;
+        Resolver.pushStep(resolution, { icon: "☠", label: "Жадность: слабый бой — башня забирает 1 золото", kind: "modifier" });
+      }
+      resolution.towerHpAfter = Math.max(0, tower.hp);
+    }
+
     // 10. Gold from overkill + exact last hit.
     let gold = overkillGold(state, overkill);
     if (gold > 0) {
@@ -3563,6 +3963,9 @@ const Combat = (function () {
     }
     resolution.goldGained = gold;
     state.run.gold += gold;
+    if (greedSteal && state.run.gold > 0) {
+      state.run.gold -= 1;
+    }
 
     state.stats.totalDamage += damage;
     if (damage > state.stats.biggestHit) state.stats.biggestHit = damage;
@@ -3573,7 +3976,13 @@ const Combat = (function () {
     DeckSys.draw(state, Rng.current());
     state.player.fightsLeft -= 1;
     state.combat.fightIndex += 1;
-    state.combat.lastComboType = combo.type; // для проклятия «Адаптация»
+    state.combat.lastComboType = combo.type; // для проклятия «Адаптация» и памяти башен
+    // Ранги Легенда/Титан: мир считает, чем ты играешь — усталость героев,
+    // охота на героя и адаптация мира читают эти счётчики.
+    state.run.comboUses[combo.type] = (state.run.comboUses[combo.type] || 0) + 1;
+    for (const card of played) {
+      state.run.heroUses[card.heroId] = (state.run.heroUses[card.heroId] || 0) + 1;
+    }
     state.combat.lastResolution = resolution;
     state.combat.scoring = null;
     return resolution;
@@ -4134,9 +4543,7 @@ const Art = (function () {
 // Layout: topbar (with run meta) → [sidebar | battle scene | context] →
 // bottom band (hand full-width / build) → footer.
 // Центр — место принятия решения: цель + формула + приговор + CTA.
-const UI = (function () {
-  const FIGHTS = Game.FIGHTS_PER_WAVE;
-  const DISCARDS = Game.DISCARDS_PER_WAVE;
+  const UI = (function () {
   const BARRACKS = Game.BARRACKS_MAX;
 
   const ATTR_SYMBOLS = { str: "◆", agi: "✦", int: "✺", uni: "◈" };
@@ -4202,6 +4609,30 @@ const UI = (function () {
 
   const RARITY_NAMES = { common: "Обычный", rare: "Редкий", epic: "Эпический" };
 
+  // Короткие подписи правил лиги для пикера рангов (по id добавок).
+  const RANK_MOD_LABELS = {
+    mercy: "Милосердие: провал оставляет башне 70% HP",
+    memory: "Память башен: тот же тип удара ×0.9",
+    inflation: "Инфляция лавки: покупка в визите дороже на 1G",
+    reroll3: "Реролл 3G",
+    fatigue: "Усталость: каждые 5 боёв героя −1 к силе",
+    unstable: "Нестабильная позиция: слот волны −40% силы",
+    hand6: "Рука 6 карт",
+    mutations1: "Мутации башен: 1 на волну",
+    adaptive: "Адаптация мира: частое комбо ×0.85",
+    antihero: "Охота на героя: фаворит −2 силы",
+    discards2: "ТП-сбросы 2",
+    tax1: "Налог зачистки −1G",
+    curseChoice: "Проклятия забега: выбор в начале акта",
+    mutations2: "Reality Break: 2 мутации на волну",
+    fights3: "Тимфайты 3",
+    reroll4: "Реролл 4G",
+    tax2: "Налог зачистки −2G",
+    hand5: "Рука 5 карт",
+    fights2: "Тимфайты 2",
+    discards1: "ТП-сброс 1",
+  };
+
   const TIPS = [
     { t: "Маленькая синергия. Большая разница.", p: "Поставь Juggernaut первым — получишь +8 силы." },
     { t: "Morphling — хамелеон.", p: "Он копирует атрибут соседа слева: поставь его после Zeus, чтобы открыть его способность." },
@@ -4224,6 +4655,10 @@ const UI = (function () {
     journalOpen: false,
     toast: "",
     tipIndex: Math.floor(Date.now() / 86400000) % TIPS.length,
+    // Ранг сложности нового забега + прогресс лиги (заполняет main.js).
+    rankDraft: 1,
+    unlockedRank: 1,
+    unlockBanner: null, // имя открытого ранга для плашки на экране победы
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -4365,11 +4800,16 @@ const UI = (function () {
       mined ? "mined" : "",
     ].join(" ");
     const trained = rank !== hero.power;
+    const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
+    const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
+    const penaltyNote = fatigue ? `усталость −${fatigue}` : "";
+    const favNote = fav ? "мир охотится: −2" : "";
     return `<button class="${cls}" ${mined ? "" : `data-action="select" data-uid="${uid}"`} aria-pressed="${selected}">
       ${selected ? `<span class="selection-order">${selectedIdx + 1}${icon("check", 10)}</span>` : ""}
       ${mined ? `<span class="mine-mark" title="💣 Заминировано Techies — эта карта не играет в текущем бою (Sentry Ward / BKB снимают мины)">${icon("bomb", 22)}</span>` : ""}
+      ${penaltyNote ? `<span class="fatigue-mark" title="Усталость: ${penaltyNote}">−${fatigue}</span>` : ""}
       <div class="hero-art">${Art.heroArt(hero)}<span class="hero-vignette"></span>
-        <span class="hero-rank">${rank}</span>
+        <span class="hero-rank ${fatigue || fav ? "weakened" : ""}">${rank}</span>
         <span class="attribute-icon">${ATTR_SYMBOLS[hero.attr]}</span>
         <span class="hero-name">${hero.name}</span>
       </div>
@@ -4381,7 +4821,7 @@ const UI = (function () {
       <span class="hero-tooltip">
         <strong>${hero.ability ? hero.ability.name : hero.name}</strong>
         <p>${esc(heroDesc(hero))}</p>
-        <small>Ранг ${rank}${trained ? ` (тренирован, база ${hero.power})` : ""} · ${ATTR_NAMES[hero.attr]} — 5 карт одного цвета = флеш</small>
+        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""} · ${ATTR_NAMES[hero.attr]} — 5 карт одного цвета = флеш</small>
       </span>
     </button>`;
   }
@@ -4411,8 +4851,17 @@ const UI = (function () {
         used = bkb;
         danger = !bkb;
         text = used ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
+      } else if (def.mutation) {
+        // Мутации башен (ранги Божество+): BKB снимает вместе с модификаторами башни.
+        danger = !bkb;
+        text = bkb ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
+      } else if (def.desc) {
+        text = `${def.name}: ${def.desc}`;
       }
       chips.push(`<span class="rule-chip ${used ? "done" : ""} ${danger ? "danger" : ""}">${icon("shield", 12)}<span>${text}</span></span>`);
+    }
+    if (state.combat.forbiddenSlot) {
+      chips.push(`<span class="rule-chip danger">${icon("target", 12)}<span>Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы герою</span></span>`);
     }
     if (state.rules === "formation") {
       const d = Content.towerDefense.byId[wave.towerId];
@@ -4439,6 +4888,31 @@ const UI = (function () {
     const mom = state.run.momentum || 0;
     const mult = (1 + Math.min(mom, Combat.MOMENTUM_CAP) * Combat.MOMENTUM_STEP).toFixed(2).replace(/0$/, "");
     return { mom, mult };
+  }
+
+  // Активные правила лиги в панели эффектов: проклятия забега, адаптация мира,
+  // охота на героя. Только то, что реально работает прямо сейчас.
+  function rankEffectsHtml(state) {
+    const rows = [];
+    for (const curseId of state.run.curses || []) {
+      const curse = Content.rankCurses.byId[curseId];
+      rows.push(`<div class="effect-row curse">${curse.emoji}<span>${curse.name}<small>${esc(curse.desc)}</small></span></div>`);
+    }
+    if (Ranks.has(state, "adaptive")) {
+      const hunted = Ranks.mostUsedCombo(state);
+      if (hunted) {
+        const def = state.rules === "formation" ? Content.formations.byId[hunted.id] : Content.combos.byId[hunted.id];
+        if (def) rows.push(`<div class="effect-row curse">${icon("eye", 13)}<span>Мир адаптируется<small>«${def.name}» наносит ×0.85 (${hunted.count} применений)</small></span></div>`);
+      }
+    }
+    if (Ranks.has(state, "antihero")) {
+      const fav = Ranks.mostUsedHero(state);
+      if (fav) {
+        const hero = Content.heroes.byId[fav];
+        rows.push(`<div class="effect-row curse">${icon("target", 13)}<span>Охота на героя<small>${hero.name} −2 к силе (${(state.run.heroUses || {})[fav] || 0} боёв)</small></span></div>`);
+      }
+    }
+    return rows.join("");
   }
 
   // Шаги акта: в волне «текущая» = сражаемая; в лавке/развилке пройденная
@@ -4470,23 +4944,27 @@ const UI = (function () {
     const waveMode = mode === "wave";
     const { mom, mult } = momentumInfo(state);
     const pos = runPosition(state);
+    const fights = Ranks.fightsPerWave(state);
+    const discards = Ranks.discardsPerWave(state);
     const journalEntries = (UIState.journalOpen ? state.log.slice(-6) : state.log.slice(-1)).slice().reverse();
     return `
     <section class="panel run-panel">
       <div class="section-label"><span>${icon("leaf", 13)}ЗАБЕГ</span><span class="wave-badge">АКТ ${pos.act} · волна ${pos.wave}/5</span></div>
       <div class="act-steps">${actStepsHtml(state)}</div>
+      <div class="run-row rank-row"><span>${icon("crown", 14)}Ранг</span>${rankBadgeHtml(state, true)}</div>
       <div class="run-row"><span>${icon("coins", 14)}Золото</span><strong class="gold">${state.run.gold}<small> G</small></strong></div>
       <div class="run-row"><span>${icon("castle", 14)}Казармы</span><div class="lives">${Array.from({ length: BARRACKS }, (_, i) =>
       `<span class="${i < state.run.barracks ? "alive" : ""}" title="Казармы: ${BARRACKS} жизней забега">${icon("shield", 13)}</span>`).join("")}</div></div>
       ${waveMode ? `
-      <div class="run-row"><span>${icon("swords", 14)}Тимфайты</span><div class="resource-pips">${Array.from({ length: FIGHTS }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
-      <div class="run-row"><span>${icon("rotate", 14)}ТП-сбросы</span><div class="resource-pips">${Array.from({ length: DISCARDS }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>` : ""}
+      <div class="run-row"><span>${icon("swords", 14)}Тимфайты</span><div class="resource-pips">${Array.from({ length: fights }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
+      <div class="run-row"><span>${icon("rotate", 14)}ТП-сбросы</span><div class="resource-pips">${Array.from({ length: discards }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>` : ""}
     </section>
     <section class="panel effects-panel">
       <div class="section-label"><span>${icon("flame", 13)}ЭФФЕКТЫ</span></div>
       ${mom > 0
       ? `<div class="effect-row momentum">${icon("flame", 13)}<span>Импульс ×${mult}<small>серия ${mom} волн подряд</small></span></div>`
       : `<div class="effect-row none">Серия не начата — зачищай волны подряд</div>`}
+      ${rankEffectsHtml(state)}
     </section>
     <section class="panel journal-panel ${UIState.journalOpen ? "open" : ""}">
       <div class="section-label"><span>${icon("history", 13)}ЖУРНАЛ</span>
@@ -4506,6 +4984,8 @@ const UI = (function () {
 
   // ---------- battle scene (центр = решение) ----------
 
+  // Приговор — только для неочевидных исходов: добивание харасом, убийство,
+  // глиф. Обычное «сколько останется» показывает красный сегмент на полосе HP.
   function verdictHtml(state, preview, harass) {
     if (!preview || state.combat.outcome) {
       return `<div class="scene-verdict idle"><b>${icon("eye", 15)} ПРИГОВОР</b><small>Выбери героев — игра скажет, падает ли башня этим ударом</small></div>`;
@@ -4521,7 +5001,7 @@ const UI = (function () {
     if (harass >= remain && remain > 0) {
       return `<div class="scene-verdict harass"><b>${icon("zap", 15)} ЕЩЁ 1 УДАР</b><small>Лучший харас из руки (${fmt(harass)}) добьёт остаток ${fmt(remain)} HP — не трать коммит</small></div>`;
     }
-    return `<div class="scene-verdict remain"><b>${icon("shield", 15)} ОСТАНЕТСЯ ${fmt(remain)} HP</b><small>До добивания не хватает — усиль отряд или найди формацию побольше</small></div>`;
+    return "";
   }
 
   function commitInfoHtml(state, preview) {
@@ -4545,18 +5025,25 @@ const UI = (function () {
     const max = Game.maxSlots(state);
     const hp = Math.max(0, wave.hp);
     const hpPct = Math.max(0, Math.round((hp / wave.maxHp) * 100));
+    // превью урона на полосе: мятный остаток + красный сегмент урона
+    const live = preview && !preview.blocked;
+    const remainPct = live ? Math.max(0, Math.round((Math.max(0, hp - preview.damage) / wave.maxHp) * 100)) : hpPct;
+    const dmgPct = live ? Math.max(0, Math.min(hpPct, remainPct + Math.round((preview.damage / wave.maxHp) * 100)) - remainPct) : 0;
+    const kill = live && preview.damage >= hp;
     const isBoss = !!wave.isBoss;
     const faction = isBoss || wave.miniBoss ? "БОСС АКТА" : "ПОСТРОЙКА СВЕТА";
     const slots = Array.from({ length: max }, (_, i) => {
       const uid = state.combat.selectedUids[i];
       const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
+      const forbidden = state.combat.forbiddenSlot === i + 1;
       if (hero) {
-        return `<div class="formation-slot occupied" data-tip>${Art.heroArt(hero)}
+        return `<div class="formation-slot occupied ${forbidden ? "forbidden" : ""}" data-idx="${i}" data-tip>${Art.heroArt(hero)}
           <span class="slot-idx">${i + 1}</span><span class="slot-name">${hero.name}</span>
-          <span class="pop"><strong>${hero.name}</strong><p>${esc(heroDesc(hero))}</p><small>Слот ${i + 1} · порядок выбора = позиция в бою</small></span>
+          <span class="pop"><strong>${hero.name}</strong><p>${esc(heroDesc(hero))}</p><small>${forbidden ? "⚠ Нестабильная позиция: −40% силы · " : ""}Слот ${i + 1} · зажми и перетащи — герой встанет на это место в бою</small></span>
         </div>`;
       }
-      return `<div class="formation-slot">${icon("plus", 14)}<span class="slot-idx">${i + 1}</span></div>`;
+      return `<div class="formation-slot ${forbidden ? "forbidden" : ""}" data-idx="${i}">${forbidden ? '<span class="forbidden-mark">✕</span>' : icon("plus", 14)}<span class="slot-idx">${i + 1}</span>
+        ${forbidden ? '<span class="pop"><strong>Нестабильная позиция</strong><p>Герой в этом слоте волны даёт −40% силы.</p></span>' : ""}</div>`;
     }).join("");
     const combo = preview ? preview.combo : null;
     const canFight = preview && !state.combat.outcome && state.player.fightsLeft > 0;
@@ -4575,7 +5062,11 @@ const UI = (function () {
           </div>
           <div class="scene-hp">
             <div class="scene-hp-num">${icon("heart", 14)}<strong>${fmt(hp)}</strong><span>/ ${fmt(wave.maxHp)}</span></div>
-            <div class="health-track"><div style="width:${hpPct}%"></div></div>
+            <div class="health-track ${kill ? "dead" : ""}">
+              <div class="hp-base" style="width:${hpPct}%"></div>
+              <div class="hp-remain" style="width:${remainPct}%"></div>
+              ${dmgPct > 0 ? `<div class="hp-damage" style="left:${remainPct}%;width:${dmgPct}%"></div>` : ""}
+            </div>
           </div>
           <div class="scene-reward"><span>Награда</span><b>${icon("coins", 13)}${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}+</b></div>
         </header>
@@ -4584,7 +5075,7 @@ const UI = (function () {
           <div class="scene-play">
             <div class="scene-formation">
               <div class="formation-cards">${slots}</div>
-              <span class="formation-note">Порядок выбора —<br>порядок в бою</span>
+              <span class="formation-note">Зажми героя и тащи —<br>порядок слотов = позиции в бою</span>
             </div>
             <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
               <span class="section-label">${combo ? (combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
@@ -4703,13 +5194,14 @@ const UI = (function () {
     const nextId = Content.waves.order[state.run.waveIndex + 1];
     const next = nextId ? Content.waves.byId[nextId] : null;
     const isBoss = next && (next.isBoss || next.miniBoss);
+    const nextHp = next ? Math.round(next.hp * Ranks.waveHpMult(state, state.run.waveIndex + 1)) : 0;
     return `<aside class="context-panel">
       <section class="panel context-inner">
         <div class="section-label"><span>${icon("target", 13)}СЛЕДУЮЩАЯ ЦЕЛЬ</span></div>
         <div class="next-target">
           <div class="next-emblem ${isBoss ? "boss" : ""}">${isBoss ? icon("skull", 26) : icon("castle", 26)}</div>
           <strong>${next ? next.name : "Финал забега"}</strong>
-          ${next ? `<div class="next-hp"><b class="mint">${fmt(next.hp)}</b><span>HP</span></div>` : ""}
+          ${next ? `<div class="next-hp"><b class="mint">${fmt(nextHp)}</b><span>HP</span></div>` : ""}
           ${next ? `<small>${waveRuleText(next)}</small>` : ""}
         </div>
         <div class="effect-row none">${icon("rotate", 12)}<span>Товары обновятся, если не залочены</span></div>
@@ -4724,7 +5216,7 @@ const UI = (function () {
     return state.rules === "formation" ? formationContextHtml(state, preview) : comboContextHtml(state, preview);
   }
 
-  // ---------- bottom band: build + рука во всю ширину ----------
+  // ---------- нижняя полоса: рука во всю ширину + билд в шапке полосы ----------
 
   function buildStripHtml(state) {
     const items = state.player.items;
@@ -4738,76 +5230,110 @@ const UI = (function () {
           <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
         </button>`);
       } else {
-        slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 14)}
+        slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 13)}
           <span class="pop"><strong>Пустой слот</strong><p>Новые предметы появятся в лавке после зачистки волны.</p></span>
         </button>`);
       }
     }
-    return `<div class="band-build">
-      <span class="band-label">${icon("bag", 13)}БИЛД</span>
-      <div class="build-strip ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>
-    </div>`;
-  }
-
-  function inventoryInnerHtml(state) {
-    const slots = [];
-    const items = state.player.items;
-    for (let i = 0; i < Math.max(5, items.length); i++) {
-      const id = items[i];
-      if (id) {
-        const item = Content.items.byId[id];
-        slots.push(`<button class="item-slot ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" title="${esc(item.name + ": " + item.desc)}">
-          <div class="item-art">${Art.itemIcon(item)}</div>
-          <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
-          <span class="item-slot-dot"></span>
-        </button>`);
-      } else {
-        slots.push(`<button class="item-slot empty-slot" data-action="item-hint"><span>${icon("plus", 18)}</span><span>Слот предмета</span></button>`);
-      }
-    }
-    return `<div class="inventory-heading">
-      <div class="section-label"><span>${icon("bag", 14)}ТВОЙ БИЛД</span><span class="slot-count">${items.length} <span>слотов</span></span></div>
-      <span class="inventory-help">Клик по предмету — разбор и продажа за половину цены ${icon("coins", 11)}</span>
-    </div>
-    <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>`;
+    return `<div class="band-build"><span class="band-label">${icon("bag", 12)}БИЛД</span><div class="build-strip ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div></div>`;
   }
 
   function bottomBandHtml(state) {
     if (state.phase === "shop") {
-      return `<section class="bottom-band shop">${inventoryInnerHtml(state)}</section>`;
+      const items = state.player.items;
+      const slots = [];
+      for (let i = 0; i < Math.max(5, items.length); i++) {
+        const id = items[i];
+        if (id) {
+          const item = Content.items.byId[id];
+          slots.push(`<button class="item-slot ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" title="${esc(item.name + ": " + item.desc)}">
+            <div class="item-art">${Art.itemIcon(item)}</div>
+            <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
+            <span class="item-slot-dot"></span>
+          </button>`);
+        } else {
+          slots.push(`<button class="item-slot empty-slot" data-action="item-hint"><span>${icon("plus", 18)}</span><span>Слот предмета</span></button>`);
+        }
+      }
+      return `<section class="bottom-band shop">
+        <div class="band-top">
+          <h2 class="band-hand-title">Твой билд <span>${items.length}<small> слотов</small></span></h2>
+          <span class="hand-instruction">Клик по предмету — разбор и продажа за половину цены</span>
+          <span class="spacer"></span>
+        </div>
+        <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>
+      </section>`;
     }
     if (state.phase !== "wave") return "";
     const order = handOrder(state);
     const sortBtn = (mode, label) =>
       `<button class="sort-button ${UIState.sort === mode ? "active" : ""}" data-action="sort" data-mode="${mode}">${label}</button>`;
     return `<section class="bottom-band">
-      ${buildStripHtml(state)}
-      <div class="band-hand">
-        <div class="hand-heading">
-          <div><h2>Твоя рука <span>${state.player.handUids.length}<small> / ${DeckSys.HAND_SIZE}</small></span></h2>
-            <span class="hand-instruction">Выбери до ${Game.maxSlots(state)} героев для тимфайта</span></div>
-          <div class="hand-tools"><span>Сортировка</span>
-            ${sortBtn("rank", `${icon("sort", 12)}Сила`)}${sortBtn("attr", "Атрибут")}${sortBtn("deal", "Раздача")}
-            <button class="deck-button" data-action="open-collection-deck" title="Посмотреть колоду">${icon("layers", 17)}<span>${state.player.deckUids.length}</span></button>
-          </div>
+      <div class="band-top">
+        <h2 class="band-hand-title">Твоя рука <span>${state.player.handUids.length}<small> / ${DeckSys.handSize(state)}</small></span></h2>
+        <span class="hand-instruction">Выбери до ${Game.maxSlots(state)} героев для тимфайта</span>
+        <span class="spacer"></span>
+        ${buildStripHtml(state)}
+        <div class="hand-tools"><span>Сортировка</span>
+          ${sortBtn("rank", `${icon("sort", 12)}Сила`)}${sortBtn("attr", "Атрибут")}${sortBtn("deal", "Раздача")}
+          <button class="deck-button" data-action="open-collection-deck" title="Посмотреть колоду">${icon("layers", 16)}<span>${state.player.deckUids.length}</span></button>
         </div>
-        <div class="hero-hand ${UIState.animHand ? "" : "no-anim"}">${order.map((uid, i) => heroCardHtml(state, uid, i)).join("")}</div>
-        <div class="under-hand">
-          <span><span class="selection-dot"></span>Выбрано <strong>${state.combat.selectedUids.length} / ${Combat.MAX_SLOTS}</strong>
-            ${state.combat.selectedUids.length ? '<button data-action="clear-selection">Снять выбор</button>' : ""}</span>
-          <span><kbd>1</kbd>–<kbd>${DeckSys.HAND_SIZE}</kbd> выбрать героя <span class="keyboard-divider">·</span> наведи, чтобы узнать способность</span>
-        </div>
+      </div>
+      <div class="hero-hand ${UIState.animHand ? "" : "no-anim"}">${order.map((uid, i) => heroCardHtml(state, uid, i)).join("")}</div>
+      <div class="under-hand">
+        <span><span class="selection-dot"></span>Выбрано <strong>${state.combat.selectedUids.length} / ${Combat.MAX_SLOTS}</strong>
+          ${state.combat.selectedUids.length ? '<button data-action="clear-selection">Снять выбор</button>' : ""}</span>
+        <span><kbd>1</kbd>–<kbd>${DeckSys.HAND_SIZE}</kbd> выбрать героя <span class="keyboard-divider">·</span> наведи, чтобы узнать способность</span>
       </div>
     </section>`;
   }
 
-  function footerHtml(state) {
-    const pos = runPosition(state);
-    return `<footer class="footer">
-      <div class="act-progress">${actStepsHtml(state)}</div>
-      <span class="footer-tagline">АКТ ${pos.act}/3 · ${Content.actNames[pos.act]} · волна ${pos.wave} из 5 · всего ${pos.cleared}/15</span>
-      <span class="footer-ver">DALATRO <span>v0.8</span></span>
-    </footer>`;
+  // ---------- пикер рангов (лига DALATRO) ----------
+
+  // Все активные правила лиги для ранга N: союз добавок 1..N в человеческих подписях.
+  function rankNotes(rankId) {
+    const seen = new Set();
+    const notes = [];
+    for (let r = 1; r <= Math.min(rankId, Content.ranks.max); r++) {
+      for (const note of Content.ranks.byId[r].notes) {
+        if (!seen.has(note)) { seen.add(note); notes.push(note); }
+      }
+    }
+    return notes;
+  }
+
+  function rankPickerHtml() {
+    const draft = Math.min(UIState.rankDraft || 1, Content.ranks.max);
+    const unlocked = Math.max(1, UIState.unlockedRank || 1);
+    const medals = Content.ranks.list.map((r) => {
+      const locked = r.id > unlocked;
+      const cls = ["rank-medal", r.id === draft ? "active" : "", locked ? "locked" : "", r.papochka ? "papochka" : ""].join(" ");
+      const title = locked
+        ? `Заблокировано — победи на ранге «${Content.ranks.byId[r.id - 1].name}»`
+        : `«${r.name}» · ${r.quote || ""}`;
+      return `<button class="${cls}" data-action="pick-rank" data-rank="${r.id}" ${locked ? "disabled" : ""} title="${esc(title)}">
+        <span class="medal-gem" style="--medal:${r.color}">${r.roman}</span>
+        <span class="medal-name">${r.name}</span>
+        ${locked ? '<span class="medal-lock">🔒</span>' : ""}
+      </button>`;
+    }).join("");
+    const rank = Content.ranks.byId[draft];
+    const notes = rankNotes(draft).map((n) => `<li>${n}</li>`).join("");
+    const detail = `<div class="rank-detail">
+      <div class="rank-detail-head">
+        <span class="medal-gem big" style="--medal:${rank.color}">${rank.roman}</span>
+        <div><strong>«${rank.name}»</strong><small>HP башен ×${rank.hpMult} · награда ×${rank.goldMult}</small></div>
+      </div>
+      <ul class="rank-notes">${notes}</ul>
+    </div>`;
+    return `<div class="rank-picker">${medals}</div>${detail}`;
+  }
+
+  // Бейдж ранга текущего забега (шапка + сайдбар).
+  function rankBadgeHtml(state, withIcon) {
+    const rank = Ranks.rankOf(state);
+    return `<span class="rank-badge ${rank.papochka ? "papochka" : ""}" style="--medal:${rank.color}" title="Ранг сложности: ${rank.name}">
+      ${withIcon ? '<span class="medal-gem small" style="--medal:' + rank.color + '">' + rank.roman + "</span>" : ""}${rank.name}</span>`;
   }
 
   // Выбор ядра скоринга (state.rules). Один и тот же блок на титульном экране
@@ -4842,6 +5368,7 @@ const UI = (function () {
       ${inRun ? `<div class="run-meta">
         <span class="act-pill ${formation ? "rules-formation" : ""}" title="Ядро скоринга этого забега">${formation ? icon("target", 12) : icon("leaf", 12)} ${formation ? "ФОРМАЦИИ" : "КЛАССИКА"}</span>
         <span class="act-pill" title="${Content.actNames[state.run.act || 1] || ""}">${icon("leaf", 12)} АКТ ${state.run.act || 1}</span>
+        ${rankBadgeHtml(state, true)}
         <span class="run-id">#DL–${esc(state.seedCode)}</span>
         <span class="autosave">${icon("check", 12)}Сохранено</span>
       </div>` : ""}
@@ -4874,6 +5401,8 @@ const UI = (function () {
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
         ${rulesToggleHtml(UIState.rulesDraft)}
+        <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
+        ${rankPickerHtml()}
         <div class="seed-row">
           <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
           <button class="primary-button" data-action="start">Начать забег ${icon("arrow", 15)}</button>
@@ -4904,6 +5433,7 @@ const UI = (function () {
     const curse = state.combat.route ? Content.modifiers.byId[state.combat.route.curse] : null;
     const baseRules = (nextDef.modifiers || []).map((m) => Content.modifiers.byId[m.id].name).join(" · ") || "без модификаторов";
     const campDisabled = state.combat.campTaken;
+    const nextHp = Math.round(nextDef.hp * Ranks.waveHpMult(state, nextIndex));
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -4913,15 +5443,15 @@ const UI = (function () {
             <section class="route-screen panel">
               <span class="section-label mint">${icon("target", 15)}РАЗВИЛКА · ВОЛНА ${nextIndex + 1} ИЗ ${Content.waves.order.length}</span>
               <h2>Куда двинемся?</h2>
-              <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${nextDef.hp} HP · ${baseRules}</p>
+              <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${fmt(nextHp)} HP · ${baseRules}</p>
               <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">
                 ${routeCardHtml(state, "normal", "normal", "🗼", "Обычная башня", [
-                  `${nextDef.name} · ${nextDef.hp} HP`,
+                  `${nextDef.name} · ${fmt(nextHp)} HP`,
                   baseRules,
                   "Полный темп забега",
                 ], "Честный бой <kbd>1</kbd>")}
                 ${routeCardHtml(state, "elite", "elite", "💀", "Элитная башня", [
-                  `HP ×1.5 → ${Math.round(nextDef.hp * 1.5)} HP`,
+                  `HP ×1.5 → ${fmt(Math.round(nextHp * 1.5))} HP`,
                   `Проклятие: ${curse ? curse.name : "—"} — ${curse ? curse.desc : ""}`,
                   "Награда: золото ×1.5 и эпик в лавке",
                 ], "Риск · награда <kbd>2</kbd>")}
@@ -4935,7 +5465,6 @@ const UI = (function () {
             </section>
           </div>
         </div>
-        ${footerHtml(state)}
       </main>
       ${debugPanelHtml(state)}
       ${overlayHtml(state)}
@@ -4956,7 +5485,6 @@ const UI = (function () {
           ${contextPanelHtml(state, preview)}
         </div>
         ${bottomBandHtml(state)}
-        ${footerHtml(state)}
       </main>
       ${debugPanelHtml(state)}
       ${outcomeModalHtml(state)}
@@ -4968,9 +5496,11 @@ const UI = (function () {
   }
 
   function renderShop(state) {
+    const inflation = Ranks.has(state, "inflation") ? (state.run.inflationBuys || 0) : 0;
     const offers = state.shop.offers.map((o) => {
       const item = Content.items.byId[o.id];
-      const afford = state.run.gold >= item.cost;
+      const cost = Game.itemCost(state, item.id);
+      const afford = state.run.gold >= cost;
       return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
@@ -4979,8 +5509,9 @@ const UI = (function () {
         <div class="shop-card-art">${Art.itemIcon(item)}</div>
         <h3>${item.name}</h3>
         <p>${esc(item.desc)}</p>
+        ${cost !== item.cost ? `<span class="price-note">${cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
         <button class="buy-button" ${afford ? "" : "disabled"} data-action="buy" data-id="${item.id}">
-          <span>${afford ? "Купить" : "Дорого"}</span><span>${item.cost} ${icon("coins", 13)}</span>
+          <span>${afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
         </button>
       </div>`;
     }).join("");
@@ -4997,7 +5528,7 @@ const UI = (function () {
               <span class="shop-gold">${icon("coins", 24)}${state.run.gold}</span>
             </div>
             <div class="shop-section-title"><h3>Предметы торговца</h3>
-              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Economy.REROLL_COST ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Economy.REROLL_COST} ${icon("coins", 12)}</span></button></div>
+              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Ranks.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Ranks.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
             <div class="shop-lab">
               <div class="shop-lab-head">
@@ -5031,7 +5562,6 @@ const UI = (function () {
           ${contextPanelHtml(state, null)}
         </div>
         ${bottomBandHtml(state)}
-        ${footerHtml(state)}
       </main>
       ${debugPanelHtml(state)}
       ${overlayHtml(state)}
@@ -5062,6 +5592,10 @@ const UI = (function () {
   }
 
   function endScreen(state, won) {
+    const rank = Ranks.rankOf(state);
+    const banner = won && UIState.unlockBanner
+      ? `<div class="unlock-banner">${icon("crown", 18)}<span>ОТКРЫТ РАНГ <b>«${esc(UIState.unlockBanner)}»</b> — он ждёт тебя в новом забеге</span></div>`
+      : "";
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -5075,6 +5609,11 @@ const UI = (function () {
               <p>${won
       ? `${Content.waves.order.length} волн, три акта. Один невероятный билд. Серия: ${state.run.momentum || 0} волн импульса.`
       : "Попробуй другой билд: ставка, импульс и контры боссов решают."}</p>
+              <div class="end-rank" style="--medal:${rank.color}">
+                <span class="medal-gem big ${rank.papochka ? "papochka" : ""}" style="--medal:${rank.color}">${rank.roman}</span>
+                <div><small>РАНГ ЗАБЕГА</small><strong>${esc(rank.name)}</strong><em>«${esc(rank.quote || "")}»</em></div>
+              </div>
+              ${banner}
               <div class="end-stats">
                 <div><strong>${state.run.waveIndex + (won ? 1 : 0)}</strong><span>Волн пройдено</span></div>
                 <div><strong>${state.stats.totalDamage.toLocaleString("ru")}</strong><span>Всего урона</span></div>
@@ -5084,7 +5623,6 @@ const UI = (function () {
             </section>
           </div>
         </div>
-        ${footerHtml(state)}
       </main>
       ${overlayHtml(state)}
       ${toastHtml()}
@@ -5099,6 +5637,24 @@ const UI = (function () {
     const res = state.combat.lastResolution;
     if (outcome === "cleared") {
       const mom = state.run.momentum || 0;
+      // Лига Титанов: после босса акта — выбор проклятия забега вместо кнопки лавки.
+      if (state.run.pendingCurse) {
+        const cards = state.run.pendingCurse.map((curseId) => {
+          const curse = Content.rankCurses.byId[curseId];
+          return `<button class="curse-card" data-action="choose-curse" data-curse="${curseId}">
+            <span class="curse-emoji">${curse.emoji}</span>
+            <strong>${curse.name}</strong>
+            <p>${esc(curse.desc)}</p>
+          </button>`;
+        }).join("");
+        return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true">
+          <div class="outcome-emblem lose">${icon("skull", 44)}</div>
+          <span class="section-label lose-text">ЛИГА ТИТАНОВ · АКТ ${state.run.act} ПРОЙДЕН</span>
+          <h2>Выбери свою боль</h2>
+          <p class="modal-description">Проклятие забега остаётся до конца. Отказаться нельзя.</p>
+          <div class="curse-cards">${cards}</div>
+        </section></div>`;
+      }
       return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true">
         <div class="outcome-emblem win">${icon("check", 44)}</div>
         <span class="section-label mint">ВОЛНА ЗАЧИЩЕНА</span>
@@ -5290,7 +5846,14 @@ const UI = (function () {
         <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>
         ${comboRows}
       </div>
-      <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> ТП-сброс (R) заменит выбранных героев, не расходуя тимфайт. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>`;
+      <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> ТП-сброс (R) заменит выбранных героев, не расходуя тимфайт. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>
+      <span class="section-label mint">${icon("crown", 15)}ЛИГА DALATRO · РАНГИ</span>
+      <p class="modal-description">Ранг задаётся перед забегом. Правила наслаиваются: ранг N держит всё, что дали ранги 1..N. Победа на ранге открывает следующий.</p>
+      <div class="combo-table rank-table">
+        <div class="table-head"><span>РАНГ</span><span>ПРАВИЛА ЛИГИ</span><span>HP ✕ НАГРАДА</span></div>
+        ${Content.ranks.list.map((r) => `<div><span><strong>${r.roman} · ${r.name}</strong><small>${esc(r.quote || "")}</small></span><span>${rankNotes(r.id).length ? esc(rankNotes(r.id).join(" · ")) : "обычная игра"}</span>
+          <span><b class="gold">×${r.hpMult}</b><span class="table-x">·</span><b class="mint">×${r.goldMult}</b></span></div>`).join("")}
+      </div>`;
   }
 
   function collectionModalHtml(state) {
@@ -5396,6 +5959,8 @@ const UI = (function () {
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
       <span class="section-label">ЯДРО СКОРИНГА НОВОГО ЗАБЕГА</span>
       ${rulesToggleHtml(current)}
+      <span class="section-label">РАНГ СЛОЖНОСТИ</span>
+      ${rankPickerHtml()}
       <input id="seed-input-modal" class="seed-modal-input" placeholder="Seed (пусто = случайный)" maxlength="12">
       <div class="modal-actions">
         <button class="secondary-button" data-action="close-modal">Продолжить текущий</button>
@@ -5519,6 +6084,18 @@ const UI = (function () {
   const SAVE_KEY = "dalatro_save_v2"; // v2: акты/новый баланс — старые сейфы несовместимы и не подхватываются
   const PREFS_KEY = "dalatro_prefs_v3";
   const ONBOARD_KEY = "dalatro_onboard_v3";
+  const RANKS_KEY = "dalatro_ranks_v1"; // прогресс лиги: максимальный открытый ранг
+
+  function loadUnlockedRank() {
+    try {
+      const raw = Number(localStorage.getItem(RANKS_KEY));
+      return raw >= 1 && raw <= Ranks.MAX_RANK ? raw : 1;
+    } catch (e) { return 1; }
+  }
+
+  function saveUnlockedRank(rank) {
+    try { localStorage.setItem(RANKS_KEY, String(rank)); } catch (e) { /* приватный режим */ }
+  }
 
   function saveState() {
     try {
@@ -5559,6 +6136,7 @@ const UI = (function () {
   }
 
   loadPrefs();
+  UI.UIState.unlockedRank = loadUnlockedRank();
   let state = loadState() || Game.createInitialState("");
   let fighting = false;
 
@@ -5593,6 +6171,18 @@ const UI = (function () {
     state = Game.dispatch(state, action);
     saveState();
 
+    // Победа на ранге N открывает N+1 навсегда (localStorage). Плашка — на
+    // экране победы; сбросится при старте нового забега.
+    if (state.phase === "victory" && !fighting) {
+      const cleared = state.run.rank || 1;
+      if (cleared >= UI.UIState.unlockedRank && UI.UIState.unlockedRank < Ranks.MAX_RANK) {
+        const next = Math.min(Ranks.MAX_RANK, cleared + 1);
+        UI.UIState.unlockedRank = next;
+        UI.UIState.unlockBanner = Content.ranks.byId[next].name;
+        saveUnlockedRank(next);
+      }
+    }
+
     // Fight: animate the resolution stack first, then reveal the result.
     if (action.type === "CONFIRM_FIGHT" && state.combat.lastResolution) {
       fighting = true;
@@ -5620,10 +6210,71 @@ const UI = (function () {
     rerender();
   }
 
+  // Перетаскивание героев по слотам формации: занятые меняются местами,
+  // пустой слот принимает героя на это место. Порядок = позиции в бою.
+  // Pointer-события вместо HTML5 DnD — работают с любым вводом и не зависят
+  // от нативного dragstart.
+  let drag = null;
+
+  function reorderSelection(from, to) {
+    const uids = state.combat.selectedUids;
+    if (from === to || from < 0 || !uids[from]) return;
+    if (uids[to]) {
+      [uids[from], uids[to]] = [uids[to], uids[from]];
+    } else {
+      const [moved] = uids.splice(from, 1);
+      uids.splice(to, 0, moved);
+    }
+    rerender();
+  }
+
+  function clearDragMarks() {
+    document.querySelectorAll(".formation-slot.dragging, .formation-slot.drag-over")
+      .forEach((el) => el.classList.remove("dragging", "drag-over"));
+  }
+
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || state.phase !== "wave" || state.combat.outcome || fighting) return;
+    const slot = e.target.closest && e.target.closest(".formation-slot.occupied[data-idx]");
+    if (!slot) return;
+    drag = { from: Number(slot.dataset.idx), started: false, x: e.clientX, y: e.clientY };
+  });
+
+  document.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.started) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      drag.started = true;
+      document.querySelector(`.formation-slot[data-idx="${drag.from}"]`)?.classList.add("dragging");
+    }
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = under && under.closest(".formation-slot[data-idx]");
+    document.querySelectorAll(".formation-slot.drag-over").forEach((el) => el.classList.remove("drag-over"));
+    if (slot && Number(slot.dataset.idx) !== drag.from) slot.classList.add("drag-over");
+  });
+
+  document.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const { from, started } = drag;
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = under && under.closest(".formation-slot[data-idx]");
+    drag = null;
+    clearDragMarks();
+    if (!started || !slot) return;
+    const to = Number(slot.dataset.idx);
+    if (to !== from) reorderSelection(from, to);
+  });
+
+  document.addEventListener("pointercancel", () => {
+    drag = null;
+    clearDragMarks();
+  });
+
   function startRun(seedCode) {
     // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
     const urlRules = new URLSearchParams(location.search).get("rules");
-    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft });
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1 });
+    UI.UIState.unlockBanner = null;
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
       UI.UIState.onboarding = true;
@@ -5645,6 +6296,17 @@ const UI = (function () {
       case "select": Sfx.play("select"); dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
       case "toggle-rules":
         UI.UIState.rulesDraft = el.dataset.rules;
+        rerender();
+        break;
+      case "pick-rank":
+        UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, Number(el.dataset.rank) || 1));
+        Sfx.play("select");
+        rerender();
+        break;
+      case "choose-curse":
+        Sfx.play("lose");
+        dispatchAndRender({ type: "CHOOSE_CURSE", curseId: el.dataset.curse });
+        UI.toast(state, "Проклятие забега принято. До конца забега.");
         rerender();
         break;
       case "fight": dispatchAndRender({ type: "CONFIRM_FIGHT" }); break;
@@ -5835,13 +6497,14 @@ const UI = (function () {
         const offer = (state.shop.offers || [])[Number(e.key) - 1];
         if (offer) {
           const item = Content.items.byId[offer.id];
-          if (state.run.gold >= item.cost) {
+          const cost = Game.itemCost(state, offer.id);
+          if (state.run.gold >= cost) {
             Sfx.play("buy");
             dispatchAndRender({ type: "BUY_ITEM", itemId: offer.id });
-          } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${item.cost}.`);
+          } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${cost}.`);
         }
       }
-      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Economy.REROLL_COST) {
+      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Ranks.rerollCost(state)) {
         dispatchAndRender({ type: "REROLL_SHOP" });
       }
       if (e.key === "Enter") {

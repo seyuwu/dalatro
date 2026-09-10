@@ -23,6 +23,7 @@ const SRC_FILES = [
   "src/content/items.js",
   "src/content/world.js",
   "src/content/content.js",
+  "src/systems/ranks.js",
   "src/engine/events.js",
   "src/engine/conditions.js",
   "src/engine/effects.js",
@@ -104,15 +105,17 @@ vm.runInContext(`
   // развилка — всегда обычная башня, сбросы не тратим.
   // policy "greedy": максимум урона из превью; "naive": первая пятёрка руки
   // (симулирует игрока без оптимизации — меряет пол системы).
-  function abPlayRun(rules, seedCode, policy) {
-    let state = Game.dispatch(Game.createInitialState(""), { type: "START_RUN", seedCode, rules });
+  function abPlayRun(rules, seedCode, policy, rank) {
+    let state = Game.dispatch(Game.createInitialState(""), { type: "START_RUN", seedCode, rules, rank: rank || 1 });
     const stats = { fights: 0, retries: 0, positional: 0, bonds: 0, tiers: 0, waves: 0, won: false, shops: 0, items: 0 };
     let guard = 0;
     while (state.phase !== "victory" && state.phase !== "gameover" && guard++ < 500) {
       // Порядок веток важен: в фазе route исход ещё "cleared" — поэтому
       // route проверяется раньше лавки.
       if (state.phase === "route") {
-        Game.dispatch(state, { type: "TAKE_ROUTE", kind: "normal" });
+        // Разумный игрок: при последней казарме берёт крип-лагерь (+1 жизнь).
+        const kind = state.run.barracks <= 1 && !state.combat.campTaken ? "camp" : "normal";
+        Game.dispatch(state, { type: "TAKE_ROUTE", kind });
       } else if (state.phase === "wave" && !state.combat.outcome) {
         const uids = policy === "naive"
           ? state.player.handUids.slice(0, Game.maxSlots(state))
@@ -126,6 +129,9 @@ vm.runInContext(`
           stats.bonds += res.combo.bonds ? res.combo.bonds.length : 0;
           stats.tiers += res.combo.tier || 0;
         }
+      } else if (state.run.pendingCurse) {
+        // Лига Титанов: бот берёт первое проклятие из трёх.
+        Game.dispatch(state, { type: "CHOOSE_CURSE", curseId: state.run.pendingCurse[0] });
       } else if (state.combat.outcome === "cleared") {
         Game.dispatch(state, { type: "ENTER_SHOP" });
         const affordable = state.shop.offers
@@ -133,6 +139,30 @@ vm.runInContext(`
           .filter((i) => i && !state.player.items.includes(i.id) && i.cost <= state.run.gold)
           .sort((a, b) => b.cost - a.cost);
         if (affordable[0]) { Game.dispatch(state, { type: "BUY_ITEM", itemId: affordable[0].id }); stats.items++; }
+        // Нанимает рекрута, если остаётся запас: больше карт = лучше ротация
+        // против усталости и адаптации мира.
+        for (const heroId of (state.shop.recruits || []).slice()) {
+          const price = Game.recruitPrice(heroId);
+          if (state.run.gold >= price + 6) {
+            Game.dispatch(state, { type: "BUY_RECRUIT", heroId });
+            stats.recruits = (stats.recruits || 0) + 1;
+          }
+        }
+        // Разумный игрок тренирует героев остатками золота: главный источник
+        // скейлинга урона на поздних рангах.
+        let trainGuard = 40;
+        while (state.run.gold >= Game.TRAIN_COST && trainGuard-- > 0) {
+          const owned = [...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids]
+            .map((uid) => state.cards[uid].heroId);
+          const ranks = state.run.ranks || {};
+          const target = owned
+            .map((id) => ({ id, rank: ranks[id] != null ? ranks[id] : Content.heroes.byId[id].power }))
+            .filter((h) => h.rank < Game.TRAIN_RANK_MAX)
+            .sort((a, b) => b.rank - a.rank)[0];
+          if (!target) break;
+          Game.dispatch(state, { type: "TRAIN_HERO", heroId: target.id });
+          stats.trains = (stats.trains || 0) + 1;
+        }
         stats.shops++;
         Game.dispatch(state, { type: "LEAVE_SHOP" });
       } else if (state.combat.outcome === "failed") {
@@ -150,11 +180,11 @@ vm.runInContext(`
   }
 `, ctx);
 
-function runMode(rules, seeds, policy) {
+function runMode(rules, seeds, policy, rank) {
   const per = [];
   for (let i = 0; i < seeds; i++) {
     const seed = String(1000 + i * 37);
-    const stats = ctx.abPlayRun(rules, seed, policy);
+    const stats = ctx.abPlayRun(rules, seed, policy, rank);
     per.push(stats);
     if (VERBOSE && i < VERBOSE) {
       console.log(`  [${rules}/${policy}] seed ${seed}: ${stats.won ? "ПОБЕДА" : "поражение"} · волн ${stats.waves} · боёв ${stats.fights} · казарм потеряно ${stats.retries} · предметов ${stats.items}`);
@@ -175,8 +205,26 @@ function runMode(rules, seeds, policy) {
   };
 }
 
+const RANK = Number(arg("rank", 0));
+const SWEEP = Number(arg("sweep", 0));
+
 const t0 = Date.now();
 console.log(`A/B: classic vs formation · ${SEEDS} сидов · два бота: greedy (превью-максимум) и naive (первая пятёрка)\n`);
+if (SWEEP) {
+  // Свип по лиге: победы ботов на каждом ранге (formation — основное ядро).
+  console.log(`Свип лиги: ранги ${SWEEP}–14 · ${SEEDS} сидов на ранг
+`);
+  console.log("Ранг".padEnd(20) + "greedy".padStart(9) + "naive".padStart(9) + "   казарм/сид  волн(greedy)");
+  for (let rank = SWEEP; rank <= 14; rank++) {
+    const g = runMode("formation", SEEDS, "greedy", rank);
+    const n = runMode("formation", SEEDS, "naive", rank);
+    const name = rank + " " + vm.runInContext("Content", ctx).ranks.byId[rank].name;
+    console.log(name.padEnd(20) + String(g.wins + "/" + SEEDS).padStart(9) + String(n.wins + "/" + SEEDS).padStart(9)
+      + String(g.retries.toFixed(2)).padStart(12) + String(g.waves.toFixed(1)).padStart(13));
+  }
+  console.log("");
+  process.exit(0);
+}
 
 function printTable(policy, classic, formation) {
   console.log(`=== БОТ: ${policy.toUpperCase()} ===`);
@@ -198,8 +246,8 @@ function printTable(policy, classic, formation) {
 }
 
 for (const policy of ["greedy", "naive"]) {
-  const classic = runMode("classic", SEEDS, policy);
-  const formation = runMode("formation", SEEDS, policy);
+  const classic = runMode("classic", SEEDS, policy, RANK);
+  const formation = runMode("formation", SEEDS, policy, RANK);
   printTable(policy, classic, formation);
 }
 console.log(`Готово за ${((Date.now() - t0) / 1000).toFixed(1)} с. Цели плейтеста (§10): доля позиционных > 40%,`);

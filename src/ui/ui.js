@@ -3,9 +3,7 @@
 // Layout: topbar (with run meta) → [sidebar | battle scene | context] →
 // bottom band (hand full-width / build) → footer.
 // Центр — место принятия решения: цель + формула + приговор + CTA.
-const UI = (function () {
-  const FIGHTS = Game.FIGHTS_PER_WAVE;
-  const DISCARDS = Game.DISCARDS_PER_WAVE;
+  const UI = (function () {
   const BARRACKS = Game.BARRACKS_MAX;
 
   const ATTR_SYMBOLS = { str: "◆", agi: "✦", int: "✺", uni: "◈" };
@@ -71,6 +69,30 @@ const UI = (function () {
 
   const RARITY_NAMES = { common: "Обычный", rare: "Редкий", epic: "Эпический" };
 
+  // Короткие подписи правил лиги для пикера рангов (по id добавок).
+  const RANK_MOD_LABELS = {
+    mercy: "Милосердие: провал оставляет башне 70% HP",
+    memory: "Память башен: тот же тип удара ×0.9",
+    inflation: "Инфляция лавки: покупка в визите дороже на 1G",
+    reroll3: "Реролл 3G",
+    fatigue: "Усталость: каждые 5 боёв героя −1 к силе",
+    unstable: "Нестабильная позиция: слот волны −40% силы",
+    hand6: "Рука 6 карт",
+    mutations1: "Мутации башен: 1 на волну",
+    adaptive: "Адаптация мира: частое комбо ×0.85",
+    antihero: "Охота на героя: фаворит −2 силы",
+    discards2: "ТП-сбросы 2",
+    tax1: "Налог зачистки −1G",
+    curseChoice: "Проклятия забега: выбор в начале акта",
+    mutations2: "Reality Break: 2 мутации на волну",
+    fights3: "Тимфайты 3",
+    reroll4: "Реролл 4G",
+    tax2: "Налог зачистки −2G",
+    hand5: "Рука 5 карт",
+    fights2: "Тимфайты 2",
+    discards1: "ТП-сброс 1",
+  };
+
   const TIPS = [
     { t: "Маленькая синергия. Большая разница.", p: "Поставь Juggernaut первым — получишь +8 силы." },
     { t: "Morphling — хамелеон.", p: "Он копирует атрибут соседа слева: поставь его после Zeus, чтобы открыть его способность." },
@@ -93,6 +115,10 @@ const UI = (function () {
     journalOpen: false,
     toast: "",
     tipIndex: Math.floor(Date.now() / 86400000) % TIPS.length,
+    // Ранг сложности нового забега + прогресс лиги (заполняет main.js).
+    rankDraft: 1,
+    unlockedRank: 1,
+    unlockBanner: null, // имя открытого ранга для плашки на экране победы
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -234,11 +260,16 @@ const UI = (function () {
       mined ? "mined" : "",
     ].join(" ");
     const trained = rank !== hero.power;
+    const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
+    const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
+    const penaltyNote = fatigue ? `усталость −${fatigue}` : "";
+    const favNote = fav ? "мир охотится: −2" : "";
     return `<button class="${cls}" ${mined ? "" : `data-action="select" data-uid="${uid}"`} aria-pressed="${selected}">
       ${selected ? `<span class="selection-order">${selectedIdx + 1}${icon("check", 10)}</span>` : ""}
       ${mined ? `<span class="mine-mark" title="💣 Заминировано Techies — эта карта не играет в текущем бою (Sentry Ward / BKB снимают мины)">${icon("bomb", 22)}</span>` : ""}
+      ${penaltyNote ? `<span class="fatigue-mark" title="Усталость: ${penaltyNote}">−${fatigue}</span>` : ""}
       <div class="hero-art">${Art.heroArt(hero)}<span class="hero-vignette"></span>
-        <span class="hero-rank">${rank}</span>
+        <span class="hero-rank ${fatigue || fav ? "weakened" : ""}">${rank}</span>
         <span class="attribute-icon">${ATTR_SYMBOLS[hero.attr]}</span>
         <span class="hero-name">${hero.name}</span>
       </div>
@@ -250,7 +281,7 @@ const UI = (function () {
       <span class="hero-tooltip">
         <strong>${hero.ability ? hero.ability.name : hero.name}</strong>
         <p>${esc(heroDesc(hero))}</p>
-        <small>Ранг ${rank}${trained ? ` (тренирован, база ${hero.power})` : ""} · ${ATTR_NAMES[hero.attr]} — 5 карт одного цвета = флеш</small>
+        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""} · ${ATTR_NAMES[hero.attr]} — 5 карт одного цвета = флеш</small>
       </span>
     </button>`;
   }
@@ -280,8 +311,17 @@ const UI = (function () {
         used = bkb;
         danger = !bkb;
         text = used ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
+      } else if (def.mutation) {
+        // Мутации башен (ранги Божество+): BKB снимает вместе с модификаторами башни.
+        danger = !bkb;
+        text = bkb ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
+      } else if (def.desc) {
+        text = `${def.name}: ${def.desc}`;
       }
       chips.push(`<span class="rule-chip ${used ? "done" : ""} ${danger ? "danger" : ""}">${icon("shield", 12)}<span>${text}</span></span>`);
+    }
+    if (state.combat.forbiddenSlot) {
+      chips.push(`<span class="rule-chip danger">${icon("target", 12)}<span>Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы герою</span></span>`);
     }
     if (state.rules === "formation") {
       const d = Content.towerDefense.byId[wave.towerId];
@@ -308,6 +348,31 @@ const UI = (function () {
     const mom = state.run.momentum || 0;
     const mult = (1 + Math.min(mom, Combat.MOMENTUM_CAP) * Combat.MOMENTUM_STEP).toFixed(2).replace(/0$/, "");
     return { mom, mult };
+  }
+
+  // Активные правила лиги в панели эффектов: проклятия забега, адаптация мира,
+  // охота на героя. Только то, что реально работает прямо сейчас.
+  function rankEffectsHtml(state) {
+    const rows = [];
+    for (const curseId of state.run.curses || []) {
+      const curse = Content.rankCurses.byId[curseId];
+      rows.push(`<div class="effect-row curse">${curse.emoji}<span>${curse.name}<small>${esc(curse.desc)}</small></span></div>`);
+    }
+    if (Ranks.has(state, "adaptive")) {
+      const hunted = Ranks.mostUsedCombo(state);
+      if (hunted) {
+        const def = state.rules === "formation" ? Content.formations.byId[hunted.id] : Content.combos.byId[hunted.id];
+        if (def) rows.push(`<div class="effect-row curse">${icon("eye", 13)}<span>Мир адаптируется<small>«${def.name}» наносит ×0.85 (${hunted.count} применений)</small></span></div>`);
+      }
+    }
+    if (Ranks.has(state, "antihero")) {
+      const fav = Ranks.mostUsedHero(state);
+      if (fav) {
+        const hero = Content.heroes.byId[fav];
+        rows.push(`<div class="effect-row curse">${icon("target", 13)}<span>Охота на героя<small>${hero.name} −2 к силе (${(state.run.heroUses || {})[fav] || 0} боёв)</small></span></div>`);
+      }
+    }
+    return rows.join("");
   }
 
   // Шаги акта: в волне «текущая» = сражаемая; в лавке/развилке пройденная
@@ -339,23 +404,27 @@ const UI = (function () {
     const waveMode = mode === "wave";
     const { mom, mult } = momentumInfo(state);
     const pos = runPosition(state);
+    const fights = Ranks.fightsPerWave(state);
+    const discards = Ranks.discardsPerWave(state);
     const journalEntries = (UIState.journalOpen ? state.log.slice(-6) : state.log.slice(-1)).slice().reverse();
     return `
     <section class="panel run-panel">
       <div class="section-label"><span>${icon("leaf", 13)}ЗАБЕГ</span><span class="wave-badge">АКТ ${pos.act} · волна ${pos.wave}/5</span></div>
       <div class="act-steps">${actStepsHtml(state)}</div>
+      <div class="run-row rank-row"><span>${icon("crown", 14)}Ранг</span>${rankBadgeHtml(state, true)}</div>
       <div class="run-row"><span>${icon("coins", 14)}Золото</span><strong class="gold">${state.run.gold}<small> G</small></strong></div>
       <div class="run-row"><span>${icon("castle", 14)}Казармы</span><div class="lives">${Array.from({ length: BARRACKS }, (_, i) =>
       `<span class="${i < state.run.barracks ? "alive" : ""}" title="Казармы: ${BARRACKS} жизней забега">${icon("shield", 13)}</span>`).join("")}</div></div>
       ${waveMode ? `
-      <div class="run-row"><span>${icon("swords", 14)}Тимфайты</span><div class="resource-pips">${Array.from({ length: FIGHTS }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
-      <div class="run-row"><span>${icon("rotate", 14)}ТП-сбросы</span><div class="resource-pips">${Array.from({ length: DISCARDS }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>` : ""}
+      <div class="run-row"><span>${icon("swords", 14)}Тимфайты</span><div class="resource-pips">${Array.from({ length: fights }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
+      <div class="run-row"><span>${icon("rotate", 14)}ТП-сбросы</span><div class="resource-pips">${Array.from({ length: discards }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>` : ""}
     </section>
     <section class="panel effects-panel">
       <div class="section-label"><span>${icon("flame", 13)}ЭФФЕКТЫ</span></div>
       ${mom > 0
       ? `<div class="effect-row momentum">${icon("flame", 13)}<span>Импульс ×${mult}<small>серия ${mom} волн подряд</small></span></div>`
       : `<div class="effect-row none">Серия не начата — зачищай волны подряд</div>`}
+      ${rankEffectsHtml(state)}
     </section>
     <section class="panel journal-panel ${UIState.journalOpen ? "open" : ""}">
       <div class="section-label"><span>${icon("history", 13)}ЖУРНАЛ</span>
@@ -375,6 +444,8 @@ const UI = (function () {
 
   // ---------- battle scene (центр = решение) ----------
 
+  // Приговор — только для неочевидных исходов: добивание харасом, убийство,
+  // глиф. Обычное «сколько останется» показывает красный сегмент на полосе HP.
   function verdictHtml(state, preview, harass) {
     if (!preview || state.combat.outcome) {
       return `<div class="scene-verdict idle"><b>${icon("eye", 15)} ПРИГОВОР</b><small>Выбери героев — игра скажет, падает ли башня этим ударом</small></div>`;
@@ -390,7 +461,7 @@ const UI = (function () {
     if (harass >= remain && remain > 0) {
       return `<div class="scene-verdict harass"><b>${icon("zap", 15)} ЕЩЁ 1 УДАР</b><small>Лучший харас из руки (${fmt(harass)}) добьёт остаток ${fmt(remain)} HP — не трать коммит</small></div>`;
     }
-    return `<div class="scene-verdict remain"><b>${icon("shield", 15)} ОСТАНЕТСЯ ${fmt(remain)} HP</b><small>До добивания не хватает — усиль отряд или найди формацию побольше</small></div>`;
+    return "";
   }
 
   function commitInfoHtml(state, preview) {
@@ -414,18 +485,25 @@ const UI = (function () {
     const max = Game.maxSlots(state);
     const hp = Math.max(0, wave.hp);
     const hpPct = Math.max(0, Math.round((hp / wave.maxHp) * 100));
+    // превью урона на полосе: мятный остаток + красный сегмент урона
+    const live = preview && !preview.blocked;
+    const remainPct = live ? Math.max(0, Math.round((Math.max(0, hp - preview.damage) / wave.maxHp) * 100)) : hpPct;
+    const dmgPct = live ? Math.max(0, Math.min(hpPct, remainPct + Math.round((preview.damage / wave.maxHp) * 100)) - remainPct) : 0;
+    const kill = live && preview.damage >= hp;
     const isBoss = !!wave.isBoss;
     const faction = isBoss || wave.miniBoss ? "БОСС АКТА" : "ПОСТРОЙКА СВЕТА";
     const slots = Array.from({ length: max }, (_, i) => {
       const uid = state.combat.selectedUids[i];
       const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
+      const forbidden = state.combat.forbiddenSlot === i + 1;
       if (hero) {
-        return `<div class="formation-slot occupied" data-tip>${Art.heroArt(hero)}
+        return `<div class="formation-slot occupied ${forbidden ? "forbidden" : ""}" data-idx="${i}" data-tip>${Art.heroArt(hero)}
           <span class="slot-idx">${i + 1}</span><span class="slot-name">${hero.name}</span>
-          <span class="pop"><strong>${hero.name}</strong><p>${esc(heroDesc(hero))}</p><small>Слот ${i + 1} · порядок выбора = позиция в бою</small></span>
+          <span class="pop"><strong>${hero.name}</strong><p>${esc(heroDesc(hero))}</p><small>${forbidden ? "⚠ Нестабильная позиция: −40% силы · " : ""}Слот ${i + 1} · зажми и перетащи — герой встанет на это место в бою</small></span>
         </div>`;
       }
-      return `<div class="formation-slot">${icon("plus", 14)}<span class="slot-idx">${i + 1}</span></div>`;
+      return `<div class="formation-slot ${forbidden ? "forbidden" : ""}" data-idx="${i}">${forbidden ? '<span class="forbidden-mark">✕</span>' : icon("plus", 14)}<span class="slot-idx">${i + 1}</span>
+        ${forbidden ? '<span class="pop"><strong>Нестабильная позиция</strong><p>Герой в этом слоте волны даёт −40% силы.</p></span>' : ""}</div>`;
     }).join("");
     const combo = preview ? preview.combo : null;
     const canFight = preview && !state.combat.outcome && state.player.fightsLeft > 0;
@@ -444,7 +522,11 @@ const UI = (function () {
           </div>
           <div class="scene-hp">
             <div class="scene-hp-num">${icon("heart", 14)}<strong>${fmt(hp)}</strong><span>/ ${fmt(wave.maxHp)}</span></div>
-            <div class="health-track"><div style="width:${hpPct}%"></div></div>
+            <div class="health-track ${kill ? "dead" : ""}">
+              <div class="hp-base" style="width:${hpPct}%"></div>
+              <div class="hp-remain" style="width:${remainPct}%"></div>
+              ${dmgPct > 0 ? `<div class="hp-damage" style="left:${remainPct}%;width:${dmgPct}%"></div>` : ""}
+            </div>
           </div>
           <div class="scene-reward"><span>Награда</span><b>${icon("coins", 13)}${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}+</b></div>
         </header>
@@ -453,7 +535,7 @@ const UI = (function () {
           <div class="scene-play">
             <div class="scene-formation">
               <div class="formation-cards">${slots}</div>
-              <span class="formation-note">Порядок выбора —<br>порядок в бою</span>
+              <span class="formation-note">Зажми героя и тащи —<br>порядок слотов = позиции в бою</span>
             </div>
             <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
               <span class="section-label">${combo ? (combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
@@ -572,13 +654,14 @@ const UI = (function () {
     const nextId = Content.waves.order[state.run.waveIndex + 1];
     const next = nextId ? Content.waves.byId[nextId] : null;
     const isBoss = next && (next.isBoss || next.miniBoss);
+    const nextHp = next ? Math.round(next.hp * Ranks.waveHpMult(state, state.run.waveIndex + 1)) : 0;
     return `<aside class="context-panel">
       <section class="panel context-inner">
         <div class="section-label"><span>${icon("target", 13)}СЛЕДУЮЩАЯ ЦЕЛЬ</span></div>
         <div class="next-target">
           <div class="next-emblem ${isBoss ? "boss" : ""}">${isBoss ? icon("skull", 26) : icon("castle", 26)}</div>
           <strong>${next ? next.name : "Финал забега"}</strong>
-          ${next ? `<div class="next-hp"><b class="mint">${fmt(next.hp)}</b><span>HP</span></div>` : ""}
+          ${next ? `<div class="next-hp"><b class="mint">${fmt(nextHp)}</b><span>HP</span></div>` : ""}
           ${next ? `<small>${waveRuleText(next)}</small>` : ""}
         </div>
         <div class="effect-row none">${icon("rotate", 12)}<span>Товары обновятся, если не залочены</span></div>
@@ -647,7 +730,7 @@ const UI = (function () {
       `<button class="sort-button ${UIState.sort === mode ? "active" : ""}" data-action="sort" data-mode="${mode}">${label}</button>`;
     return `<section class="bottom-band">
       <div class="band-top">
-        <h2 class="band-hand-title">Твоя рука <span>${state.player.handUids.length}<small> / ${DeckSys.HAND_SIZE}</small></span></h2>
+        <h2 class="band-hand-title">Твоя рука <span>${state.player.handUids.length}<small> / ${DeckSys.handSize(state)}</small></span></h2>
         <span class="hand-instruction">Выбери до ${Game.maxSlots(state)} героев для тимфайта</span>
         <span class="spacer"></span>
         ${buildStripHtml(state)}
@@ -663,6 +746,54 @@ const UI = (function () {
         <span><kbd>1</kbd>–<kbd>${DeckSys.HAND_SIZE}</kbd> выбрать героя <span class="keyboard-divider">·</span> наведи, чтобы узнать способность</span>
       </div>
     </section>`;
+  }
+
+  // ---------- пикер рангов (лига DALATRO) ----------
+
+  // Все активные правила лиги для ранга N: союз добавок 1..N в человеческих подписях.
+  function rankNotes(rankId) {
+    const seen = new Set();
+    const notes = [];
+    for (let r = 1; r <= Math.min(rankId, Content.ranks.max); r++) {
+      for (const note of Content.ranks.byId[r].notes) {
+        if (!seen.has(note)) { seen.add(note); notes.push(note); }
+      }
+    }
+    return notes;
+  }
+
+  function rankPickerHtml() {
+    const draft = Math.min(UIState.rankDraft || 1, Content.ranks.max);
+    const unlocked = Math.max(1, UIState.unlockedRank || 1);
+    const medals = Content.ranks.list.map((r) => {
+      const locked = r.id > unlocked;
+      const cls = ["rank-medal", r.id === draft ? "active" : "", locked ? "locked" : "", r.papochka ? "papochka" : ""].join(" ");
+      const title = locked
+        ? `Заблокировано — победи на ранге «${Content.ranks.byId[r.id - 1].name}»`
+        : `«${r.name}» · ${r.quote || ""}`;
+      return `<button class="${cls}" data-action="pick-rank" data-rank="${r.id}" ${locked ? "disabled" : ""} title="${esc(title)}">
+        <span class="medal-gem" style="--medal:${r.color}">${r.roman}</span>
+        <span class="medal-name">${r.name}</span>
+        ${locked ? '<span class="medal-lock">🔒</span>' : ""}
+      </button>`;
+    }).join("");
+    const rank = Content.ranks.byId[draft];
+    const notes = rankNotes(draft).map((n) => `<li>${n}</li>`).join("");
+    const detail = `<div class="rank-detail">
+      <div class="rank-detail-head">
+        <span class="medal-gem big" style="--medal:${rank.color}">${rank.roman}</span>
+        <div><strong>«${rank.name}»</strong><small>HP башен ×${rank.hpMult} · награда ×${rank.goldMult}</small></div>
+      </div>
+      <ul class="rank-notes">${notes}</ul>
+    </div>`;
+    return `<div class="rank-picker">${medals}</div>${detail}`;
+  }
+
+  // Бейдж ранга текущего забега (шапка + сайдбар).
+  function rankBadgeHtml(state, withIcon) {
+    const rank = Ranks.rankOf(state);
+    return `<span class="rank-badge ${rank.papochka ? "papochka" : ""}" style="--medal:${rank.color}" title="Ранг сложности: ${rank.name}">
+      ${withIcon ? '<span class="medal-gem small" style="--medal:' + rank.color + '">' + rank.roman + "</span>" : ""}${rank.name}</span>`;
   }
 
   // Выбор ядра скоринга (state.rules). Один и тот же блок на титульном экране
@@ -697,6 +828,7 @@ const UI = (function () {
       ${inRun ? `<div class="run-meta">
         <span class="act-pill ${formation ? "rules-formation" : ""}" title="Ядро скоринга этого забега">${formation ? icon("target", 12) : icon("leaf", 12)} ${formation ? "ФОРМАЦИИ" : "КЛАССИКА"}</span>
         <span class="act-pill" title="${Content.actNames[state.run.act || 1] || ""}">${icon("leaf", 12)} АКТ ${state.run.act || 1}</span>
+        ${rankBadgeHtml(state, true)}
         <span class="run-id">#DL–${esc(state.seedCode)}</span>
         <span class="autosave">${icon("check", 12)}Сохранено</span>
       </div>` : ""}
@@ -729,6 +861,8 @@ const UI = (function () {
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
         ${rulesToggleHtml(UIState.rulesDraft)}
+        <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
+        ${rankPickerHtml()}
         <div class="seed-row">
           <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
           <button class="primary-button" data-action="start">Начать забег ${icon("arrow", 15)}</button>
@@ -759,6 +893,7 @@ const UI = (function () {
     const curse = state.combat.route ? Content.modifiers.byId[state.combat.route.curse] : null;
     const baseRules = (nextDef.modifiers || []).map((m) => Content.modifiers.byId[m.id].name).join(" · ") || "без модификаторов";
     const campDisabled = state.combat.campTaken;
+    const nextHp = Math.round(nextDef.hp * Ranks.waveHpMult(state, nextIndex));
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -768,15 +903,15 @@ const UI = (function () {
             <section class="route-screen panel">
               <span class="section-label mint">${icon("target", 15)}РАЗВИЛКА · ВОЛНА ${nextIndex + 1} ИЗ ${Content.waves.order.length}</span>
               <h2>Куда двинемся?</h2>
-              <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${nextDef.hp} HP · ${baseRules}</p>
+              <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${fmt(nextHp)} HP · ${baseRules}</p>
               <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">
                 ${routeCardHtml(state, "normal", "normal", "🗼", "Обычная башня", [
-                  `${nextDef.name} · ${nextDef.hp} HP`,
+                  `${nextDef.name} · ${fmt(nextHp)} HP`,
                   baseRules,
                   "Полный темп забега",
                 ], "Честный бой <kbd>1</kbd>")}
                 ${routeCardHtml(state, "elite", "elite", "💀", "Элитная башня", [
-                  `HP ×1.5 → ${Math.round(nextDef.hp * 1.5)} HP`,
+                  `HP ×1.5 → ${fmt(Math.round(nextHp * 1.5))} HP`,
                   `Проклятие: ${curse ? curse.name : "—"} — ${curse ? curse.desc : ""}`,
                   "Награда: золото ×1.5 и эпик в лавке",
                 ], "Риск · награда <kbd>2</kbd>")}
@@ -821,9 +956,11 @@ const UI = (function () {
   }
 
   function renderShop(state) {
+    const inflation = Ranks.has(state, "inflation") ? (state.run.inflationBuys || 0) : 0;
     const offers = state.shop.offers.map((o) => {
       const item = Content.items.byId[o.id];
-      const afford = state.run.gold >= item.cost;
+      const cost = Game.itemCost(state, item.id);
+      const afford = state.run.gold >= cost;
       return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
@@ -832,8 +969,9 @@ const UI = (function () {
         <div class="shop-card-art">${Art.itemIcon(item)}</div>
         <h3>${item.name}</h3>
         <p>${esc(item.desc)}</p>
+        ${cost !== item.cost ? `<span class="price-note">${cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
         <button class="buy-button" ${afford ? "" : "disabled"} data-action="buy" data-id="${item.id}">
-          <span>${afford ? "Купить" : "Дорого"}</span><span>${item.cost} ${icon("coins", 13)}</span>
+          <span>${afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
         </button>
       </div>`;
     }).join("");
@@ -850,7 +988,7 @@ const UI = (function () {
               <span class="shop-gold">${icon("coins", 24)}${state.run.gold}</span>
             </div>
             <div class="shop-section-title"><h3>Предметы торговца</h3>
-              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Economy.REROLL_COST ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Economy.REROLL_COST} ${icon("coins", 12)}</span></button></div>
+              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Ranks.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Ranks.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
             <div class="shop-lab">
               <div class="shop-lab-head">
@@ -914,6 +1052,10 @@ const UI = (function () {
   }
 
   function endScreen(state, won) {
+    const rank = Ranks.rankOf(state);
+    const banner = won && UIState.unlockBanner
+      ? `<div class="unlock-banner">${icon("crown", 18)}<span>ОТКРЫТ РАНГ <b>«${esc(UIState.unlockBanner)}»</b> — он ждёт тебя в новом забеге</span></div>`
+      : "";
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -927,6 +1069,11 @@ const UI = (function () {
               <p>${won
       ? `${Content.waves.order.length} волн, три акта. Один невероятный билд. Серия: ${state.run.momentum || 0} волн импульса.`
       : "Попробуй другой билд: ставка, импульс и контры боссов решают."}</p>
+              <div class="end-rank" style="--medal:${rank.color}">
+                <span class="medal-gem big ${rank.papochka ? "papochka" : ""}" style="--medal:${rank.color}">${rank.roman}</span>
+                <div><small>РАНГ ЗАБЕГА</small><strong>${esc(rank.name)}</strong><em>«${esc(rank.quote || "")}»</em></div>
+              </div>
+              ${banner}
               <div class="end-stats">
                 <div><strong>${state.run.waveIndex + (won ? 1 : 0)}</strong><span>Волн пройдено</span></div>
                 <div><strong>${state.stats.totalDamage.toLocaleString("ru")}</strong><span>Всего урона</span></div>
@@ -950,6 +1097,24 @@ const UI = (function () {
     const res = state.combat.lastResolution;
     if (outcome === "cleared") {
       const mom = state.run.momentum || 0;
+      // Лига Титанов: после босса акта — выбор проклятия забега вместо кнопки лавки.
+      if (state.run.pendingCurse) {
+        const cards = state.run.pendingCurse.map((curseId) => {
+          const curse = Content.rankCurses.byId[curseId];
+          return `<button class="curse-card" data-action="choose-curse" data-curse="${curseId}">
+            <span class="curse-emoji">${curse.emoji}</span>
+            <strong>${curse.name}</strong>
+            <p>${esc(curse.desc)}</p>
+          </button>`;
+        }).join("");
+        return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true">
+          <div class="outcome-emblem lose">${icon("skull", 44)}</div>
+          <span class="section-label lose-text">ЛИГА ТИТАНОВ · АКТ ${state.run.act} ПРОЙДЕН</span>
+          <h2>Выбери свою боль</h2>
+          <p class="modal-description">Проклятие забега остаётся до конца. Отказаться нельзя.</p>
+          <div class="curse-cards">${cards}</div>
+        </section></div>`;
+      }
       return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true">
         <div class="outcome-emblem win">${icon("check", 44)}</div>
         <span class="section-label mint">ВОЛНА ЗАЧИЩЕНА</span>
@@ -1141,7 +1306,14 @@ const UI = (function () {
         <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>
         ${comboRows}
       </div>
-      <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> ТП-сброс (R) заменит выбранных героев, не расходуя тимфайт. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>`;
+      <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> ТП-сброс (R) заменит выбранных героев, не расходуя тимфайт. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>
+      <span class="section-label mint">${icon("crown", 15)}ЛИГА DALATRO · РАНГИ</span>
+      <p class="modal-description">Ранг задаётся перед забегом. Правила наслаиваются: ранг N держит всё, что дали ранги 1..N. Победа на ранге открывает следующий.</p>
+      <div class="combo-table rank-table">
+        <div class="table-head"><span>РАНГ</span><span>ПРАВИЛА ЛИГИ</span><span>HP ✕ НАГРАДА</span></div>
+        ${Content.ranks.list.map((r) => `<div><span><strong>${r.roman} · ${r.name}</strong><small>${esc(r.quote || "")}</small></span><span>${rankNotes(r.id).length ? esc(rankNotes(r.id).join(" · ")) : "обычная игра"}</span>
+          <span><b class="gold">×${r.hpMult}</b><span class="table-x">·</span><b class="mint">×${r.goldMult}</b></span></div>`).join("")}
+      </div>`;
   }
 
   function collectionModalHtml(state) {
@@ -1247,6 +1419,8 @@ const UI = (function () {
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
       <span class="section-label">ЯДРО СКОРИНГА НОВОГО ЗАБЕГА</span>
       ${rulesToggleHtml(current)}
+      <span class="section-label">РАНГ СЛОЖНОСТИ</span>
+      ${rankPickerHtml()}
       <input id="seed-input-modal" class="seed-modal-input" placeholder="Seed (пусто = случайный)" maxlength="12">
       <div class="modal-actions">
         <button class="secondary-button" data-action="close-modal">Продолжить текущий</button>

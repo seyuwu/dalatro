@@ -15,6 +15,7 @@ const SRC_FILES = [
   "src/content/items.js",
   "src/content/world.js",
   "src/content/content.js",
+  "src/systems/ranks.js",
   "src/engine/events.js",
   "src/engine/conditions.js",
   "src/engine/effects.js",

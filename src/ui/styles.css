@@ -190,9 +190,15 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .scene-hp-num svg { align-self: center; }
 .scene-hp-num strong { font-family: 'Oswald', sans-serif; font-size: 33px; line-height: 1; font-weight: 600; color: #d9e2cf; letter-spacing: -.5px; }
 .scene-hp-num > span { color: #6d7f66; font-size: 12px; }
-.scene-hp .health-track { width: 206px; margin: 7px 0 0 auto; }
-.health-track { height: 7px; border-radius: 3px; background: #31372d; overflow: hidden; }
-.health-track > div { height: 100%; background: linear-gradient(90deg, #7c9a70, #a5b78c); border-radius: 3px; transition: width .7s; }
+.scene-hp .health-track { width: 280px; margin: 8px 0 0 auto; }
+.health-track { position: relative; height: 12px; border-radius: 4px; background: #232a22; overflow: hidden; box-shadow: inset 0 1px 3px #0007; }
+.health-track > div { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+.health-track .hp-base { left: 0; background: #4e6047; opacity: .55; transition: width .5s; }
+.health-track .hp-remain { left: 0; background: linear-gradient(90deg, #7c9a70, #a5b78c); transition: width .45s; }
+.health-track .hp-damage { min-width: 7px; background: repeating-linear-gradient(-55deg, #c95841 0 6px, #a53f2c 6px 12px); box-shadow: 0 0 10px #c9584155; transition: left .35s, width .35s; }
+.health-track.dead .hp-remain { width: 0 !important; }
+.health-track.dead .hp-damage { left: 0 !important; width: 100% !important; animation: deadPulse .9s ease-in-out infinite alternate; }
+@keyframes deadPulse { from { filter: brightness(.92); } to { filter: brightness(1.25); } }
 .scene-reward { text-align: right; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; padding-left: 16px; border-left: 1px solid #afc8a116; align-self: stretch; justify-content: center; }
 .scene-reward > span { font-size: 10px; letter-spacing: 1px; color: #828976; font-weight: 700; }
 .scene-reward b { display: flex; align-items: center; gap: 5px; font-size: 17px; color: var(--gold); }
@@ -216,6 +222,12 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .scene-formation { display: flex; gap: 14px; align-items: center; }
 .formation-cards { display: flex; gap: 8px; }
 .formation-slot { width: 48px; height: 58px; display: flex; align-items: center; justify-content: center; border: 1px dashed #9ab48045; border-radius: 5px; background: #18271d73; position: relative; color: #6a855c; }
+.formation-slot.occupied { cursor: grab; }
+.formation-slot.occupied:active { cursor: grabbing; }
+.formation-slot { user-select: none; -webkit-user-select: none; }
+.formation-slot img { -webkit-user-drag: none; pointer-events: none; }
+.formation-slot.dragging { opacity: .4; }
+.formation-slot.drag-over { border-color: #d6b782 !important; box-shadow: 0 0 0 1px #d6b78266, 0 0 16px #d4ab6244; }
 .formation-slot .slot-idx { position: absolute; top: 3px; left: 5px; color: #a9bd90; font-size: 9px; z-index: 2; font-weight: 800; text-shadow: 0 1px 3px #000; }
 .formation-slot.occupied { border: 1px solid #a7b68d77; box-shadow: 0 3px 12px #0003; background: #29332a; }
 .formation-slot .hero-art { position: absolute; inset: 0; height: 100%; border-radius: 4px; }
@@ -656,7 +668,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
   .scene-inner { padding: 16px 24px 18px; }
   .scene-title h2 { font-size: 23px; }
   .scene-hp-num strong { font-size: 37px; }
-  .scene-hp .health-track { width: 240px; }
+  .scene-hp .health-track { width: 330px; }
   .formation-slot { width: 52px; height: 62px; }
   .score-block { width: 76px; height: 64px; }
   .score-block strong { font-size: 32px; }
@@ -1020,3 +1032,65 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 }
 .rule-beta { opacity: 0.65; font-size: 12px; margin-left: 6px; border: 1px solid currentColor; border-radius: 6px; padding: 0 5px; }
 .act-pill.rules-formation { color: #7ad6a0; border-color: rgba(110, 210, 160, 0.5); }
+
+/* --- лига DALATRO: пикер рангов, медали, проклятия забега --- */
+.rank-picker { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 620px; }
+.modal .rank-picker { justify-content: flex-start; }
+.rank-medal {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 7px 9px; border-radius: 8px; cursor: pointer; font: inherit; color: inherit;
+  border: 1px solid #33402c; background: #182015a8; transition: border-color .15s, background .15s;
+}
+.rank-medal:hover:not(.locked) { border-color: #5b7048; background: #202b1db8; }
+.rank-medal.active { border-color: var(--gold); background: #2a2f1cf0; box-shadow: 0 0 0 1px #d6b78255, 0 0 18px #d4ab6233; }
+.rank-medal.locked { opacity: .38; cursor: not-allowed; }
+.medal-gem {
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Oswald', sans-serif; font-size: 11px; font-weight: 600; color: #10160f;
+  background: var(--medal, #97a39b); clip-path: polygon(50% 0, 100% 28%, 82% 100%, 18% 100%, 0 28%);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--medal, #97a39b) 55%, transparent));
+}
+.medal-gem.big { width: 42px; height: 42px; font-size: 15px; }
+.medal-gem.small { width: 17px; height: 17px; font-size: 8px; clip-path: polygon(50% 0, 100% 28%, 82% 100%, 18% 100%, 0 28%); }
+.medal-gem.papochka { background: linear-gradient(160deg, #ffd76a, #ff6a3d); }
+.medal-name { font-size: 9px; font-weight: 700; letter-spacing: .4px; color: #aebb9e; max-width: 74px; text-align: center; line-height: 1.2; }
+.rank-medal.active .medal-name { color: #e6ecd9; }
+.medal-lock { position: absolute; top: 3px; right: 4px; font-size: 9px; }
+.rank-detail { margin-top: 10px; text-align: left; background: #141c13bb; border: 1px solid #313d29; border-radius: 8px; padding: 11px 14px; max-width: 620px; }
+.modal .rank-detail { max-width: 100%; }
+.rank-detail-head { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.rank-detail-head strong { font-size: 16px; letter-spacing: -.3px; }
+.rank-detail-head small { display: block; color: #8d9b7e; font-size: 10.5px; }
+.rank-notes { margin: 0; padding: 0 0 0 16px; display: flex; flex-direction: column; gap: 3px; }
+.rank-notes li { font-size: 11px; color: #97a889; line-height: 1.55; }
+.rank-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 750; letter-spacing: .8px; color: var(--medal, #97a39b); }
+.rank-badge.papochka { background: linear-gradient(90deg, #ffd76a, #ff6a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.run-row.rank-row { align-items: center; }
+/* усталость и запретный слот */
+.fatigue-mark { position: absolute; right: 6px; top: 5px; z-index: 5; font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600; color: #ff9a7a; background: #000000a8; border: 1px solid #a3544488; border-radius: 5px; padding: 1px 5px; }
+.hero-rank.weakened { color: #ffb08a; }
+.formation-slot.forbidden { border-style: solid; border-color: #a35444aa; background: #2a1712d5; }
+.formation-slot.forbidden .forbidden-mark { color: #ff9a7a; font-size: 15px; font-weight: 800; }
+/* проклятия забега */
+.effect-row.curse { color: #d89583; }
+.effect-row.curse svg { color: #d89583; }
+.effect-row.curse small { color: #b07f70; }
+.curse-cards { display: flex; gap: 10px; margin-top: 6px; }
+.curse-card {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: 14px 12px; border-radius: 10px; cursor: pointer; font: inherit; color: inherit;
+  border: 1px solid #6b4038; background: #241713; transition: border-color .15s, transform .15s;
+}
+.curse-card:hover { border-color: #d89583; transform: translateY(-2px); }
+.curse-card strong { font-size: 15px; }
+.curse-card p { font-size: 11px; color: #b09a8f; line-height: 1.55; }
+.curse-emoji { font-size: 26px; }
+/* конец забега: медаль ранга + открытие */
+.end-rank { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 10px 18px; border: 1px solid #3a4630; border-radius: 10px; background: #161e13cc; text-align: left; }
+.end-rank small { display: block; font-size: 9px; letter-spacing: 1.2px; color: #7d8b72; font-weight: 750; }
+.end-rank strong { display: block; font-size: 19px; color: var(--medal, #c0d4a9); letter-spacing: -.3px; }
+.end-rank em { display: block; font-size: 10.5px; color: #819875; font-style: normal; }
+.unlock-banner { display: flex; align-items: center; gap: 9px; margin: 6px 0 2px; padding: 10px 16px; border-radius: 9px; border: 1px solid #d6b78266; background: #d4ab6218; color: #e8d9ad; font-size: 12.5px; animation: deadPulse 1.4s ease-in-out infinite alternate; }
+.unlock-banner b { letter-spacing: .5px; }
+/* цена предмета с ранговыми эффектами */
+.price-note { display: block; text-align: center; font-size: 9.5px; color: #d8a56b; margin: -4px 0 6px; }

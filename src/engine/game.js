@@ -15,10 +15,10 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
-      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false },
+      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null },
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
@@ -28,10 +28,12 @@ const Game = (function () {
     };
   }
 
-  // Ранг героя с учётом тренировки в лаборатории колоды.
+  // Ранг героя с учётом тренировки в лаборатории колоды, усталости и охоты
+  // на героя (ранги Легенда/Титан). Это ЭФФЕКТИВНАЯ сила — она и в бою, и на карте.
   function rankOf(state, heroId) {
     const overrides = state.run.ranks || {};
-    return overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
+    const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
+    return Math.max(1, base - Ranks.heroPenalty(state, heroId));
   }
 
   // Обезоруживание: проклятие элитки режет слоты до 4 (BKB снимает).
@@ -51,7 +53,7 @@ const Game = (function () {
   function setupWave(state, waveIndex, route) {
     const def = Content.waves.byId[Content.waves.order[waveIndex]];
     const elite = !!(route && route.elite) && !def.isBoss;
-    const hp = elite ? Math.round(def.hp * 1.5) : def.hp;
+    const hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (elite ? 1.5 : 1));
     state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
@@ -65,7 +67,19 @@ const Game = (function () {
       modifiers: (def.modifiers || []).concat(elite && route.curse ? [{ id: route.curse }] : []).map((m) => ({ id: m.id })),
       enemyItems: [],
       aegisUsed: false,
+      enraged: false,
+      regenTotal: 0,
     };
+    // Папочка (ранг XIV): Трон здоровается лично.
+    if (Ranks.rankOf(state).papochka && def.isBoss && waveIndex >= Content.waves.order.length - 1) {
+      state.combat.wave.name = "ПАПОЧКА";
+      state.combat.wave.emoji = "👨";
+    }
+    // Мутации башен (Божество+): случайные способности волны, детерминированные сидом.
+    const mutations = Ranks.rollMutations(Ranks.mutationsPerWave(state));
+    for (const id of mutations) state.combat.wave.modifiers.push({ id, rolled: true });
+    // Нестабильная позиция (Властелин+): один слот волны с −40% силы.
+    state.combat.forbiddenSlot = Ranks.has(state, "unstable") ? Rng.current().int(1, 5) : null;
     state.combat.fightIndex = 0;
     state.combat.selectedUids = [];
     state.combat.outcome = null;
@@ -73,14 +87,25 @@ const Game = (function () {
     state.combat.campTaken = false;
     state.run.campBoon = false;
     state.combat.route = null;
-    state.player.fightsLeft = FIGHTS_PER_WAVE;
-    state.player.discardsLeft = DISCARDS_PER_WAVE;
+    state.player.fightsLeft = Ranks.fightsPerWave(state);
+    state.player.discardsLeft = Ranks.discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
     log(state, elite
       ? `— Элитная волна (акт ${state.run.act}): ${def.name} — ${hp} HP (${Content.modifiers.byId[route.curse].name}!)`
       : `— Акт ${state.run.act}, волна ${waveIndex % 5 + 1}: ${def.name} — ${def.hp} HP`);
+    if (mutations.length) log(state, `Мутации башни: ${mutations.map((id) => Content.modifiers.byId[id].name).join(", ")}`);
+    if (state.combat.forbiddenSlot) log(state, `Нестабильная позиция: слот ${state.combat.forbiddenSlot} даёт −40% силы`);
+  }
+
+  // Цена предмета с ранговыми эффектами: голод −20%, инфляция +1G за каждую
+  // покупку в текущем визите в лавку.
+  function itemCost(state, itemId) {
+    const item = Content.items.byId[itemId];
+    let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
+    if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
+    return cost;
   }
 
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
@@ -134,11 +159,12 @@ const Game = (function () {
         const code = Rng.normalizeSeedCode(action.seedCode) || Rng.randomSeedCode();
         const fresh = createInitialState(code);
         fresh.rules = action.rules === "formation" ? "formation" : "classic";
+        fresh.run.rank = Math.min(14, Math.max(1, action.rank || 1));
         fresh.phase = "wave";
         Rng.setActive(Rng.create(code));
         DeckSys.createFromHeroes(fresh, Content.heroes.startingIds);
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""}`);
+        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»`);
         return fresh;
       }
 
@@ -168,9 +194,13 @@ const Game = (function () {
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);
           s.combat.campTaken = false;
           const baseGold = s.combat.wave.gold || WAVE_CLEAR_GOLD;
-          const clearGold = s.combat.wave.elite ? Math.round(baseGold * 1.5) : baseGold;
+          let clearGold = baseGold * (s.combat.wave.elite ? 1.5 : 1);
+          clearGold *= Ranks.goldMult(s) * Ranks.curseGoldMult(s);
+          clearGold = Math.round(clearGold);
+          const tax = Ranks.taxPerWave(s);
+          if (tax) clearGold = Math.max(0, clearGold - tax);
           s.run.gold += clearGold;
-          log(s, `Волна зачищена! +${clearGold} золота${s.combat.wave.elite ? " (элитная добыча ×1.5)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
+          log(s, `Волна зачищена! +${clearGold} золота${s.combat.wave.elite ? " (элитная добыча ×1.5)" : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
             if (s.run.waveIndex >= Content.waves.order.length - 1) {
@@ -181,6 +211,11 @@ const Game = (function () {
               s.run.gold += 10;
               s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
               log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота, +1 казарма (восстановление)`);
+              // Лига Титанов: перед новым актом игрок выбирает проклятие забега.
+              if (Ranks.has(s, "curseChoice")) {
+                s.run.pendingCurse = Ranks.rollCurseChoices();
+                log(s, "Лига Титанов: выбери проклятие забега — оно останется до конца.");
+              }
             }
           }
         } else if (s.player.fightsLeft <= 0) {
@@ -214,8 +249,9 @@ const Game = (function () {
       }
 
       case "ENTER_SHOP": {
-        if (s.phase !== "wave" || s.combat.outcome !== "cleared") return s;
+        if (s.phase !== "wave" || s.combat.outcome !== "cleared" || s.run.pendingCurse) return s;
         s.phase = "shop";
+        s.run.inflationBuys = 0;
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], s.combat.wave.elite);
         s.shop.recruits = pickRecruits(s);
         return s;
@@ -227,11 +263,13 @@ const Game = (function () {
         const offerIdx = s.shop.offers.findIndex((o) => o.id === action.itemId);
         if (!item || offerIdx === -1) return s;
         if (s.player.items.includes(action.itemId)) return s;
-        if (s.run.gold < item.cost) return s;
-        s.run.gold -= item.cost;
+        const cost = itemCost(s, action.itemId);
+        if (s.run.gold < cost) return s;
+        s.run.gold -= cost;
         s.player.items.push(action.itemId);
         s.shop.offers.splice(offerIdx, 1);
-        log(s, `Куплено: ${item.name} (−${item.cost} золота)`);
+        if (Ranks.has(s, "inflation")) s.run.inflationBuys += 1;
+        log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})`);
         return s;
       }
 
@@ -256,11 +294,23 @@ const Game = (function () {
       }
 
       case "REROLL_SHOP": {
-        if (s.phase !== "shop" || s.run.gold < Economy.REROLL_COST) return s;
-        s.run.gold -= Economy.REROLL_COST;
+        const cost = Ranks.rerollCost(s);
+        if (s.phase !== "shop" || s.run.gold < cost) return s;
+        s.run.gold -= cost;
         const locked = s.shop.offers.filter((o) => o.locked);
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, locked);
         s.shop.recruits = pickRecruits(s);
+        return s;
+      }
+
+      // Лига Титанов: выбор проклятия забега после босса акта. Пока не выбрано —
+      // лавка закрыта.
+      case "CHOOSE_CURSE": {
+        if (!s.run.pendingCurse || !s.run.pendingCurse.includes(action.curseId)) return s;
+        s.run.curses.push(action.curseId);
+        s.run.pendingCurse = null;
+        const curse = Content.rankCurses.byId[action.curseId];
+        log(s, `Проклятие забега: ${curse.emoji} «${curse.name}» — ${curse.desc}`);
         return s;
       }
 
@@ -373,11 +423,14 @@ const Game = (function () {
           s.combat.wave.enemyItems.push("rapier");
           log(s, "Divine Rapier у врага! Твой урон по этой башне ×0.5, пока он её держит.");
         }
-        s.combat.wave.hp = s.combat.wave.maxHp;
+        s.combat.wave.hp = Ranks.has(s, "mercy") ? Math.ceil(s.combat.wave.maxHp * 0.7) : s.combat.wave.maxHp;
+        if (Ranks.has(s, "mercy") && s.combat.wave.hp < s.combat.wave.maxHp) {
+          log(s, "Милосердие мира: башня восстановила только 70% HP.");
+        }
         s.combat.fightIndex = 0;
         s.combat.outcome = null;
-        s.player.fightsLeft = FIGHTS_PER_WAVE;
-        s.player.discardsLeft = DISCARDS_PER_WAVE;
+        s.player.fightsLeft = Ranks.fightsPerWave(s);
+        s.player.discardsLeft = Ranks.discardsPerWave(s);
         DeckSys.resetAll(s, Rng.current());
         DeckSys.draw(s, Rng.current());
         assignMines(s);
@@ -413,6 +466,6 @@ const Game = (function () {
     createInitialState, dispatch,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
-    assignMines, rankOf, maxSlots, recruitPrice,
+    assignMines, rankOf, maxSlots, recruitPrice, itemCost,
   };
 })();

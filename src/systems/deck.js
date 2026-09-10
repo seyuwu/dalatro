@@ -18,9 +18,15 @@ const DeckSys = (function () {
     state.player.discardUids = [];
   }
 
-  // Draws until the hand reaches HAND_SIZE (or deck+discard are empty).
+  // Draws until the hand reaches the current hand size (rank may cut it to 6/5,
+  // see Ranks.handSize) or deck+discard are empty.
+  function handSize(state) {
+    return Ranks.handSize(state);
+  }
+
   function draw(state, rng) {
-    while (state.player.handUids.length < HAND_SIZE) {
+    const size = handSize(state);
+    while (state.player.handUids.length < size) {
       if (state.player.deckUids.length === 0) {
         if (state.player.discardUids.length === 0) return;
         state.player.deckUids = rng.shuffle(state.player.discardUids.slice());
@@ -57,5 +63,5 @@ const DeckSys = (function () {
     return uid;
   }
 
-  return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, HAND_SIZE };
+  return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, handSize, HAND_SIZE };
 })();
