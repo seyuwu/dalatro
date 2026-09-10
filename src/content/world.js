@@ -144,3 +144,39 @@ const RANK_CURSES_DATA = [
   { id: "time", name: "Время", emoji: "⏳", desc: "Реролл дороже на 2G, зато +1 ТП-сброс за волну." },
   { id: "chaos", name: "Хаос", emoji: "🎲", desc: "Каждая волна получает +1 случайную мутацию, зачистки ×1.15 золота." },
 ];
+
+// --- Стартовые архетипы (спек §7): выбор задаёт НАПРАВЛЕНИЕ, не запирает игру.
+// Гарантированное трио + 9 карт из тематического пула (ролл по сиду, состав
+// колоды каждый забег чуть разный). Перк — микроскопический, эффекты по id
+// в game.js/combat.js. «standard» — классическая колода без перка (дефолт:
+// старые сиды и A/B-бот играют ровно как раньше).
+const ARCHETYPES_DATA = [
+  {
+    id: "standard", name: "Стандарт", emoji: "🎯", quote: "Классические двенадцать", color: "#97a39b",
+    guaranteed: [], fill: [], perk: null, perkDesc: "Без перка — базовая колода стартовой двенадцатки",
+  },
+  {
+    id: "assault", name: "Штурм", emoji: "⚔", quote: "Ломай быстрее, чем чинят", color: "#d8b24f",
+    guaranteed: ["juggernaut", "axe", "centaur"],
+    fill: ["tusk", "pudge", "sven", "morphling", "pa", "bounty", "dawnbreaker", "primal", "slark", "tiny"],
+    perk: "gold1", perkDesc: "+1G начального золота",
+  },
+  {
+    id: "control", name: "Контроль", emoji: "❄", quote: "Мир замедляется — ты нет", color: "#5a9dd6",
+    guaranteed: ["zeus", "cm", "morphling"],
+    fill: ["tusk", "axe", "pudge", "sven", "juggernaut", "pa", "dawnbreaker", "primal", "rubick", "oracle"],
+    perk: "tp1", perkDesc: "+1 ТП-сброс в акте 1",
+  },
+  {
+    id: "crit", name: "Крит", emoji: "💀", quote: "Один удар. Одна ошибка врага", color: "#e0684e",
+    guaranteed: ["pa", "sven", "dawnbreaker"],
+    fill: ["tusk", "axe", "pudge", "juggernaut", "morphling", "centaur", "bounty", "cm", "zeus", "primal"],
+    perk: "lasthit2", perkDesc: "+2G за точный ласт-хит",
+  },
+  {
+    id: "arcane", name: "Магия", emoji: "✨", quote: "Формула боя написана заранее", color: "#a678e0",
+    guaranteed: ["zeus", "cm", "primal"],
+    fill: ["tusk", "axe", "pudge", "sven", "morphling", "juggernaut", "pa", "dawnbreaker", "rubick", "invoker"],
+    perk: "freeroll1", perkDesc: "Первый реролл каждой лавки бесплатен",
+  },
+];

@@ -496,6 +496,11 @@ const Combat = (function () {
         gold += track;
         Resolver.pushStep(resolution, { icon: "💰", label: `Track: +${track} золота за точный ласт-хит`, kind: "gold" });
       }
+      // Перк архетипа «Крит»: точный ласт-хит доплачивает.
+      if (Game.archPerk(state) === "lasthit2") {
+        gold += 2;
+        Resolver.pushStep(resolution, { icon: "💀", label: "Отряд «Крит»: +2 золота за точный ласт-хит", kind: "gold" });
+      }
     }
     if (commit && commit.gold) {
       gold += commit.gold;

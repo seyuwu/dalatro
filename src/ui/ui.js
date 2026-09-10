@@ -119,6 +119,8 @@
     rankDraft: 1,
     unlockedRank: 1,
     unlockBanner: null, // имя открытого ранга для плашки на экране победы
+    // Стартовый архетип нового забега (спек §7).
+    starterDraft: "standard",
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -405,7 +407,7 @@
     const { mom, mult } = momentumInfo(state);
     const pos = runPosition(state);
     const fights = Ranks.fightsPerWave(state);
-    const discards = Ranks.discardsPerWave(state);
+    const discards = Game.discardsPerWave(state);
     const journalEntries = (UIState.journalOpen ? state.log.slice(-6) : state.log.slice(-1)).slice().reverse();
     return `
     <section class="panel run-panel">
@@ -800,10 +802,27 @@
       ${withIcon ? '<span class="medal-gem small" style="--medal:' + rank.color + '">' + rank.roman + "</span>" : ""}${rank.name}</span>`;
   }
 
+  // Пикер стартового архетипа (спек §7): трио задаёт направление,
+  // остальная колода добирается из тематического пула по сиду.
+  function starterPickerHtml() {
+    const draft = UIState.starterDraft || "standard";
+    return `<div class="starter-picker">${Content.archetypes.list.map((a) => {
+      const active = a.id === draft;
+      const trio = a.guaranteed.length
+        ? a.guaranteed.map((id) => Content.heroes.byId[id].name).join(" · ")
+        : "Классическая двенадцатка";
+      return `<button class="starter-card ${active ? "active" : ""}" style="--accent:${a.color}" data-action="pick-starter" data-starter="${a.id}" title="«${a.name}» — ${a.quote || ""}">
+        <span class="starter-emoji">${a.emoji}</span>
+        <span class="starter-name">${a.name}</span>
+        <small class="starter-trio">${trio}</small>
+        <small class="starter-perk">${a.perk ? a.perkDesc : "без перка"}</small>
+      </button>`;
+    }).join("")}</div>`;
+  }
+
   // Выбор ядра скоринга (state.rules). Один и тот же блок на титульном экране
   // и в окне «Новый забег» — режим применяется к следующему запускаемому забегу.
-  function rulesToggleHtml(active) {
-    const rules = active === "formation" ? "formation" : "classic";
+  function rulesToggleHtml(active) {    const rules = active === "formation" ? "formation" : "classic";
     return `<div class="title-rules">
       <button class="rule-choice ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">
         <strong>Классика</strong>
@@ -865,6 +884,8 @@
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
         ${rulesToggleHtml(UIState.rulesDraft)}
+        <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
+        ${starterPickerHtml()}
         <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
         ${rankPickerHtml()}
         <div class="seed-row">
@@ -1431,6 +1452,8 @@
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
       <span class="section-label">ЯДРО СКОРИНГА НОВОГО ЗАБЕГА</span>
       ${rulesToggleHtml(current)}
+      <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
+      ${starterPickerHtml()}
       <span class="section-label">РАНГ СЛОЖНОСТИ</span>
       ${rankPickerHtml()}
       <input id="seed-input-modal" class="seed-modal-input" placeholder="Seed (пусто = случайный)" maxlength="12">

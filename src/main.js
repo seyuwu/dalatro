@@ -193,7 +193,7 @@
   function startRun(seedCode) {
     // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
     const urlRules = new URLSearchParams(location.search).get("rules");
-    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1 });
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
     UI.UIState.unlockBanner = null;
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
@@ -220,6 +220,11 @@
         break;
       case "pick-rank":
         UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, Number(el.dataset.rank) || 1));
+        Sfx.play("select");
+        rerender();
+        break;
+      case "pick-starter":
+        UI.UIState.starterDraft = Content.archetypes.byId[el.dataset.starter] ? el.dataset.starter : "standard";
         Sfx.play("select");
         rerender();
         break;

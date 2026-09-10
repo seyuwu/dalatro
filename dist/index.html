@@ -434,6 +434,17 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .shop-banner h2 { font-size: 31px; letter-spacing: -.7px; margin: 5px 0; }
 .shop-banner p { font-size: 12px; color: #8e9b85; line-height: 1.8; }
 .shop-next { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a8b58f; margin-top: 7px; }
+
+/* ---------- стартовые архетипы (титул + новый забег) ---------- */
+.starter-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
+.starter-card { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 8px 9px; border: 1px solid var(--border); border-radius: 9px; background: #1a221b; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+.starter-card:hover { border-color: #5b6b52; transform: translateY(-1px); }
+.starter-card.active { border-color: var(--accent, #97a39b); background: #212b21; box-shadow: 0 0 0 1px var(--accent, #97a39b) inset; }
+.starter-emoji { font-size: 21px; line-height: 1.2; }
+.starter-name { font-family: 'Oswald', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: 1.1px; text-transform: uppercase; color: #dfe5d2; }
+.starter-card.active .starter-name { color: var(--accent, #dfe5d2); }
+.starter-trio { font-size: 8.5px; color: #8a987d; line-height: 1.5; text-align: center; min-height: 13px; }
+.starter-perk { font-size: 8.5px; color: #b8a468; line-height: 1.5; text-align: center; }
 .shop-next b { color: #dfe5d2; }
 .shop-gold { display: flex; align-items: center; gap: 9px; font-size: 33px; font-weight: 800; color: var(--gold); margin-left: auto; }
 .shop-section-title { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 16px; }
@@ -1861,6 +1872,42 @@ const RANK_CURSES_DATA = [
   { id: "chaos", name: "Хаос", emoji: "🎲", desc: "Каждая волна получает +1 случайную мутацию, зачистки ×1.15 золота." },
 ];
 
+// --- Стартовые архетипы (спек §7): выбор задаёт НАПРАВЛЕНИЕ, не запирает игру.
+// Гарантированное трио + 9 карт из тематического пула (ролл по сиду, состав
+// колоды каждый забег чуть разный). Перк — микроскопический, эффекты по id
+// в game.js/combat.js. «standard» — классическая колода без перка (дефолт:
+// старые сиды и A/B-бот играют ровно как раньше).
+const ARCHETYPES_DATA = [
+  {
+    id: "standard", name: "Стандарт", emoji: "🎯", quote: "Классические двенадцать", color: "#97a39b",
+    guaranteed: [], fill: [], perk: null, perkDesc: "Без перка — базовая колода стартовой двенадцатки",
+  },
+  {
+    id: "assault", name: "Штурм", emoji: "⚔", quote: "Ломай быстрее, чем чинят", color: "#d8b24f",
+    guaranteed: ["juggernaut", "axe", "centaur"],
+    fill: ["tusk", "pudge", "sven", "morphling", "pa", "bounty", "dawnbreaker", "primal", "slark", "tiny"],
+    perk: "gold1", perkDesc: "+1G начального золота",
+  },
+  {
+    id: "control", name: "Контроль", emoji: "❄", quote: "Мир замедляется — ты нет", color: "#5a9dd6",
+    guaranteed: ["zeus", "cm", "morphling"],
+    fill: ["tusk", "axe", "pudge", "sven", "juggernaut", "pa", "dawnbreaker", "primal", "rubick", "oracle"],
+    perk: "tp1", perkDesc: "+1 ТП-сброс в акте 1",
+  },
+  {
+    id: "crit", name: "Крит", emoji: "💀", quote: "Один удар. Одна ошибка врага", color: "#e0684e",
+    guaranteed: ["pa", "sven", "dawnbreaker"],
+    fill: ["tusk", "axe", "pudge", "juggernaut", "morphling", "centaur", "bounty", "cm", "zeus", "primal"],
+    perk: "lasthit2", perkDesc: "+2G за точный ласт-хит",
+  },
+  {
+    id: "arcane", name: "Магия", emoji: "✨", quote: "Формула боя написана заранее", color: "#a678e0",
+    guaranteed: ["zeus", "cm", "primal"],
+    fill: ["tusk", "axe", "pudge", "sven", "morphling", "juggernaut", "pa", "dawnbreaker", "rubick", "invoker"],
+    perk: "freeroll1", perkDesc: "Первый реролл каждой лавки бесплатен",
+  },
+];
+
 </script>
   <script>
 // Dalatro — content registry. The engine only ever talks to Content.
@@ -1885,6 +1932,8 @@ const Content = (function () {
   const ranks = { list: RANKS_DATA, byId: byId(RANKS_DATA), max: RANKS_DATA.length };
   const mutations = MODIFIERS_DATA.filter((m) => m.mutation).map((m) => m.id);
   const rankCurses = { list: RANK_CURSES_DATA, byId: byId(RANK_CURSES_DATA) };
+  // Стартовые архетипы (спек §7): направление старта, не запирание игры.
+  const archetypes = { list: ARCHETYPES_DATA, byId: byId(ARCHETYPES_DATA) };
   // Альтернативное ядро скоринга (state.rules = "formation").
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
@@ -1893,7 +1942,7 @@ const Content = (function () {
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();
 
 </script>
@@ -2595,7 +2644,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null },
@@ -2614,6 +2663,31 @@ const Game = (function () {
     const overrides = state.run.ranks || {};
     const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
     return Math.max(1, base - Ranks.heroPenalty(state, heroId));
+  }
+
+  // Перк стартового архетипа (run.archetype), null для «Стандарта»/старых сейвов.
+  function archPerk(state) {
+    const a = state.run.archetype && Content.archetypes.byId[state.run.archetype];
+    return a ? a.perk : null;
+  }
+
+  // ТП-сбросы за волну: правила лиги + перк «Контроль» (+1 в акте 1).
+  function discardsPerWave(state) {
+    const base = Ranks.discardsPerWave(state);
+    return archPerk(state) === "tp1" && (state.run.act || 1) === 1 ? base + 1 : base;
+  }
+
+  // Колода старта: гарантированное трио архетипа + 9 карт из тематического пула
+  // (детерминированный ролл по сиду). «Стандарт» — прежняя стартовая двенадцатка.
+  function starterDeckIds(starterId, rng) {
+    const a = Content.archetypes.byId[starterId];
+    if (!a || !a.guaranteed.length) return Content.heroes.startingIds;
+    const pool = a.fill.slice();
+    const picks = [];
+    while (picks.length < 9 && pool.length) {
+      picks.push(pool.splice(Math.floor(rng.next() * pool.length), 1)[0]);
+    }
+    return a.guaranteed.concat(picks);
   }
 
   // Обезоруживание: проклятие элитки режет слоты до 4 (BKB снимает).
@@ -2668,7 +2742,7 @@ const Game = (function () {
     state.run.campBoon = false;
     state.combat.route = null;
     state.player.fightsLeft = Ranks.fightsPerWave(state);
-    state.player.discardsLeft = Ranks.discardsPerWave(state);
+    state.player.discardsLeft = discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
@@ -2740,11 +2814,15 @@ const Game = (function () {
         const fresh = createInitialState(code);
         fresh.rules = action.rules === "formation" ? "formation" : "classic";
         fresh.run.rank = Math.min(14, Math.max(1, action.rank || 1));
+        const starter = Content.archetypes.byId[action.starterId] || Content.archetypes.byId.standard;
+        fresh.run.archetype = starter.id;
         fresh.phase = "wave";
         Rng.setActive(Rng.create(code));
-        DeckSys.createFromHeroes(fresh, Content.heroes.startingIds);
+        DeckSys.createFromHeroes(fresh, starterDeckIds(starter.id, Rng.current()));
+        // Перк «Штурм»: +1G начального золота.
+        if (starter.perk === "gold1") fresh.run.gold += 1;
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»`);
+        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»${starter.id !== "standard" ? ` · отряд «${starter.name}»` : ""}`);
         return fresh;
       }
 
@@ -2832,6 +2910,7 @@ const Game = (function () {
         if (s.phase !== "wave" || s.combat.outcome !== "cleared" || s.run.pendingCurse) return s;
         s.phase = "shop";
         s.run.inflationBuys = 0;
+        s.run.freeRerollUsed = false;
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], s.combat.wave.elite);
         s.shop.recruits = pickRecruits(s);
         return s;
@@ -2874,9 +2953,17 @@ const Game = (function () {
       }
 
       case "REROLL_SHOP": {
-        const cost = Ranks.rerollCost(s);
+        let cost = Ranks.rerollCost(s);
+        // Перк «Магия»: первый реролл каждой лавки бесплатен.
+        const freeReroll = archPerk(s) === "freeroll1" && !s.run.freeRerollUsed;
+        if (freeReroll) cost = 0;
         if (s.phase !== "shop" || s.run.gold < cost) return s;
-        s.run.gold -= cost;
+        if (freeReroll) {
+          s.run.freeRerollUsed = true;
+          log(s, "Магия: первый реролл лавки бесплатен");
+        } else {
+          s.run.gold -= cost;
+        }
         const locked = s.shop.offers.filter((o) => o.locked);
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, locked);
         s.shop.recruits = pickRecruits(s);
@@ -3010,7 +3097,7 @@ const Game = (function () {
         s.combat.fightIndex = 0;
         s.combat.outcome = null;
         s.player.fightsLeft = Ranks.fightsPerWave(s);
-        s.player.discardsLeft = Ranks.discardsPerWave(s);
+        s.player.discardsLeft = discardsPerWave(s);
         DeckSys.resetAll(s, Rng.current());
         DeckSys.draw(s, Rng.current());
         assignMines(s);
@@ -3047,6 +3134,7 @@ const Game = (function () {
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
     assignMines, rankOf, maxSlots, recruitPrice, itemCost,
+    archPerk, discardsPerWave, starterDeckIds,
   };
 })();
 
@@ -3969,6 +4057,11 @@ const Combat = (function () {
         gold += track;
         Resolver.pushStep(resolution, { icon: "💰", label: `Track: +${track} золота за точный ласт-хит`, kind: "gold" });
       }
+      // Перк архетипа «Крит»: точный ласт-хит доплачивает.
+      if (Game.archPerk(state) === "lasthit2") {
+        gold += 2;
+        Resolver.pushStep(resolution, { icon: "💀", label: "Отряд «Крит»: +2 золота за точный ласт-хит", kind: "gold" });
+      }
     }
     if (commit && commit.gold) {
       gold += commit.gold;
@@ -4672,6 +4765,8 @@ const Art = (function () {
     rankDraft: 1,
     unlockedRank: 1,
     unlockBanner: null, // имя открытого ранга для плашки на экране победы
+    // Стартовый архетип нового забега (спек §7).
+    starterDraft: "standard",
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -4958,7 +5053,7 @@ const Art = (function () {
     const { mom, mult } = momentumInfo(state);
     const pos = runPosition(state);
     const fights = Ranks.fightsPerWave(state);
-    const discards = Ranks.discardsPerWave(state);
+    const discards = Game.discardsPerWave(state);
     const journalEntries = (UIState.journalOpen ? state.log.slice(-6) : state.log.slice(-1)).slice().reverse();
     return `
     <section class="panel run-panel">
@@ -5353,10 +5448,27 @@ const Art = (function () {
       ${withIcon ? '<span class="medal-gem small" style="--medal:' + rank.color + '">' + rank.roman + "</span>" : ""}${rank.name}</span>`;
   }
 
+  // Пикер стартового архетипа (спек §7): трио задаёт направление,
+  // остальная колода добирается из тематического пула по сиду.
+  function starterPickerHtml() {
+    const draft = UIState.starterDraft || "standard";
+    return `<div class="starter-picker">${Content.archetypes.list.map((a) => {
+      const active = a.id === draft;
+      const trio = a.guaranteed.length
+        ? a.guaranteed.map((id) => Content.heroes.byId[id].name).join(" · ")
+        : "Классическая двенадцатка";
+      return `<button class="starter-card ${active ? "active" : ""}" style="--accent:${a.color}" data-action="pick-starter" data-starter="${a.id}" title="«${a.name}» — ${a.quote || ""}">
+        <span class="starter-emoji">${a.emoji}</span>
+        <span class="starter-name">${a.name}</span>
+        <small class="starter-trio">${trio}</small>
+        <small class="starter-perk">${a.perk ? a.perkDesc : "без перка"}</small>
+      </button>`;
+    }).join("")}</div>`;
+  }
+
   // Выбор ядра скоринга (state.rules). Один и тот же блок на титульном экране
   // и в окне «Новый забег» — режим применяется к следующему запускаемому забегу.
-  function rulesToggleHtml(active) {
-    const rules = active === "formation" ? "formation" : "classic";
+  function rulesToggleHtml(active) {    const rules = active === "formation" ? "formation" : "classic";
     return `<div class="title-rules">
       <button class="rule-choice ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">
         <strong>Классика</strong>
@@ -5418,6 +5530,8 @@ const Art = (function () {
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
         ${rulesToggleHtml(UIState.rulesDraft)}
+        <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
+        ${starterPickerHtml()}
         <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
         ${rankPickerHtml()}
         <div class="seed-row">
@@ -5984,6 +6098,8 @@ const Art = (function () {
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
       <span class="section-label">ЯДРО СКОРИНГА НОВОГО ЗАБЕГА</span>
       ${rulesToggleHtml(current)}
+      <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
+      ${starterPickerHtml()}
       <span class="section-label">РАНГ СЛОЖНОСТИ</span>
       ${rankPickerHtml()}
       <input id="seed-input-modal" class="seed-modal-input" placeholder="Seed (пусто = случайный)" maxlength="12">
@@ -6307,7 +6423,7 @@ const Art = (function () {
   function startRun(seedCode) {
     // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
     const urlRules = new URLSearchParams(location.search).get("rules");
-    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1 });
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
     UI.UIState.unlockBanner = null;
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
@@ -6334,6 +6450,11 @@ const Art = (function () {
         break;
       case "pick-rank":
         UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, Number(el.dataset.rank) || 1));
+        Sfx.play("select");
+        rerender();
+        break;
+      case "pick-starter":
+        UI.UIState.starterDraft = Content.archetypes.byId[el.dataset.starter] ? el.dataset.starter : "standard";
         Sfx.play("select");
         rerender();
         break;

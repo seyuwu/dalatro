@@ -15,7 +15,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null },
@@ -34,6 +34,31 @@ const Game = (function () {
     const overrides = state.run.ranks || {};
     const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
     return Math.max(1, base - Ranks.heroPenalty(state, heroId));
+  }
+
+  // Перк стартового архетипа (run.archetype), null для «Стандарта»/старых сейвов.
+  function archPerk(state) {
+    const a = state.run.archetype && Content.archetypes.byId[state.run.archetype];
+    return a ? a.perk : null;
+  }
+
+  // ТП-сбросы за волну: правила лиги + перк «Контроль» (+1 в акте 1).
+  function discardsPerWave(state) {
+    const base = Ranks.discardsPerWave(state);
+    return archPerk(state) === "tp1" && (state.run.act || 1) === 1 ? base + 1 : base;
+  }
+
+  // Колода старта: гарантированное трио архетипа + 9 карт из тематического пула
+  // (детерминированный ролл по сиду). «Стандарт» — прежняя стартовая двенадцатка.
+  function starterDeckIds(starterId, rng) {
+    const a = Content.archetypes.byId[starterId];
+    if (!a || !a.guaranteed.length) return Content.heroes.startingIds;
+    const pool = a.fill.slice();
+    const picks = [];
+    while (picks.length < 9 && pool.length) {
+      picks.push(pool.splice(Math.floor(rng.next() * pool.length), 1)[0]);
+    }
+    return a.guaranteed.concat(picks);
   }
 
   // Обезоруживание: проклятие элитки режет слоты до 4 (BKB снимает).
@@ -88,7 +113,7 @@ const Game = (function () {
     state.run.campBoon = false;
     state.combat.route = null;
     state.player.fightsLeft = Ranks.fightsPerWave(state);
-    state.player.discardsLeft = Ranks.discardsPerWave(state);
+    state.player.discardsLeft = discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
@@ -160,11 +185,15 @@ const Game = (function () {
         const fresh = createInitialState(code);
         fresh.rules = action.rules === "formation" ? "formation" : "classic";
         fresh.run.rank = Math.min(14, Math.max(1, action.rank || 1));
+        const starter = Content.archetypes.byId[action.starterId] || Content.archetypes.byId.standard;
+        fresh.run.archetype = starter.id;
         fresh.phase = "wave";
         Rng.setActive(Rng.create(code));
-        DeckSys.createFromHeroes(fresh, Content.heroes.startingIds);
+        DeckSys.createFromHeroes(fresh, starterDeckIds(starter.id, Rng.current()));
+        // Перк «Штурм»: +1G начального золота.
+        if (starter.perk === "gold1") fresh.run.gold += 1;
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»`);
+        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»${starter.id !== "standard" ? ` · отряд «${starter.name}»` : ""}`);
         return fresh;
       }
 
@@ -252,6 +281,7 @@ const Game = (function () {
         if (s.phase !== "wave" || s.combat.outcome !== "cleared" || s.run.pendingCurse) return s;
         s.phase = "shop";
         s.run.inflationBuys = 0;
+        s.run.freeRerollUsed = false;
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], s.combat.wave.elite);
         s.shop.recruits = pickRecruits(s);
         return s;
@@ -294,9 +324,17 @@ const Game = (function () {
       }
 
       case "REROLL_SHOP": {
-        const cost = Ranks.rerollCost(s);
+        let cost = Ranks.rerollCost(s);
+        // Перк «Магия»: первый реролл каждой лавки бесплатен.
+        const freeReroll = archPerk(s) === "freeroll1" && !s.run.freeRerollUsed;
+        if (freeReroll) cost = 0;
         if (s.phase !== "shop" || s.run.gold < cost) return s;
-        s.run.gold -= cost;
+        if (freeReroll) {
+          s.run.freeRerollUsed = true;
+          log(s, "Магия: первый реролл лавки бесплатен");
+        } else {
+          s.run.gold -= cost;
+        }
         const locked = s.shop.offers.filter((o) => o.locked);
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, locked);
         s.shop.recruits = pickRecruits(s);
@@ -430,7 +468,7 @@ const Game = (function () {
         s.combat.fightIndex = 0;
         s.combat.outcome = null;
         s.player.fightsLeft = Ranks.fightsPerWave(s);
-        s.player.discardsLeft = Ranks.discardsPerWave(s);
+        s.player.discardsLeft = discardsPerWave(s);
         DeckSys.resetAll(s, Rng.current());
         DeckSys.draw(s, Rng.current());
         assignMines(s);
@@ -467,5 +505,6 @@ const Game = (function () {
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
     assignMines, rankOf, maxSlots, recruitPrice, itemCost,
+    archPerk, discardsPerWave, starterDeckIds,
   };
 })();

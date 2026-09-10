@@ -423,6 +423,17 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .shop-banner h2 { font-size: 31px; letter-spacing: -.7px; margin: 5px 0; }
 .shop-banner p { font-size: 12px; color: #8e9b85; line-height: 1.8; }
 .shop-next { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a8b58f; margin-top: 7px; }
+
+/* ---------- стартовые архетипы (титул + новый забег) ---------- */
+.starter-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
+.starter-card { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 8px 9px; border: 1px solid var(--border); border-radius: 9px; background: #1a221b; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+.starter-card:hover { border-color: #5b6b52; transform: translateY(-1px); }
+.starter-card.active { border-color: var(--accent, #97a39b); background: #212b21; box-shadow: 0 0 0 1px var(--accent, #97a39b) inset; }
+.starter-emoji { font-size: 21px; line-height: 1.2; }
+.starter-name { font-family: 'Oswald', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: 1.1px; text-transform: uppercase; color: #dfe5d2; }
+.starter-card.active .starter-name { color: var(--accent, #dfe5d2); }
+.starter-trio { font-size: 8.5px; color: #8a987d; line-height: 1.5; text-align: center; min-height: 13px; }
+.starter-perk { font-size: 8.5px; color: #b8a468; line-height: 1.5; text-align: center; }
 .shop-next b { color: #dfe5d2; }
 .shop-gold { display: flex; align-items: center; gap: 9px; font-size: 33px; font-weight: 800; color: var(--gold); margin-left: auto; }
 .shop-section-title { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 16px; }
