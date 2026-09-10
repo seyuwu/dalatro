@@ -188,7 +188,7 @@ const Game = (function () {
         if (s.phase !== "wave" || s.combat.outcome || s.player.fightsLeft <= 0) return s;
         if (!s.combat.selectedUids.length || s.combat.selectedUids.length > maxSlots(s)) return s;
         const resolution = Combat.resolveFight(s);
-        log(s, `Бой #${s.combat.fightIndex}: ${resolution.combo.name} → ${resolution.damage} урона`);
+        log(s, `Бой #${s.combat.fightIndex}: ${resolution.combo.name} → ${resolution.damage} урона${(resolution.crits || []).length ? ` · КРИТ! (${resolution.crits.join(", ")})` : ""}`);
         if (resolution.killed) {
           s.combat.outcome = "cleared";
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);

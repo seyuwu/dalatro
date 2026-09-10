@@ -95,6 +95,8 @@ const Triggers = (function () {
           continue;
         }
         ctxBase.note = "крит!";
+        // Явный флаг для UI: после боя показывается крупный «КРИТ!».
+        (resolution.crits = resolution.crits || []).push(def.sourceName);
       }
 
       for (const effect of def.effects || []) {

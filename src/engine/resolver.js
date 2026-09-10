@@ -14,6 +14,9 @@ const Resolver = (function () {
       goldGained: 0,
       killed: false,
       blocked: false,
+      // Источники сработавших шанс-эффектов (ПА, Daedalus, Bloodthorn) — для
+      // крупного индикатора «КРИТ!» и подтверждения в журнале.
+      crits: [],
       // tower snapshot after the fight (for preview)
       towerHpAfter: null,
       towerMaxHp: state.combat.wave.maxHp,

@@ -266,8 +266,8 @@
     const favNote = fav ? "мир охотится: −2" : "";
     return `<button class="${cls}" ${mined ? "" : `data-action="select" data-uid="${uid}"`} aria-pressed="${selected}">
       ${selected ? `<span class="selection-order">${selectedIdx + 1}${icon("check", 10)}</span>` : ""}
-      ${mined ? `<span class="mine-mark" title="💣 Заминировано Techies — эта карта не играет в текущем бою (Sentry Ward / BKB снимают мины)">${icon("bomb", 22)}</span>` : ""}
-      ${penaltyNote ? `<span class="fatigue-mark" title="Усталость: ${penaltyNote}">−${fatigue}</span>` : ""}
+      ${mined ? `<span class="mine-mark" data-tip>${icon("bomb", 22)}<span class="pop"><strong>💣 Заминировано Techies</strong><p>Эта карта не играет в текущем бою.</p><small>Sentry Ward или BKB обезвреживают мины</small></span></span>` : ""}
+      ${penaltyNote ? `<span class="fatigue-mark" data-tip>−${fatigue}<span class="pop"><strong>Усталость</strong><p>Каждые 5 боёв героя — −1 к силе (до −3). Дай герою отдых или уволь его.</p><small>${penaltyNote}</small></span></span>` : ""}
       <div class="hero-art">${Art.heroArt(hero)}<span class="hero-vignette"></span>
         <span class="hero-rank ${fatigue || fav ? "weakened" : ""}">${rank}</span>
         <span class="attribute-icon">${ATTR_SYMBOLS[hero.attr]}</span>
@@ -444,8 +444,9 @@
 
   // ---------- battle scene (центр = решение) ----------
 
-  // Приговор — только для неочевидных исходов: добивание харасом, убийство,
-  // глиф. Обычное «сколько останется» показывает красный сегмент на полосе HP.
+  // Приговор по мастер-спеку §1.2 — полный: KILL / HARASS / GLYPH OVERRIDE /
+  // NORMAL (точный остаток HP цели). Производится из данных превью, без
+  // субъективных формулировок.
   function verdictHtml(state, preview, harass) {
     if (!preview || state.combat.outcome) {
       return `<div class="scene-verdict idle"><b>${icon("eye", 15)} ПРИГОВОР</b><small>Выбери героев — игра скажет, падает ли башня этим ударом</small></div>`;
@@ -459,9 +460,9 @@
     }
     const remain = hp - preview.damage;
     if (harass >= remain && remain > 0) {
-      return `<div class="scene-verdict harass"><b>${icon("zap", 15)} ЕЩЁ 1 УДАР</b><small>Лучший харас из руки (${fmt(harass)}) добьёт остаток ${fmt(remain)} HP — не трать коммит</small></div>`;
+      return `<div class="scene-verdict harass"><b>${icon("zap", 15)} ДОБЬЁТ ХАРАС</b><small>Лучший харас из руки (${fmt(harass)}) добьёт остаток ${fmt(remain)} HP — не трать коммит</small></div>`;
     }
-    return "";
+    return `<div class="scene-verdict normal"><b>${icon("target", 15)} ОСТАНЕТСЯ ${fmt(remain)} HP</b><small>Этого удара мало — добивай харасом или собирай жирнее</small></div>`;
   }
 
   function commitInfoHtml(state, preview) {
@@ -706,13 +707,16 @@
         const id = items[i];
         if (id) {
           const item = Content.items.byId[id];
-          slots.push(`<button class="item-slot ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" title="${esc(item.name + ": " + item.desc)}">
+          slots.push(`<button class="item-slot ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" data-tip>
             <div class="item-art">${Art.itemIcon(item)}</div>
             <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
             <span class="item-slot-dot"></span>
+            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
           </button>`);
         } else {
-          slots.push(`<button class="item-slot empty-slot" data-action="item-hint"><span>${icon("plus", 18)}</span><span>Слот предмета</span></button>`);
+          slots.push(`<button class="item-slot empty-slot" data-action="item-hint" data-tip><span>${icon("plus", 18)}</span><span>Слот предмета</span>
+            <span class="pop"><strong>Пустой слот</strong><p>Новые предметы появятся в лавке после зачистки волны.</p></span>
+          </button>`);
         }
       }
       return `<section class="bottom-band shop">
@@ -957,6 +961,11 @@
 
   function renderShop(state) {
     const inflation = Ranks.has(state, "inflation") ? (state.run.inflationBuys || 0) : 0;
+    // Следующая цель в шапке лавки (§1.4): башню видно до выхода в бой,
+    // сайдбар и шапка никогда не показывают мёртвую башню.
+    const nextId = Content.waves.order[state.run.waveIndex + 1];
+    const nextDef = nextId ? Content.waves.byId[nextId] : null;
+    const nextHp = nextDef ? Math.round(nextDef.hp * Ranks.waveHpMult(state, state.run.waveIndex + 1)) : 0;
     const offers = state.shop.offers.map((o) => {
       const item = Content.items.byId[o.id];
       const cost = Game.itemCost(state, item.id);
@@ -964,7 +973,9 @@
       return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
-          <button class="icon-button small lock-btn ${o.locked ? "locked" : ""}" data-action="lock" data-id="${item.id}" title="Зафиксировать предмет при реролле">${o.locked ? "🔒" : "🔓"}</button>
+          <button class="icon-button small lock-btn ${o.locked ? "locked" : ""}" data-action="lock" data-id="${item.id}" data-tip>${o.locked ? "🔒" : "🔓"}
+            <span class="pop side"><strong>${o.locked ? "Залочен" : "Свободен"}</strong><p>Зафиксируй товар — он сохранится при обновлении лавки, остальные слоты перевыбросятся.</p></span>
+          </button>
         </div>
         <div class="shop-card-art">${Art.itemIcon(item)}</div>
         <h3>${item.name}</h3>
@@ -984,7 +995,8 @@
             <div class="shop-banner">
               <div class="shop-emblem">${icon("bag", 30)}</div>
               <div><span class="section-label gold">ЛИНИЯ ЗАЧИЩЕНА</span><h2>Тайная лавка</h2>
-                <p>Хороший предмет усиливает руку. Отличный — меняет весь билд.</p></div>
+                <p>Хороший предмет усиливает руку. Отличный — меняет весь билд.</p>
+                ${nextDef ? `<p class="shop-next">${icon("target", 12)} Дальше: <b>${nextDef.name}</b> · ${fmt(nextHp)} HP · ${waveRuleText(nextDef)}</p>` : '<p class="shop-next">Дальше: финал забега</p>'}</div>
               <span class="shop-gold">${icon("coins", 24)}${state.run.gold}</span>
             </div>
             <div class="shop-section-title"><h3>Предметы торговца</h3>
@@ -1482,6 +1494,15 @@
       burst.className = "damage-burst";
       burst.innerHTML = resolution.blocked ? "ГЛИФ!" : `−${resolution.damage.toLocaleString("ru")}<small>УРОНА</small>`;
       battlefield.appendChild(burst);
+      // Крупный красный «КРИТ!» поверх урона: шанс-эффекты должны быть явно
+      // подтверждены после боя (ПА, Daedalus, Bloodthorn).
+      if ((resolution.crits || []).length) {
+        const crit = document.createElement("div");
+        crit.className = "crit-burst";
+        crit.innerHTML = `КРИТ!<small>${esc(resolution.crits.join(" · "))}</small>`;
+        battlefield.appendChild(crit);
+        setTimeout(() => crit.remove(), 1400);
+      }
       setTimeout(() => { burst.remove(); battlefield.classList.remove("attacking"); }, 1000);
     }
     const overlay = document.createElement("div");
