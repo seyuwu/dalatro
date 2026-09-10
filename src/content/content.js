@@ -26,6 +26,9 @@ const Content = (function () {
   const routes = { list: ROUTES_DATA, byId: byId(ROUTES_DATA) };
   // Улучшения лавки (спек §5): scalar-агрегатор + триггерные хуки.
   const upgrades = { list: UPGRADES_DATA, byId: byId(UPGRADES_DATA) };
+  // Аугменты героев (docs/AGHANIMS.md): скипетр + осколок, по одному на героя.
+  const aghanims = { list: AGHANIMS_DATA, byId: byId(AGHANIMS_DATA) };
+  aghanims.forHero = (heroId, kind) => AGHANIMS_DATA.find((a) => a.heroId === heroId && a.kind === kind) || null;
   // Альтернативное ядро скоринга (state.rules = "formation").
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
@@ -34,5 +37,5 @@ const Content = (function () {
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, aghanims, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();

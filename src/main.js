@@ -191,6 +191,9 @@
       const [moved] = uids.splice(from, 1);
       uids.splice(to, 0, moved);
     }
+    // Счётчик перестановок формаций: кормит скипетры Pudge/Axe и шарды
+    // PA/Legion/Anti-Mage/Tusk (docs/AGHANIMS.md).
+    state.combat.movesUsed = (state.combat.movesUsed || 0) + 1;
     rerender();
   }
 
@@ -237,9 +240,9 @@
   });
 
   function startRun(seedCode) {
-    // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
-    const urlRules = new URLSearchParams(location.search).get("rules");
-    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
+    // Ядро скоринга одно — формации. Тумблер и ?rules= выпилены:
+    // какой-либо выбор режима больше не предусмотрен.
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: "formation", rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
     UI.UIState.unlockBanner = null;
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
@@ -260,10 +263,6 @@
         break;
       }
       case "select": Sfx.play("select"); dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
-      case "toggle-rules":
-        UI.UIState.rulesDraft = el.dataset.rules;
-        rerender();
-        break;
       case "pick-rank":
         UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, Number(el.dataset.rank) || 1));
         Sfx.play("select");
@@ -323,6 +322,14 @@
         dispatchAndRender({ type: "BUY_RECRUIT", heroId: el.dataset.id });
         UI.toast(state, "Герой нанят — он в колоде");
         break;
+      case "buy-augh": {
+        Sfx.play("buy");
+        const kindWord = el.dataset.kind === "scepter" ? "Скипетр" : "Осколок";
+        dispatchAndRender({ type: "BUY_AUGMENT", heroId: el.dataset.hero, kind: el.dataset.kind });
+        const aug = Content.aghanims.forHero(el.dataset.hero, el.dataset.kind);
+        if (aug) UI.toast(state, `${kindWord} «${aug.name}» — ${Content.heroes.byId[el.dataset.hero].name}`);
+        break;
+      }
       case "exile":
         Sfx.play("discard");
         dispatchAndRender({ type: "EXILE_HERO", heroId: el.dataset.id });

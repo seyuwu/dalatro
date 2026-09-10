@@ -274,6 +274,11 @@
     ].join(" ");
     const lvl = Game.heroLevel(state, hero.id);
     const xp = (state.run.heroXp || {})[hero.id] || 0;
+    const augs = (state.run.aghanims || {})[hero.id];
+    const augBadges = augs ? ["scepter", "shard"].filter((k) => augs[k]).map((k) => {
+      const a = Content.aghanims.byId[augs[k]];
+      return `<span class="augh-mark" data-tip>${a.emoji}<span class="pop"><strong>${a.emoji} ${a.name}</strong><p>${esc(a.desc)}</p><small>${k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима"}</small></span></span>`;
+    }).join("") : "";
     const trained = rank !== hero.power;
     const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
     const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
@@ -290,7 +295,7 @@
       </div>
       <div class="hero-card-bottom">
         <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
-        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
+        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${augBadges}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
       <span class="hero-tooltip">
@@ -850,18 +855,14 @@
     }).join("")}</div>`;
   }
 
-  // Выбор ядра скоринга (state.rules). Один и тот же блок на титульном экране
-  // и в окне «Новый забег» — режим применяется к следующему запускаемому забегу.
-  function rulesToggleHtml(active) {    const rules = active === "formation" ? "formation" : "classic";
+  // Ядро скоринга одно — формации. Тумблер «Классика/Формации» выпилен:
+  // блок на титульном экране просто объясняет правила игры.
+  function rulesBlockHtml() {
     return `<div class="title-rules">
-      <button class="rule-choice ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">
-        <strong>Классика</strong>
-        <small>Покерные комбо: пары, сеты, стриты. Сила × множитель = урон.</small>
-      </button>
-      <button class="rule-choice ${rules === "formation" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="formation">
-        <strong>Формации <span class="rule-beta">эксперимент</span></strong>
+      <div class="rule-choice active-rule">
+        <strong>Формации</strong>
         <small>Строй тимфайт: порядок слотов решает, связки складываются все, урон встречает броню башни.</small>
-      </button>
+      </div>
     </div>`;
   }
 
@@ -899,7 +900,6 @@
   // ---------- screens ----------
 
   function renderTitle(state) {
-    const rules = UIState.rulesDraft === "formation" ? "formation" : "classic";
     app().innerHTML = `
     <div class="title-screen">
       <div class="title-bg"></div>
@@ -913,7 +913,7 @@
           <span class="equals">=</span>
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
-        ${rulesToggleHtml(UIState.rulesDraft)}
+        ${rulesBlockHtml()}
         <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
         ${starterPickerHtml()}
         <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
@@ -925,7 +925,7 @@
         <div class="title-links">
           <button class="subtle-button" data-action="onboard-start">${icon("book", 13)}Как играть — 5 шагов</button>
           <span class="keyboard-divider">·</span>
-          <span class="title-hint">${rules === "formation" ? "Собирай формации из героев Dota: порядок слотов решает" : "Собирай покерные комбинации из героев Dota и сноси башни"}</span>
+          <span class="title-hint">Собирай формации из героев Dota: порядок слотов решает</span>
         </div>
       </div>
     </div>
@@ -1135,6 +1135,20 @@
             <div class="shop-section-title"><h3>Предметы торговца</h3>
               <button class="secondary-button" data-action="reroll" ${state.run.gold >= Game.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Game.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
+            ${(state.shop.aghanims || []).length ? `<div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">герой-персональные · не занимают слоты предметов · 1+1 на героя</small></h3></div>
+            <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">${state.shop.aghanims.map((o) => {
+    const aug = Content.aghanims.forHero(o.heroId, o.kind);
+    const hero = Content.heroes.byId[o.heroId];
+    const afford = state.run.gold >= aug.cost;
+    return `<div class="upgrade-card ${o.kind === "scepter" ? "mythic" : "rare"}" data-tip>
+                <span class="upgrade-emoji">${aug.emoji}</span>
+                <div class="upgrade-info"><strong>${aug.name} <small>· ${hero.name}</small></strong><small>${esc(aug.desc)}</small></div>
+                <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-augh" data-hero="${o.heroId}" data-kind="${o.kind}">
+                  <span>${afford ? "Купить" : "Дорого"}</span><span>${aug.cost} ${icon("coins", 12)}</span>
+                </button>
+                <span class="pop"><strong>${aug.emoji} ${aug.name} — ${hero.name}</strong><p>${esc(aug.desc)}</p><small>${o.kind === "scepter" ? "Скипетр: меняет поведение героя" : "Осколок: малое изменение паттерна"} · остаётся до увольнения героя</small></span>
+              </div>`;
+  }).join("")}</div>` : ""}
             <div class="shop-upgrades">
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
                 <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
@@ -1507,24 +1521,16 @@
 
   function helpModalHtml(state) {
     const steps = onboardingSteps();
-    const formationMode = state.rules === "formation";
-    const comboRows = formationMode
-      ? Content.formations.list.map((f) => `<div><span><strong>${f.name}</strong><small>${Content.damageTypeNames[f.damageType] || f.damageType}${f.positional ? " · порядок" : ""}</small></span><span>${f.rule}</span>
+    const comboRows = Content.formations.list.map((f) => `<div><span><strong>${f.name}</strong><small>${Content.damageTypeNames[f.damageType] || f.damageType}${f.positional ? " · порядок" : ""}</small></span><span>${f.rule}</span>
           <span><b class="mint">${f.basePower}</b><span class="table-x">✕</span><b class="gold">${f.baseMult}</b></span></div>`).join("")
       + Content.bonds.list.map((b) => {
         const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
         return `<div><span><strong>Связка «${b.trait}»</strong><small>складывается</small></span><span>${val || "—"}</span>
           <span><b class="gold">${val}</b></span></div>`;
-      }).join("")
-      : Content.combos.list.map((c) => {
-        const meta = COMBO_META[c.id];
-        return `<div><span><strong>${c.name}</strong><small>${meta.poker}</small></span><span>${meta.rule}</span>
-          <span><b class="mint">${c.basePower}</b><span class="table-x">✕</span><b class="gold">${c.baseMult}</b></span></div>`;
       }).join("");
     return `<span class="section-label mint">${icon("book", 15)}СПРАВОЧНИК</span>
-      <h2>${formationMode ? "Формации. Порядок решает." : "Покерные правила. Дотовские привычки."}</h2>
-      ${formationMode ? `<p class="modal-description">Формация — одна лучшая по итоговому урону против цели: часть правил читает порядок слотов. Связки активны все сразу и складываются. Тип урона встречается с защитой башни: физический — минус броня, магический — минус сопротивление, чистый — игнорирует всё. Альтернативы и связки видны в панели справа.</p>` : `
-      <p class="modal-description">Собери до ${Combat.MAX_SLOTS} героев: ранг даёт силу и собирает комбо, атрибут (цвет) собирает флеш, порядок клика — позиции. Сила × множитель = урон по башне.</p>`}
+      <h2>Формации. Порядок решает.</h2>
+      <p class="modal-description">Формация — одна лучшая по итоговому урону против цели: часть правил читает порядок слотов. Связки активны все сразу и складываются. Тип урона встречается с защитой башни: физический — минус броня, магический — минус сопротивление, чистый — игнорирует всё. Альтернативы и связки видны в панели справа.</p>
       <div class="help-steps">${steps.map((s, i) => `<div><span>0${i + 1}</span><strong>${s.title}</strong><p>${s.body}</p></div>`).join("")}</div>
       <div class="combo-table">
         <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>
@@ -1574,6 +1580,10 @@
             <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}${(state.run.heroXp || {})[hr.id] ? ` · опыт ${(state.run.heroXp || {})[hr.id]} (ур. ${Game.heroLevel(state, hr.id)})` : ""}</span>
             <p>${heroDesc(hr)}</p>
             <small class="gold">${where}</small>
+            ${(state.run.aghanims || {})[hr.id] ? `<small class="augh-lab">${["scepter", "shard"].filter((k) => state.run.aghanims[hr.id][k]).map((k) => {
+      const a = Content.aghanims.byId[state.run.aghanims[hr.id][k]];
+      return `${a.emoji} <b>${a.name}</b> — ${esc(a.desc)}`;
+    }).join("<br>")}</small>` : ""}
             ${labMode ? `<div class="attr-change-row">${["str", "agi", "int", "uni"].map((a) => {
       const cur = Game.heroAttr(state, hr.id);
       const has = (state.run.attrCharges || 0) > 0;
@@ -1645,12 +1655,9 @@
   }
 
   function newRunModalHtml() {
-    const current = UIState.rulesDraft === "formation" ? "formation" : "classic";
     return `<div class="reset-icon">${icon("rotate", 28)}</div>
       <h2>Ещё один забег?</h2>
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
-      <span class="section-label">ЯДРО СКОРИНГА НОВОГО ЗАБЕГА</span>
-      ${rulesToggleHtml(current)}
       <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
       ${starterPickerHtml()}
       <span class="section-label">РАНГ СЛОЖНОСТИ</span>

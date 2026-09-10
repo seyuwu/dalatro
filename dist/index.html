@@ -1209,6 +1209,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 /* цена предмета с ранговыми эффектами */
 .price-note { display: block; text-align: center; font-size: 9.5px; color: #d8a56b; margin: -4px 0 6px; }
 
+/* аугменты Аганима (docs/AGHANIMS.md): бейджи на карточках героев и в лаборатории */
+.augh-mark { display: inline-block; font-size: 9px; margin-left: 3px; vertical-align: 1px; filter: drop-shadow(0 0 3px rgba(186,104,200,.75)); cursor: help; }
+.augh-lab { display: block; margin-top: 4px; padding: 6px 8px; border: 1px solid #6b4a78; border-radius: 7px; background: #221826; color: #cfa9dd; font-size: 10.5px; line-height: 1.5; }
+.augh-lab b { color: #e3c6ef; }
+
 </style>
 </head>
 <body>
@@ -2425,6 +2430,853 @@ const ROUTES_DATA = [
 
 </script>
   <script>
+// Dalatro content — Aghanim's Scepter & Shard (docs/AGHANIMS.md).
+// Герой-персональные аугменты: shard 🔹 — маленькое изменение паттерна,
+// scepter 🔮 — изменение поведения героя. Не занимают слоты предметов,
+// покупаются в лавке на конкретного героя ростера (1+1 на героя).
+// Формы:
+//   ability / abilities — доп. триггеры (kind "aghanim", после базовой способности);
+//   override: true      — заменяет базовую способность героя;
+//   preFlag             — правило боя, применяется до триггеров (без порядка слотов).
+// Экипировка живёт в state.run.aghanims = { [heroId]: { scepter, shard } }.
+const AGHANIMS_DATA = [
+  // ===== Пилот (шаг 2): Dawnbreaker, Tidehunter, Huskar, Ursa, PL, Tiny =====
+
+  // --- Dawnbreaker ---
+  {
+    id: "dawnbreaker_sc", heroId: "dawnbreaker", kind: "scepter", name: "Starbreaker", cost: 10, emoji: "🔮",
+    preFlag: { uniWildcard: true },
+    desc: "Универсалы в отряде считаются джокерами атрибутов для всех условий способностей.",
+  },
+  {
+    id: "dawnbreaker_sh", heroId: "dawnbreaker", kind: "shard", name: "Celestial Hammer", cost: 3, emoji: "🔹",
+    desc: "Если других Универсалов в отряде нет — Dawnbreaker +5 силы.",
+    ability: {
+      name: "Celestial Hammer", event: "FIGHT_SCORING",
+      when: { not: { type: "EXISTS_ATTRIBUTE", value: "uni" } },
+      effects: [{ type: "ADD_POWER", value: 5 }],
+    },
+  },
+
+  // --- Tidehunter ---
+  {
+    id: "tidehunter_sc", heroId: "tidehunter", kind: "scepter", name: "Ravage", cost: 10, emoji: "🔮", override: true,
+    desc: "Kraken Shell заменён: полная пятёрка — способности ВСЕХ героев срабатывают дважды.",
+    ability: {
+      name: "Ravage", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 5 },
+      effects: [{ type: "REFRESH_HERO_TRIGGERS" }],
+    },
+  },
+  {
+    id: "tidehunter_sh", heroId: "tidehunter", kind: "shard", name: "Kelp Vise", cost: 3, emoji: "🔹",
+    desc: "В отряде ровно 4 героя — Tidehunter +6 силы (компенсация сорвавшейся пятёрки).",
+    ability: {
+      name: "Kelp Vise", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 4 },
+      effects: [{ type: "ADD_POWER", value: 6 }],
+    },
+  },
+
+  // --- Huskar ---
+  {
+    id: "huskar_sc", heroId: "huskar", kind: "scepter", name: "Burn the Racks", cost: 10, emoji: "🔮",
+    desc: "Казармы = опыт: зачистка волны, пока потеряна хоть одна казарма, даёт всем героям боя +1 опыта.",
+    ability: {
+      name: "Burn the Racks", event: "FIGHT_SCORING",
+      effects: [{ type: "GRANT_XP_ON_CLEAR", value: 1 }],
+    },
+  },
+  {
+    id: "huskar_sh", heroId: "huskar", kind: "shard", name: "Inner Fire", cost: 3, emoji: "🔹",
+    desc: "Башня ниже 50% HP — Huskar +5 силы.",
+    ability: {
+      name: "Inner Fire", event: "FIGHT_SCORING",
+      when: { type: "TOWER_HP_BELOW", pct: 50 },
+      effects: [{ type: "ADD_POWER", value: 5 }],
+    },
+  },
+
+  // --- Ursa ---
+  {
+    id: "ursa_sc", heroId: "ursa", kind: "scepter", name: "Overpower", cost: 10, emoji: "🔮", override: true,
+    desc: "Enrage срабатывает и в соло-бое (ровно один герой): ×1.8.",
+    ability: {
+      name: "Enrage", event: "FIGHT_SCORING",
+      when: { any: [{ type: "IS_HIGHEST_RANK" }, { type: "PLAYED_COUNT_IS", value: 1 }] },
+      effects: [{ type: "MULT_MULT", value: 1.8 }],
+    },
+  },
+  {
+    id: "ursa_sh", heroId: "ursa", kind: "shard", name: "Earthshock", cost: 3, emoji: "🔹",
+    desc: "Если Enrage не сработал — Ursa +6 силы (утешительный удар).",
+    ability: {
+      name: "Earthshock", event: "FIGHT_SCORING",
+      when: { all: [{ not: { type: "IS_HIGHEST_RANK" } }, { not: { type: "PLAYED_COUNT_IS", value: 1 } }] },
+      effects: [{ type: "ADD_POWER", value: 6 }],
+    },
+  },
+
+  // --- Phantom Lancer ---
+  {
+    id: "phantom_lancer_sc", heroId: "phantom_lancer", kind: "scepter", name: "Doppelganger", cost: 10, emoji: "🔮", override: true,
+    desc: "Precision Aura заменён: +1 к множителю за каждого Ловкого в отряде; полностью Ловкий отряд даёт ещё +1.",
+    abilities: [
+      { name: "Doppelganger", event: "FIGHT_SCORING",
+        effects: [{ type: "ADD_MULT_PER_ATTRIBUTE", attr: "agi", value: 1 }] },
+      { name: "Doppelganger", event: "FIGHT_SCORING",
+        when: { type: "ALL_ATTRIBUTES", value: "agi" },
+        effects: [{ type: "ADD_MULT", value: 1 }] },
+    ],
+  },
+  {
+    id: "phantom_lancer_sh", heroId: "phantom_lancer", kind: "shard", name: "Phantom Rush", cost: 3, emoji: "🔹",
+    desc: "Иллюзия из Manta Style считается Ловкой (кормит аги-флеш и условия).",
+    ability: {
+      name: "Phantom Rush", event: "PRE_DETECT",
+      effects: [{ type: "ILLUSION_ATTR", attr: "agi" }],
+    },
+  },
+
+  // --- Tiny ---
+  {
+    id: "tiny_sc", heroId: "tiny", kind: "scepter", name: "Avalanche", cost: 10, emoji: "🔮",
+    desc: "Tiny растёт: каждый ТП-сброс волны даёт +1 к рангу навсегда (кап +3). Ранг влияет на комбо.",
+    ability: {
+      name: "Avalanche", event: "FIGHT_SCORING",
+      effects: [{ type: "GAIN_RANK_PER_USED_DISCARD", value: 1, cap: 3 }],
+    },
+  },
+  {
+    id: "tiny_sh", heroId: "tiny", kind: "shard", name: "Toss", cost: 3, emoji: "🔹",
+    desc: "Tiny подбрасывает слабейшего: +50% его силы к удару.",
+    ability: {
+      name: "Toss", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_WEAKEST", pct: 50 }],
+    },
+  },
+
+  // ===== Полный реестр (шаг 3): остальные 23 героя =====
+
+  // --- Sven (str 8) ---
+  {
+    id: "sven_sc", heroId: "sven", kind: "scepter", name: "Warcry", cost: 10, emoji: "🔮",
+    desc: "Чистая рука: за бой не потрачено ни одного ТП-сброса — Sven +8 силы (God's Strength работает как обычно).",
+    ability: {
+      name: "Warcry", event: "FIGHT_SCORING",
+      when: { type: "DISCARDS_UNUSED" },
+      effects: [{ type: "ADD_POWER", value: 8 }],
+    },
+  },
+  {
+    id: "sven_sh", heroId: "sven", kind: "shard", name: "Great Cleave", cost: 3, emoji: "🔹",
+    desc: "Сосед по слоту Сила — оба получают +3 силы.",
+    ability: {
+      name: "Great Cleave", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR_ATTR", attr: "str", value: 3, includeSelf: true }],
+    },
+  },
+
+  // --- Centaur (str 10) ---
+  {
+    id: "centaur_sc", heroId: "centaur", kind: "scepter", name: "Retaliate", cost: 10, emoji: "🔮",
+    desc: "Trample срабатывает в любом слоте, но считает только героев позади него.",
+    ability: {
+      name: "Retaliate", event: "FIGHT_SCORING",
+      when: { not: { type: "SLOT_IS", value: 0 } },
+      effects: [{ type: "ADD_POWER_PER_PLAYED_AFTER", value: 4 }],
+    },
+  },
+  {
+    id: "centaur_sh", heroId: "centaur", kind: "shard", name: "Hoof Stomp", cost: 3, emoji: "🔹",
+    desc: "Полная пятёрка — Trample бьёт +6 за героя (вместо +4).",
+    ability: {
+      name: "Hoof Stomp", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 5 },
+      effects: [{ type: "ADD_POWER_PER_PLAYED", value: 2 }],
+    },
+  },
+
+  // --- Morphling (agi 5) ---
+  {
+    id: "morphling_sc", heroId: "morphling", kind: "scepter", name: "Attribute Shift", cost: 10, emoji: "🔮",
+    desc: "Morphling помнит родной атрибут: пока скопирован чужой, карта считается двумя атрибутами сразу.",
+    ability: { name: "Attribute Shift", event: "PRE_DETECT", effects: [{ type: "KEEP_NATIVE_ATTR" }] },
+  },
+  {
+    id: "morphling_sh", heroId: "morphling", kind: "shard", name: "Waveform", cost: 3, emoji: "🔹",
+    desc: "Если слева пусто, Morphling копирует атрибут правого соседа.",
+    ability: { name: "Waveform", event: "PRE_DETECT", effects: [{ type: "COPY_ATTRIBUTE_FALLBACK" }] },
+  },
+
+  // --- Primal Beast (uni 11) ---
+  {
+    id: "primal_sc", heroId: "primal", kind: "scepter", name: "Uproot", cost: 10, emoji: "🔮", override: true,
+    desc: "Pulverize ослаблен к позиции: центр из трёх средних слотов и 4+ героя — ×2.",
+    ability: {
+      name: "Pulverize", event: "FIGHT_SCORING",
+      when: { all: [{ any: [{ type: "SLOT_IS", value: 1 }, { type: "SLOT_IS", value: 2 }, { type: "SLOT_IS", value: 3 }] }, { type: "PLAYED_COUNT_ABOVE", value: 3 }] },
+      effects: [{ type: "MULT_MULT", value: 2 }],
+    },
+  },
+  {
+    id: "primal_sh", heroId: "primal", kind: "shard", name: "Onslaught", cost: 3, emoji: "🔹",
+    desc: "Бой без ТП-сбросов — Primal Beast +5 силы.",
+    ability: {
+      name: "Onslaught", event: "FIGHT_SCORING",
+      when: { type: "DISCARDS_UNUSED" },
+      effects: [{ type: "ADD_POWER", value: 5 }],
+    },
+  },
+
+  // --- Undying (str 2) ---
+  {
+    id: "undying_sc", heroId: "undying", kind: "scepter", name: "Soul Rip", cost: 10, emoji: "🔮",
+    desc: "Сброс волны кормит немедленно: каждый ТП-сброс — заряд Undying (+3 силы, тратится целиком в следующем бою).",
+    abilities: [
+      { name: "Soul Rip", event: "ON_ANY_DISCARD", effects: [{ type: "ADD_CHARGE", value: 1 }] },
+      { name: "Soul Rip", event: "FIGHT_SCORING", effects: [{ type: "SPEND_CHARGES_POWER", value: 3 }] },
+    ],
+  },
+  {
+    id: "undying_sh", heroId: "undying", kind: "shard", name: "Tombstone", cost: 3, emoji: "🔹",
+    desc: "Использованные в бою ТП-сбросы дают Undying ещё +2 силы каждый.",
+    ability: {
+      name: "Tombstone", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_USED_DISCARD", value: 2 }],
+    },
+  },
+
+  // --- Meepo (agi 2) ---
+  {
+    id: "meepo_sc", heroId: "meepo", kind: "scepter", name: "Divided We Stand", cost: 10, emoji: "🔮", override: true,
+    desc: "Poof заменён: +6 силы за КАЖДОГО Ловкого в отряде (включая себя).",
+    ability: {
+      name: "Poof", event: "ON_PLAY",
+      effects: [{ type: "ADD_POWER_PER_ATTRIBUTE", attr: "agi", value: 6 }],
+    },
+  },
+  {
+    id: "meepo_sh", heroId: "meepo", kind: "shard", name: "Earthbind", cost: 3, emoji: "🔹",
+    desc: "Сосед по слоту Ловкий — оба получают +3 силы.",
+    ability: {
+      name: "Earthbind", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR_ATTR", attr: "agi", value: 3, includeSelf: true }],
+    },
+  },
+
+  // --- Bounty Hunter (agi 3) ---
+  {
+    id: "bounty_sc", heroId: "bounty", kind: "scepter", name: "Jinada", cost: 10, emoji: "🔮",
+    desc: "Точный ласт-хит возвращает 1 ТП-сброс на следующую волну (экономика в темпо).",
+    ability: {
+      name: "Jinada", event: "FIGHT_SCORING",
+      effects: [{ type: "REFUND_DISCARD", value: 1 }],
+    },
+  },
+  {
+    id: "bounty_sh", heroId: "bounty", kind: "shard", name: "Shuriken Toss", cost: 3, emoji: "🔹",
+    desc: "Каждый точный ласт-хит: +1 удача до конца забега (максимум +3).",
+    ability: {
+      name: "Shuriken Toss", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_LUCK_ON_LAST_HIT", cap: 3 }],
+    },
+  },
+
+  // --- Faceless Void (agi 10) ---
+  {
+    id: "faceless_sc", heroId: "faceless", kind: "scepter", name: "Time Lock", cost: 10, emoji: "🔮", override: true,
+    desc: "Chronosphere бьёт и по мини-боссам, и запирает Aegis: +2 к множителю, босс больше не возродится.",
+    ability: {
+      name: "Chronosphere", event: "FIGHT_SCORING",
+      when: { any: [{ type: "IS_BOSS_WAVE" }, { type: "IS_MINIBOSS_WAVE" }] },
+      effects: [{ type: "ADD_MULT", value: 2 }, { type: "DENY_REVIVE" }],
+    },
+  },
+  {
+    id: "faceless_sh", heroId: "faceless", kind: "shard", name: "Time Dilation", cost: 3, emoji: "🔹",
+    desc: "После проваленной волны Void даёт +1 к множителю даже не на боссе.",
+    ability: {
+      name: "Time Dilation", event: "FIGHT_SCORING",
+      when: { type: "AFTER_FAILURE" },
+      effects: [{ type: "ADD_MULT", value: 1 }],
+    },
+  },
+
+  // --- Terrorblade (agi 11) ---
+  {
+    id: "terrorblade_sc", heroId: "terrorblade", kind: "scepter", name: "Reflection", cost: 10, emoji: "🔮",
+    desc: "В детекции Terrorblade считается рангом правого соседа (сила остаётся своей) — пары из «непарных» рук.",
+    ability: { name: "Reflection", event: "PRE_DETECT", effects: [{ type: "MIRROR_RANK" }] },
+  },
+  {
+    id: "terrorblade_sh", heroId: "terrorblade", kind: "shard", name: "Soul Siphon", cost: 3, emoji: "🔹",
+    desc: "Правый сосед Ловкий — Terrorblade +4 силы.",
+    ability: {
+      name: "Soul Siphon", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR_ATTR", attr: "agi", value: 4, includeSelf: false }],
+    },
+  },
+
+  // --- Oracle (int 3) ---
+  {
+    id: "oracle_sc", heroId: "oracle", kind: "scepter", name: "Fortune's End", cost: 10, emoji: "🔮", override: true,
+    desc: "False Promise заменён: вместо +10 силы Oracle даёт ×1.6 множителя, оставаясь слабейшим.",
+    ability: {
+      name: "False Promise", event: "FIGHT_SCORING",
+      when: { type: "IS_LOWEST_RANK" },
+      effects: [{ type: "MULT_MULT", value: 1.6 }],
+    },
+  },
+  {
+    id: "oracle_sh", heroId: "oracle", kind: "shard", name: "Fate Seal", cost: 3, emoji: "🔹",
+    desc: "У Oracle есть тёзка по рангу — Oracle и каждый тёзка получают +4 силы.",
+    ability: {
+      name: "Fate Seal", event: "FIGHT_SCORING",
+      when: { type: "SAME_RANK_GROUP", size: 2 },
+      effects: [{ type: "ADD_POWER_PER_SAME_RANK", value: 4 }, { type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Skywrath Mage (int 4) ---
+  {
+    id: "skywrath_sc", heroId: "skywrath", kind: "scepter", name: "Ancient Seal", cost: 10, emoji: "🔮",
+    desc: "Дуо-градиент: при ровно двух героях ×1.4 (соло ×2 остаётся).",
+    ability: {
+      name: "Ancient Seal", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 2 },
+      effects: [{ type: "MULT_MULT", value: 1.4 }],
+    },
+  },
+  {
+    id: "skywrath_sh", heroId: "skywrath", kind: "shard", name: "Concussive Blast", cost: 3, emoji: "🔹",
+    desc: "Соло-бой: Skywrath +5 силы сверх ×2.",
+    ability: {
+      name: "Concussive Blast", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 1 },
+      effects: [{ type: "ADD_POWER", value: 5 }],
+    },
+  },
+
+  // --- Lina (int 6) ---
+  {
+    id: "lina_sc", heroId: "lina", kind: "scepter", name: "Fiery Soul", cost: 10, emoji: "🔮",
+    desc: "Каждый использованный в бою ТП-сброс даёт Lina +5 силы.",
+    ability: {
+      name: "Fiery Soul", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_USED_DISCARD", value: 5 }],
+    },
+  },
+  {
+    id: "lina_sh", heroId: "lina", kind: "shard", name: "Dragon Slave", cost: 3, emoji: "🔹",
+    desc: "3+ героя Интеллекта в отряде — Lina +4 силы.",
+    ability: {
+      name: "Dragon Slave", event: "FIGHT_SCORING",
+      when: { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 2 },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Storm Spirit (int 9) ---
+  {
+    id: "storm_spirit_sc", heroId: "storm_spirit", kind: "scepter", name: "Overload", cost: 10, emoji: "🔮",
+    desc: "Ball Lightning срабатывает на любом слоте, где Storm не стоял в прошлом бою: +9 силы за ротацию.",
+    ability: {
+      name: "Overload", event: "ON_PLAY",
+      when: { type: "SLOT_CHANGED" },
+      effects: [{ type: "ADD_POWER", value: 9 }],
+    },
+  },
+  {
+    id: "storm_spirit_sh", heroId: "storm_spirit", kind: "shard", name: "Static Remnant", cost: 3, emoji: "🔹",
+    desc: "Storm не в первом слоте — герой слева даёт +4 силы.",
+    ability: {
+      name: "Static Remnant", event: "FIGHT_SCORING",
+      when: { all: [{ not: { type: "SLOT_IS", value: 0 } }, { type: "SLOT_LEFT_EXISTS" }] },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Outworld Destroyer (int 10) ---
+  {
+    id: "outworld_sc", heroId: "outworld", kind: "scepter", name: "Sanity Overload", cost: 10, emoji: "🔮",
+    desc: "Каждый атрибут СВЕРХ третьего в отряде: ещё +6 силы и +0.5 к множителю (базовые +12 остаются).",
+    ability: {
+      name: "Sanity Overload", event: "FIGHT_SCORING",
+      when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
+      effects: [{ type: "ADD_POWER_PER_EXTRA_DISTINCT", value: 6, extraMult: 0.5 }],
+    },
+  },
+  {
+    id: "outworld_sh", heroId: "outworld", kind: "shard", name: "Essence Flux", cost: 3, emoji: "🔹",
+    desc: "Универсалы считаются за атрибут для Sanity's Eclipse (2 реальных + UNI = 3).",
+    preFlag: { uniDistinct: true },
+  },
+
+  // --- Ancient Apparition (int 11) ---
+  {
+    id: "aa_sc", heroId: "ancient_apparition", kind: "scepter", name: "Shatter", cost: 10, emoji: "🔮",
+    desc: "Зачистка волны с AA в отряде: следующая башня акта начинается с −10% HP (копится до −30%).",
+    ability: {
+      name: "Shatter", event: "FIGHT_SCORING",
+      effects: [{ type: "SET_NEXT_WAVE_PCT", value: 10 }],
+    },
+  },
+  {
+    id: "aa_sh", heroId: "ancient_apparition", kind: "shard", name: "Chilling Touch", cost: 3, emoji: "🔹",
+    desc: "Башня выше 80% HP — AA +6 силы (первый удар).",
+    ability: {
+      name: "Chilling Touch", event: "FIGHT_SCORING",
+      when: { type: "TOWER_HP_ABOVE", pct: 80 },
+      effects: [{ type: "ADD_POWER", value: 6 }],
+    },
+  },
+
+  // --- Enigma (int 12) ---
+  {
+    id: "enigma_sc", heroId: "enigma", kind: "scepter", name: "Demonic Conversion", cost: 10, emoji: "🔮", override: true,
+    desc: "Eidolon: иллюзия Энигмы копирует его ранг ПОЛНОСТЬЮ для комбо (сила остаётся 50%).",
+    ability: {
+      name: "Eidolon", event: "PRE_DETECT",
+      effects: [{ type: "CREATE_ILLUSION", powerRatio: 0.5, fullRank: true }],
+    },
+  },
+  {
+    id: "enigma_sh", heroId: "enigma", kind: "shard", name: "Malefice", cost: 3, emoji: "🔹",
+    desc: "Иллюзия Энигмы получает 75% силы вместо 50%.",
+    ability: { name: "Malefice", event: "PRE_DETECT", effects: [{ type: "ILLUSION_RATIO", value: 0.75 }] },
+  },
+
+  // --- Io (uni 2) ---
+  {
+    id: "io_sc", heroId: "io", kind: "scepter", name: "Relocate", cost: 10, emoji: "🔮",
+    desc: "Tether привязывается локально: +6 силы за каждого Сильного соседа ПО СЛОТУ.",
+    ability: {
+      name: "Relocate", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR_ATTR", attr: "str", value: 6, includeSelf: false }],
+    },
+  },
+  {
+    id: "io_sh", heroId: "io", kind: "shard", name: "Spirits", cost: 3, emoji: "🔹",
+    desc: "Другой Универсал в отряде — Io +6 силы.",
+    ability: {
+      name: "Spirits", event: "FIGHT_SCORING",
+      when: { type: "EXISTS_ATTRIBUTE", value: "uni" },
+      effects: [{ type: "ADD_POWER", value: 6 }],
+    },
+  },
+
+  // --- Muerta (uni 3) ---
+  {
+    id: "muerta_sc", heroId: "muerta", kind: "scepter", name: "The Calling", cost: 10, emoji: "🔮",
+    desc: "Пока Muerta в отряде, последняя карта боя даёт +20% своей силы.",
+    ability: {
+      name: "The Calling", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_LAST_CARD", pct: 20 }],
+    },
+  },
+  {
+    id: "muerta_sh", heroId: "muerta", kind: "shard", name: "Dead Shot+", cost: 3, emoji: "🔹", override: true,
+    desc: "Dead Shot срабатывает и на третьем, и на последнем слоте: +8 силы.",
+    ability: {
+      name: "Dead Shot", event: "ON_PLAY",
+      when: { any: [{ type: "SLOT_IS", value: 2 }, { type: "SLOT_IS_LAST" }] },
+      effects: [{ type: "ADD_POWER", value: 8 }],
+    },
+  },
+
+  // --- Marci (uni 4) ---
+  {
+    id: "marci_sc", heroId: "marci", kind: "scepter", name: "Rebound", cost: 10, emoji: "🔮",
+    desc: "Оба соседа другого атрибута: Marci +12 силы и +1 к множителю (базовые +8 остаются).",
+    ability: {
+      name: "Rebound", event: "FIGHT_SCORING",
+      when: { type: "BOTH_NEIGHBORS_DIFFER" },
+      effects: [{ type: "ADD_POWER", value: 12 }, { type: "ADD_MULT", value: 1 }],
+    },
+  },
+  {
+    id: "marci_sh", heroId: "marci", kind: "shard", name: "Companion Run", cost: 3, emoji: "🔹",
+    desc: "Оба соседа одного (моего) атрибута — Marci +6 силы.",
+    ability: {
+      name: "Companion Run", event: "FIGHT_SCORING",
+      when: { type: "BOTH_NEIGHBORS_SAME" },
+      effects: [{ type: "ADD_POWER", value: 6 }],
+    },
+  },
+
+  // --- Snapfire (uni 5) ---
+  {
+    id: "snapfire_sc", heroId: "snapfire", kind: "scepter", name: "Lil' Shredder", cost: 10, emoji: "🔮",
+    desc: "Каждый использованный в бою ТП-сброс: Snapfire +0.5 к множителю.",
+    ability: {
+      name: "Lil' Shredder", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_MULT_PER_USED_DISCARD", value: 0.5 }],
+    },
+  },
+  {
+    id: "snapfire_sh", heroId: "snapfire", kind: "shard", name: "Cookie", cost: 3, emoji: "🔹",
+    desc: "Snapfire не на последнем слоте — сосед справа даёт +4 силы.",
+    ability: {
+      name: "Cookie", event: "FIGHT_SCORING",
+      when: { all: [{ not: { type: "SLOT_IS_LAST" } }, { type: "SLOT_RIGHT_EXISTS" }] },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Void Spirit (uni 6) ---
+  {
+    id: "void_spirit_sc", heroId: "void_spirit", kind: "scepter", name: "Ascended Charge", cost: 10, emoji: "🔮", override: true,
+    desc: "Опыт освобождает: при уровне Void Spirit 1+ Dissimilate срабатывает без условия «высший ранг»: +8 силы.",
+    ability: {
+      name: "Dissimilate", event: "FIGHT_SCORING",
+      when: { any: [{ type: "IS_HIGHEST_RANK" }, { type: "HERO_LEVEL_ABOVE", value: 0 }] },
+      effects: [{ type: "ADD_POWER", value: 8 }],
+    },
+  },
+  {
+    id: "void_spirit_sh", heroId: "void_spirit", kind: "shard", name: "Resonant Pulse", cost: 3, emoji: "🔹",
+    desc: "Соседи по слоту Универсалы (и сам Void Spirit) получают +2 силы каждый.",
+    ability: {
+      name: "Resonant Pulse", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR_ATTR", attr: "uni", value: 2, includeSelf: true }],
+    },
+  },
+
+  // --- Kez (uni 7) ---
+  {
+    id: "kez_sc", heroId: "kez", kind: "scepter", name: "Raptor Dance", cost: 10, emoji: "🔮",
+    desc: "Kez ровно в середине отряда: +1 к множителю (Echo Slash по-прежнему бьёт по средним рангам).",
+    ability: {
+      name: "Raptor Dance", event: "FIGHT_SCORING",
+      when: { type: "IS_MIDDLE_SLOT" },
+      effects: [{ type: "ADD_MULT", value: 1 }],
+    },
+  },
+  {
+    id: "kez_sh", heroId: "kez", kind: "shard", name: "Falcon Rush", cost: 3, emoji: "🔹",
+    desc: "Полная пятёрка — Kez +4 силы.",
+    ability: {
+      name: "Falcon Rush", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 5 },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Beastmaster (uni 8) ---
+  {
+    id: "beastmaster_sc", heroId: "beastmaster", kind: "scepter", name: "Call of the Wild", cost: 10, emoji: "🔮",
+    desc: "Близкие ранги считаются: +2 силы за каждого героя ранга ±1 к рангу Beastmaster.",
+    ability: {
+      name: "Call of the Wild", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_SAME_RANK", value: 2, tolerance: 1 }],
+    },
+  },
+  {
+    id: "beastmaster_sh", heroId: "beastmaster", kind: "shard", name: "Wild Axes", cost: 3, emoji: "🔹",
+    desc: "В отряде есть пара одинаковых рангов — Beastmaster +4 силы.",
+    ability: {
+      name: "Wild Axes", event: "FIGHT_SCORING",
+      when: { type: "SAME_RANK_GROUP", size: 2 },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // ===== Текстовые дизайны матрицы (батч 3): 15 героев =====
+
+  // --- Phantom Assassin (agi 9) ---
+  {
+    id: "pa_sc", heroId: "pa", kind: "scepter", name: "Echo Strike", cost: 10, emoji: "🔮",
+    desc: "Если в бою сработал крит — башня получает ещё +30% урона сверх удара.",
+    ability: {
+      name: "Echo Strike", event: "FIGHT_SCORING",
+      effects: [{ type: "ARM_ECHO_ON_CRIT", pct: 30 }],
+    },
+  },
+  {
+    id: "pa_sh", heroId: "pa", kind: "shard", name: "Blur", cost: 3, emoji: "🔹",
+    desc: "За волну была хоть одна перестановка формации — PA +4 силы.",
+    ability: {
+      name: "Blur", event: "FIGHT_SCORING",
+      when: { type: "MOVES_ABOVE", value: 0 },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Zeus (int 5) ---
+  {
+    id: "zeus_sc", heroId: "zeus", kind: "scepter", name: "Thundergod's Circuit", cost: 10, emoji: "🔮",
+    desc: "Цепь грома: +1 к множителю за каждый ТИП комбо, использованный за забег (кап +3).",
+    ability: {
+      name: "Thundergod's Circuit", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_MULT_PER_DISTINCT_COMBO", value: 1, cap: 3 }],
+    },
+  },
+  {
+    id: "zeus_sh", heroId: "zeus", kind: "shard", name: "Arc Surge", cost: 3, emoji: "🔹",
+    desc: "Комбо отличается от предыдущего боя — Zeus +4 силы.",
+    ability: {
+      name: "Arc Surge", event: "FIGHT_SCORING",
+      when: { type: "COMBO_DIFFERENT_FROM_LAST" },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Crystal Maiden (int 2) ---
+  {
+    id: "cm_sc", heroId: "cm", kind: "scepter", name: "Arcane Reserve", cost: 10, emoji: "🔮",
+    desc: "Неиспользованные ТП-сбросы волны копятся в Mana Reserve (до 3): в первом бою волны CM +3 силы за запас.",
+    ability: {
+      name: "Arcane Reserve", event: "FIGHT_SCORING",
+      when: { type: "FIGHT_FIRST" },
+      effects: [{ type: "SPEND_MANA_RESERVE", value: 3 }],
+    },
+  },
+  {
+    id: "cm_sh", heroId: "cm", kind: "shard", name: "Frostbite Memory", cost: 3, emoji: "🔹",
+    desc: "Каждый использованный в бою ТП-сброс приносит +1 золота.",
+    ability: {
+      name: "Frostbite Memory", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_GOLD_PER_USED_DISCARD", value: 1 }],
+    },
+  },
+
+  // --- Tinker (uni 12) ---
+  {
+    id: "tinker_sc", heroId: "tinker", kind: "scepter", name: "Rearm Protocol", cost: 10, emoji: "🔮", override: true,
+    desc: "Rearm заменён: способности срабатывают дважды, только пока в ядре 2+ реролла лавки (тратит 2).",
+    ability: {
+      name: "Rearm Protocol", event: "FIGHT_SCORING",
+      when: { type: "REROLL_CHARGES_ABOVE", value: 1 },
+      effects: [{ type: "REFRESH_HERO_TRIGGERS" }, { type: "CONSUME_REROLL_CHARGES", amount: 2 }],
+    },
+  },
+  {
+    id: "tinker_sh", heroId: "tinker", kind: "shard", name: "Heat Sink", cost: 3, emoji: "🔹",
+    desc: "Каждый накопленный реролл лавки даёт Tinker +2 силы (ядро не тратится).",
+    ability: {
+      name: "Heat Sink", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_REROLL_CHARGE", value: 2 }],
+    },
+  },
+
+  // --- Invoker (int 8) ---
+  {
+    id: "invoker_sc", heroId: "invoker", kind: "scepter", name: "Invoke Mastery", cost: 10, emoji: "🔮",
+    desc: "Бой с 3+ атрибутами даёт Spell Fragment (до 3): 3 фрагмента — Invoke усиливается ×1.5.",
+    abilities: [
+      { name: "Invoke Mastery", event: "FIGHT_SCORING",
+        when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
+        effects: [{ type: "ADD_CHARGE", value: 1, cap: 3 }] },
+      { name: "Invoke Mastery", event: "FIGHT_SCORING",
+        when: { type: "CHARGES_ABOVE", value: 2 },
+        effects: [{ type: "SPEND_CHARGES_MULT", mult: 1.5, amount: 3 }] },
+    ],
+  },
+  {
+    id: "invoker_sh", heroId: "invoker", kind: "shard", name: "Quick Cast", cost: 3, emoji: "🔹",
+    desc: "Первый бой волны: Invoke +1 к множителю.",
+    ability: {
+      name: "Quick Cast", event: "FIGHT_SCORING",
+      when: { type: "FIGHT_FIRST" },
+      effects: [{ type: "ADD_MULT", value: 1 }],
+    },
+  },
+
+  // --- Pudge (str 7) ---
+  {
+    id: "pudge_sc", heroId: "pudge", kind: "scepter", name: "Flesh Heap", cost: 10, emoji: "🔮",
+    desc: "Каждая перестановка формации за волну — Heap: +2 силы за смену (кап +8), тратится в бою.",
+    ability: {
+      name: "Flesh Heap", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_FORMATION_MOVE", value: 2, cap: 8, consume: true }],
+    },
+  },
+  {
+    id: "pudge_sh", heroId: "pudge", kind: "shard", name: "Meat Hook", cost: 3, emoji: "🔹",
+    desc: "Крюк тянет строй: каждый сосед по слоту даёт +3 силы.",
+    ability: {
+      name: "Meat Hook", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR", value: 3 }],
+    },
+  },
+
+  // --- Axe (str 5) ---
+  {
+    id: "axe_sc", heroId: "axe", kind: "scepter", name: "Counter Helix+", cost: 10, emoji: "🔮",
+    desc: "Действия заряжают Helix: 2+ (перестановки + ТП-сбросы за волну) — Axe +8 силы.",
+    ability: {
+      name: "Counter Helix+", event: "FIGHT_SCORING",
+      when: { type: "FORMATION_ACTIONS_ABOVE", value: 2 },
+      effects: [{ type: "ADD_POWER", value: 8 }],
+    },
+  },
+  {
+    id: "axe_sh", heroId: "axe", kind: "shard", name: "Berserker", cost: 3, emoji: "🔹",
+    desc: "Axe в середине отряда — Helix крутится быстрее: +4 силы.",
+    ability: {
+      name: "Berserker", event: "FIGHT_SCORING",
+      when: { type: "IS_MIDDLE_SLOT" },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Juggernaut (agi 7) ---
+  {
+    id: "jugg_sc", heroId: "juggernaut", kind: "scepter", name: "Blade Dance", cost: 10, emoji: "🔮",
+    desc: "Серия одинаковых комбо подряд: +1 к множителю за каждый повтор (кап +3).",
+    ability: {
+      name: "Blade Dance", event: "FIGHT_SCORING",
+      when: { type: "COMBO_SAME_AS_LAST" },
+      effects: [{ type: "ADD_MULT_PER_COMBO_STREAK", value: 1, cap: 3 }],
+    },
+  },
+  {
+    id: "jugg_sh", heroId: "juggernaut", kind: "shard", name: "Blade Fury+", cost: 3, emoji: "🔹",
+    desc: "За волну была перестановка — Juggernaut +4 силы.",
+    ability: {
+      name: "Blade Fury+", event: "FIGHT_SCORING",
+      when: { type: "MOVES_ABOVE", value: 0 },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+
+  // --- Slark (agi 4) ---
+  {
+    id: "slark_sc", heroId: "slark", kind: "scepter", name: "Essence Shift+", cost: 10, emoji: "🔮",
+    desc: "Slark крадёт атрибут соседа слева: считается двумя атрибутами сразу.",
+    ability: { name: "Essence Shift+", event: "PRE_DETECT", effects: [{ type: "STEAL_ATTR" }] },
+  },
+  {
+    id: "slark_sh", heroId: "slark", kind: "shard", name: "Pounce", cost: 3, emoji: "🔹",
+    desc: "Slark на новом слоте (не как в прошлом бою) — +5 силы.",
+    ability: {
+      name: "Pounce", event: "FIGHT_SCORING",
+      when: { type: "SLOT_CHANGED" },
+      effects: [{ type: "ADD_POWER", value: 5 }],
+    },
+  },
+
+  // --- Anti-Mage (agi 8) ---
+  {
+    id: "anti_mage_sc", heroId: "anti_mage", kind: "scepter", name: "Mana Break+", cost: 10, emoji: "🔮", override: true,
+    desc: "Mana Break заменён: новое комбо — пустые слоты дают +8 силы каждый, повтор прошлого — только +3.",
+    abilities: [
+      { name: "Mana Break", event: "FIGHT_SCORING",
+        when: { type: "COMBO_DIFFERENT_FROM_LAST" },
+        effects: [{ type: "ADD_POWER_PER_EMPTY_SLOT", value: 8 }] },
+      { name: "Mana Break", event: "FIGHT_SCORING",
+        when: { type: "COMBO_SAME_AS_LAST" },
+        effects: [{ type: "ADD_POWER_PER_EMPTY_SLOT", value: 3 }] },
+    ],
+  },
+  {
+    id: "anti_mage_sh", heroId: "anti_mage", kind: "shard", name: "Blink", cost: 3, emoji: "🔹",
+    desc: "За волну была перестановка — Anti-Mage +1 к множителю.",
+    ability: {
+      name: "Blink", event: "FIGHT_SCORING",
+      when: { type: "MOVES_ABOVE", value: 0 },
+      effects: [{ type: "ADD_MULT", value: 1 }],
+    },
+  },
+
+  // --- Legion Commander (str 6) ---
+  {
+    id: "legion_sc", heroId: "legion", kind: "scepter", name: "Duel+", cost: 10, emoji: "🔮",
+    desc: "Точный ласт-хит — Duel stack (до 6): +2 силы за каждый стек.",
+    abilities: [
+      { name: "Duel+", event: "FIGHT_SCORING", effects: [{ type: "GAIN_CHARGE_ON_LAST_HIT", cap: 6 }] },
+      { name: "Duel+", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_CHARGE", value: 2 }] },
+    ],
+  },
+  {
+    id: "legion_sh", heroId: "legion", kind: "shard", name: "Press the Attack", cost: 3, emoji: "🔹",
+    desc: "Каждый прокачанный герой (уровень 1+) в отряде даёт +2 силы.",
+    ability: {
+      name: "Press the Attack", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_LEVELED_HERO", value: 2 }],
+    },
+  },
+
+  // --- Rubick (int 7) ---
+  {
+    id: "rubick_sc", heroId: "rubick", kind: "scepter", name: "Grand Magus", cost: 10, emoji: "🔮",
+    desc: "Rubick ворует магию: +3 силы за каждую ЧУЖУЮ способность, сработавшую в этом бою (кап +12).",
+    ability: {
+      name: "Grand Magus", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_TRIGGERED_HEROES", value: 3, cap: 12 }],
+    },
+  },
+  {
+    id: "rubick_sh", heroId: "rubick", kind: "shard", name: "Fade Bolt+", cost: 3, emoji: "🔹",
+    desc: "Комбо отличается от предыдущего боя — Rubick +1 к множителю.",
+    ability: {
+      name: "Fade Bolt+", event: "FIGHT_SCORING",
+      when: { type: "COMBO_DIFFERENT_FROM_LAST" },
+      effects: [{ type: "ADD_MULT", value: 1 }],
+    },
+  },
+
+  // --- Ogre Magi (str 4) ---
+  {
+    id: "ogre_sc", heroId: "ogre_magi", kind: "scepter", name: "Multicast+", cost: 10, emoji: "🔮",
+    desc: "35% шанс: удар повторяется мелкой копией — +20% урона сверх.",
+    ability: {
+      name: "Multicast+", event: "FIGHT_SCORING",
+      effects: [{ type: "SET_ECHO_POWER", pct: 20, chance: 35 }],
+    },
+  },
+  {
+    id: "ogre_sh", heroId: "ogre_magi", kind: "shard", name: "Fireblast", cost: 3, emoji: "🔹",
+    desc: "На боссах и мини-боссах Ogre +5 силы.",
+    ability: {
+      name: "Fireblast", event: "FIGHT_SCORING",
+      when: { any: [{ type: "IS_BOSS_WAVE" }, { type: "IS_MINIBOSS_WAVE" }] },
+      effects: [{ type: "ADD_POWER", value: 5 }],
+    },
+  },
+
+  // --- Kunkka (str 12) ---
+  {
+    id: "kunkka_sc", heroId: "kunkka", kind: "scepter", name: "Torrent Combo", cost: 10, emoji: "🔮",
+    desc: "Цепь прилива: +5 силы за каждый ТИП комбо за забег (кап +15).",
+    ability: {
+      name: "Torrent Combo", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_DISTINCT_COMBO", value: 5, cap: 15 }],
+    },
+  },
+  {
+    id: "kunkka_sh", heroId: "kunkka", kind: "shard", name: "Tidebringer", cost: 3, emoji: "🔹",
+    desc: "Kunkka — сильнейшая карта отряда: +6 силы.",
+    ability: {
+      name: "Tidebringer", event: "FIGHT_SCORING",
+      when: { type: "IS_HIGHEST_RANK" },
+      effects: [{ type: "ADD_POWER", value: 6 }],
+    },
+  },
+
+  // --- Tusk (str 3) ---
+  {
+    id: "tusk_sc", heroId: "tusk", kind: "scepter", name: "Walrus Chain", cost: 10, emoji: "🔮",
+    desc: "Крит в бою — цепь передаётся: Tusk +6 силы (снежный ком от любых критов).",
+    ability: {
+      name: "Walrus Chain", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_IF_CRIT", value: 6 }],
+    },
+  },
+  {
+    id: "tusk_sh", heroId: "tusk", kind: "shard", name: "Snowball+", cost: 3, emoji: "🔹",
+    desc: "За волну была перестановка — Tusk +4 силы.",
+    ability: {
+      name: "Snowball+", event: "FIGHT_SCORING",
+      when: { type: "MOVES_ABOVE", value: 0 },
+      effects: [{ type: "ADD_POWER", value: 4 }],
+    },
+  },
+];
+
+</script>
+  <script>
 // Dalatro — content registry. The engine only ever talks to Content.
 const Content = (function () {
   function byId(list) {
@@ -2453,6 +3305,9 @@ const Content = (function () {
   const routes = { list: ROUTES_DATA, byId: byId(ROUTES_DATA) };
   // Улучшения лавки (спек §5): scalar-агрегатор + триггерные хуки.
   const upgrades = { list: UPGRADES_DATA, byId: byId(UPGRADES_DATA) };
+  // Аугменты героев (docs/AGHANIMS.md): скипетр + осколок, по одному на героя.
+  const aghanims = { list: AGHANIMS_DATA, byId: byId(AGHANIMS_DATA) };
+  aghanims.forHero = (heroId, kind) => AGHANIMS_DATA.find((a) => a.heroId === heroId && a.kind === kind) || null;
   // Альтернативное ядро скоринга (state.rules = "formation").
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
@@ -2461,7 +3316,7 @@ const Content = (function () {
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, aghanims, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();
 
 </script>
@@ -2710,6 +3565,33 @@ const Cond = (function () {
     return ctx.combo.tier != null ? ctx.combo.tier : comboRank(ctx.combo.type);
   }
 
+  // Скипетр «Starbreaker» (Dawnbreaker): Универсалы — джокеры атрибутов для
+  // условий. Правило боя (preFlag), поэтому не зависит от порядка слотов.
+  function uniWildcard(ctx) {
+    return !!(ctx.state && ctx.state.combat && ctx.state.combat.scoring &&
+      ctx.state.combat.scoring.flags && ctx.state.combat.scoring.flags.uniWildcard);
+  }
+
+  // Скипетр «Sanity Overload» (Outworld): UNI добирает недостающий атрибут,
+  // но только для условий подсчёта DISTINCT.
+  function uniDistinct(ctx) {
+    return !!(ctx.state && ctx.state.combat && ctx.state.combat.scoring &&
+      ctx.state.combat.scoring.flags && ctx.state.combat.scoring.flags.uniDistinct);
+  }
+
+  // Атрибуты карты: скопированный (attr) + родной (nativeAttr, скипетр
+  // «Attribute Shift» Морфлинга — карта «двух цветов» для условий).
+  function cardAttrs(c) {
+    if (!c) return [];
+    return c.nativeAttr && c.nativeAttr !== c.attr ? [c.attr, c.nativeAttr] : [c.attr];
+  }
+
+  // Совпадение атрибута карты с искомым (с учётом джокера-Универсала).
+  function attrIs(ctx, card, value) {
+    return cardAttrs(card).some((a) => a === value) ||
+      (uniWildcard(ctx) && card && card.attr === "uni");
+  }
+
   function evaluate(condition, ctx) {
     if (!condition) return true;
     if (condition.all) return condition.all.every((c) => evaluate(c, ctx));
@@ -2746,6 +3628,13 @@ const Cond = (function () {
         }
         return Array.from(counts.values()).some((n) => n >= condition.size);
       }
+      case "SAME_ATTRIBUTE_COUNT_ABOVE": {
+        // «Специализация» (#44): 3+ героя одного атрибута (с учётом двухцветных).
+        if (!ctx.playedCards) return false;
+        const counts = {};
+        for (const c of ctx.playedCards) for (const a of cardAttrs(c)) counts[a] = (counts[a] || 0) + 1;
+        return Object.values(counts).some((n) => n > condition.value);
+      }
       case "SLOT_IS":
         return ctx.slotIndex === condition.value;
       case "SLOT_IS_LAST":
@@ -2765,23 +3654,30 @@ const Cond = (function () {
       case "EXISTS_ATTRIBUTE":
         // Any OTHER played card (self excluded by reference) with this attribute.
         return !!(ctx.playedCards && ctx.playedCards.some(
-          (c) => c !== ctx.card && c.attr === condition.value
+          (c) => c !== ctx.card && attrIs(ctx, c, condition.value)
         ));
       case "ALL_ATTRIBUTES":
         // Every played card (self included) has this attribute — flush fuel.
         return !!(ctx.playedCards && ctx.playedCards.length > 0 &&
-          ctx.playedCards.every((c) => c.attr === condition.value));
-      case "DISTINCT_ATTRIBUTES_ABOVE":
-        return !!(ctx.playedCards && new Set(ctx.playedCards.map((c) => c.attr)).size > condition.value);
+          ctx.playedCards.every((c) => attrIs(ctx, c, condition.value)));
+      case "DISTINCT_ATTRIBUTES_ABOVE": {
+        if (!ctx.playedCards) return false;
+        const attrs = new Set(ctx.playedCards.flatMap(cardAttrs));
+        // Джокер-Универсал добирает недостающий атрибут: 2 реальных + UNI = 3.
+        const hasUni = ctx.playedCards.some((c) => c.attr === "uni");
+        if ((uniWildcard(ctx) || uniDistinct(ctx)) && hasUni) attrs.add("⬤");
+        return attrs.size > condition.value;
+      }
       case "NEIGHBOR_ATTR_DIFFERS":
         // A position neighbor (left or right) exists and its attribute differs.
-        return !!(ctx.playedCards && ctx.playedCards.some((c, i) =>
-          Math.abs(i - ctx.slotIndex) === 1 && c.attr !== ctx.card.attr
+        // Джокер-Универсал «подстраивается» — таким соседом различие не считается.
+        return !!(ctx.playedCards && ctx.card && ctx.playedCards.some((c, i) =>
+          Math.abs(i - ctx.slotIndex) === 1 && !attrIs(ctx, c, ctx.card.attr) && !attrIs(ctx, ctx.card, c.attr)
         ));
       case "NEIGHBOR_ATTR_IS":
         // A position neighbor with the given attribute (left or right).
         return !!(ctx.playedCards && ctx.card && ctx.playedCards.some((c, i) =>
-          Math.abs(i - ctx.slotIndex) === 1 && c.attr === condition.value
+          Math.abs(i - ctx.slotIndex) === 1 && attrIs(ctx, c, condition.value)
         ));
       case "IS_LOWEST_RANK":
         return !!(ctx.card && ctx.playedCards && ctx.playedCards.length > 1 &&
@@ -2806,6 +3702,63 @@ const Cond = (function () {
         return !!(ctx.state && ctx.state.combat.wave &&
           ctx.state.combat.wave.hp > 0 &&
           (ctx.state.combat.wave.hp / ctx.state.combat.wave.maxHp) * 100 < condition.pct);
+      case "TOWER_HP_ABOVE":
+        // Осколок «Chilling Touch» (AA): башня выше pct% максимума.
+        return !!(ctx.state && ctx.state.combat.wave &&
+          ctx.state.combat.wave.hp > 0 &&
+          (ctx.state.combat.wave.hp / ctx.state.combat.wave.maxHp) * 100 > condition.pct);
+      case "DISCARDS_UNUSED":
+        // Скипетр «Warcry» (Sven) / осколок «Onslaught» (Primal): за бой не
+        // потрачено ни одного ТП-сброса волны.
+        return !!(ctx.state && Game.discardsPerWave(ctx.state) === ctx.state.player.discardsLeft);
+      case "HERO_LEVEL_ABOVE":
+        // Скипетр «Ascended Charge» (Void Spirit): уровень XP героя > value.
+        return !!(ctx.card && ctx.state && Game.heroLevel(ctx.state, ctx.card.heroId) > condition.value);
+      case "IS_MIDDLE_SLOT":
+        // Скипетр «Raptor Dance» (Kez): герой ровно в середине строя.
+        return !!(ctx.playedCards && ctx.slotIndex != null &&
+          ctx.slotIndex === Math.floor((ctx.playedCards.length - 1) / 2));
+      case "SLOT_CHANGED":
+        // Скипетр «Overload» (Storm): герой не на своём слоте прошлого боя.
+        return !!(ctx.card && ctx.state && ctx.state.combat.lastSlot &&
+          ctx.state.combat.lastSlot[ctx.card.heroId] != null &&
+          ctx.state.combat.lastSlot[ctx.card.heroId] !== ctx.slotIndex);
+      case "SLOT_LEFT_EXISTS":
+        return ctx.playedCards && ctx.slotIndex != null && ctx.slotIndex > 0;
+      case "SLOT_RIGHT_EXISTS":
+        return !!(ctx.playedCards && ctx.slotIndex != null && ctx.slotIndex < ctx.playedCards.length - 1);
+      case "BOTH_NEIGHBORS_DIFFER":
+        // Скипетр «Rebound» (Marci): оба соседа другого атрибута.
+        return !!(ctx.playedCards && ctx.card && ctx.slotIndex > 0 && ctx.slotIndex < ctx.playedCards.length - 1 &&
+          !attrIs(ctx, ctx.playedCards[ctx.slotIndex - 1], ctx.card.attr) &&
+          !attrIs(ctx, ctx.playedCards[ctx.slotIndex + 1], ctx.card.attr));
+      case "BOTH_NEIGHBORS_SAME":
+        // Осколок «Companion Run» (Marci): оба соседа одного (моего) атрибута.
+        return !!(ctx.playedCards && ctx.card && ctx.slotIndex > 0 && ctx.slotIndex < ctx.playedCards.length - 1 &&
+          attrIs(ctx, ctx.playedCards[ctx.slotIndex - 1], ctx.card.attr) &&
+          attrIs(ctx, ctx.playedCards[ctx.slotIndex + 1], ctx.card.attr));
+      case "COMBO_SAME_AS_LAST":
+        // Скипетры «Blade Dance» (Juggernaut) и «Mana Break+» (Anti-Mage):
+        // тот же тип комбо, что в прошлом бою (первый бой волны считается повтором).
+        return !!(ctx.combo && (!ctx.state.combat.lastComboType || ctx.state.combat.lastComboType === ctx.combo.type));
+      case "MOVES_ABOVE":
+        // Шарды PA/Legion/AM/Tusk и скипетр Pudge: перестановки формаций за волну.
+        return !!(ctx.state && (ctx.state.combat.movesUsed || 0) > condition.value);
+      case "FIGHT_FIRST":
+        // Скипетр «Arcane Reserve» (CM) и осколок «Quick Cast» (Invoker).
+        return !!(ctx.state && ctx.state.combat.fightIndex === 0);
+      case "CHARGES_ABOVE":
+        // Скипетр «Invoke Mastery» (Invoker): накоплено зарядов героя больше value.
+        return !!(ctx.sourceId && ctx.state.run.heroCharges[ctx.sourceId] &&
+          (ctx.state.run.heroCharges[ctx.sourceId].count || 0) > condition.value);
+      case "REROLL_CHARGES_ABOVE":
+        // Скипетр «Rearm Protocol» (Tinker): в ядре накоплено рероллов лавки.
+        return !!(ctx.state && (ctx.state.run.rerollCharges || 0) > condition.value);
+      case "FORMATION_ACTIONS_ABOVE":
+        // Скипетр «Counter Helix+» (Axe): действия игрока за волну
+        // (перестановки + ТП-сбросы) заряжают Helix.
+        return !!(ctx.state && ((ctx.state.combat.movesUsed || 0) +
+          Math.max(0, Game.discardsPerWave(ctx.state) - ctx.state.player.discardsLeft)) > condition.value);
       default:
         console.warn("Unknown condition type:", condition.type);
         return false;
@@ -2978,10 +3931,12 @@ const Effects = (function () {
     },
     ADD_POWER_PER_SAME_RANK(effect, ctx) {
       if (!ctx.card) return null;
-      const same = ctx.playedCards.filter((c) => c.power === ctx.card.power).length - 1;
-      if (same <= 0) return null;
-      ctx.scoring.power += effect.value * same;
-      return { label: `${ctx.sourceName}: +${effect.value * same} силы (${same} героя своего ранга)` };
+      const tol = effect.tolerance || 0;
+      const near = ctx.playedCards.filter((c) => Math.abs(c.power - ctx.card.power) <= tol).length - 1;
+      if (near <= 0) return null;
+      ctx.scoring.power += effect.value * near;
+      const how = tol ? `${near} героя ранга ±${tol}` : `${near} героя своего ранга`;
+      return { label: `${ctx.sourceName}: +${effect.value * near} силы (${how})` };
     },
     ADD_POWER_PER_DISCARD(effect, ctx) {
       const bonus = Math.min(effect.cap || Infinity, ctx.state.player.discardUids.length) * effect.value;
@@ -3061,6 +4016,247 @@ const Effects = (function () {
       if (ctx.discardCtx) ctx.discardCtx.returnToHand = true;
       return { label: `${ctx.sourceName}: крюк вытягивает обратно в руку` };
     },
+    // Скипетр «Burn the Racks» (Huskar): выставляет флаг — пост-бой код
+    // выдаст +XP героям боя при зачистке волны с потерянной казармой.
+    GRANT_XP_ON_CLEAR(effect, ctx) {
+      ctx.scoring.flags.grantXpOnClear = (ctx.scoring.flags.grantXpOnClear || 0) + effect.value;
+      return { label: `${ctx.sourceName}: казармы = опыт (при зачистке с потерей казармы)` };
+    },
+    // Скипетр «Avalanche» (Tiny): использованные ТП-сбросы волны растят ранг
+    // навсегда (heroCharges, читается в Game.rankOf). Ранг влияет на комбо.
+    GAIN_RANK_PER_USED_DISCARD(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      const used = Math.max(0, Game.discardsPerWave(ctx.state) - ctx.state.player.discardsLeft);
+      if (!used) return null;
+      const charges = ctx.state.run.heroCharges;
+      charges[ctx.sourceId] = charges[ctx.sourceId] || {};
+      const before = charges[ctx.sourceId].rank || 0;
+      const after = Math.min(effect.cap || Infinity, before + used * (effect.value || 1));
+      if (after === before) return null;
+      charges[ctx.sourceId].rank = after;
+      return { label: `${ctx.sourceName}: ранг растёт +${after - before} (крепчает на ${after})` };
+    },
+    // Осколок «Phantom Rush» (PL): иллюзии этого боя считаются заданным атрибутом.
+    // Правило боя — CREATE_ILLUSION читает флаг при создании иллюзии.
+    ILLUSION_ATTR(effect, ctx) {
+      ctx.scoring.flags.illusionAttr = effect.attr;
+      return { label: `${ctx.sourceName}: иллюзии этого боя — ${Content.attrNames[effect.attr]}` };
+    },
+    // +сила за каждого соседа ПО СЛОТУ с заданным атрибутом (и за себя, если
+    // includeSelf). Соседи по фактическому строю, не «где-то в отряде».
+    ADD_POWER_PER_NEIGHBOR_ATTR(effect, ctx) {
+      if (!ctx.playedCards || ctx.slotIndex == null || ctx.slotIndex < 0) return null;
+      let count = effect.includeSelf && ctx.card && ctx.card.attr === effect.attr ? 1 : 0;
+      ctx.playedCards.forEach((c, i) => {
+        if (Math.abs(i - ctx.slotIndex) === 1 && c.attr === effect.attr) count += 1;
+      });
+      if (!count) return null;
+      ctx.scoring.power += effect.value * count;
+      return { label: `${ctx.sourceName}: +${effect.value * count} силы (${Content.attrNames[effect.attr]} рядом)` };
+    },
+    // Скипетр «Retaliate» (Centaur): +сила только за героев ПОЗАДИ (правее).
+    ADD_POWER_PER_PLAYED_AFTER(effect, ctx) {
+      if (!ctx.playedCards || ctx.slotIndex == null) return null;
+      const after = ctx.playedCards.filter((c, i) => i > ctx.slotIndex).length;
+      if (!after) return null;
+      ctx.scoring.power += effect.value * after;
+      return { label: `${ctx.sourceName}: +${effect.value * after} силы (${after} позади)` };
+    },
+    // +сила за каждого героя заданного атрибута в отряде (включая себя).
+    ADD_POWER_PER_ATTRIBUTE(effect, ctx) {
+      if (!ctx.playedCards) return null;
+      const n = ctx.playedCards.filter((c) => c.attr === effect.attr).length;
+      if (!n) return null;
+      ctx.scoring.power += effect.value * n;
+      return { label: `${ctx.sourceName}: +${effect.value * n} силы (${n} × ${Content.attrNames[effect.attr]})` };
+    },
+    // +множитель за каждый использованный в бою ТП-сброс.
+    ADD_MULT_PER_USED_DISCARD(effect, ctx) {
+      const base = Game.discardsPerWave(ctx.state);
+      const used = Math.max(0, base - ctx.state.player.discardsLeft);
+      if (!used) return null;
+      const bonus = Math.round(effect.value * used * 100) / 100;
+      ctx.scoring.mult += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${used} ТП-сброса)` };
+    },
+    // Скипетр «Sanity Overload» (Outworld): каждый атрибут СВЕРХ третьего.
+    ADD_POWER_PER_EXTRA_DISTINCT(effect, ctx) {
+      if (!ctx.playedCards) return null;
+      const distinct = new Set(ctx.playedCards.map((c) => c.attr)).size;
+      const extra = Math.max(0, distinct - 3);
+      if (!extra) return null;
+      ctx.scoring.power += effect.value * extra;
+      if (effect.extraMult) ctx.scoring.mult += effect.extraMult * extra;
+      const parts = [`+${effect.value * extra} силы`];
+      if (effect.extraMult) parts.push(`+${Math.round(effect.extraMult * extra * 100) / 100} к множителю`);
+      return { label: `${ctx.sourceName}: ${parts.join(", ")} (${extra} лишних атрибута)` };
+    },
+    // Осколок «Shuriken Toss» (Bounty): точный ласт-хит копит удачу (кап).
+    ADD_LUCK_ON_LAST_HIT(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      ctx.scoring.flags.luckOnLastHit = { heroId: ctx.sourceId, cap: effect.cap || 3 };
+      return { label: `${ctx.sourceName}: точный ласт-хит даст +1 удачу` };
+    },
+    // Скипетр «Jinada» (Bounty): точный ласт-хит возвращает ТП-сброс на волну.
+    REFUND_DISCARD(effect, ctx) {
+      ctx.scoring.flags.refundDiscards = (ctx.scoring.flags.refundDiscards || 0) + (effect.value || 1);
+      return { label: `${ctx.sourceName}: точный ласт-хит вернёт ${effect.value || 1} ТП-сброс` };
+    },
+    // Скипетр «Shatter» (AA): зачистка волны режет HP следующей башни акта.
+    SET_NEXT_WAVE_PCT(effect, ctx) {
+      ctx.scoring.flags.nextWaveHpPct = (ctx.scoring.flags.nextWaveHpPct || 0) + effect.value;
+      return { label: `${ctx.sourceName}: следующая башня акта начнёт с −${effect.value}% HP` };
+    },
+    // Скипетр «Soul Rip» (Undying): сброс волны bankит заряд, бой тратит целиком.
+    ADD_CHARGE(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      const charges = ctx.state.run.heroCharges;
+      charges[ctx.sourceId] = charges[ctx.sourceId] || {};
+      const before = charges[ctx.sourceId].count || 0;
+      const after = Math.min(effect.cap || Infinity, before + (effect.value || 1));
+      if (after === before) return null;
+      charges[ctx.sourceId].count = after;
+      return { label: `${ctx.sourceName}: +${after - before} заряд (сила копится)` };
+    },
+    SPEND_CHARGES_POWER(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      const charges = ctx.state.run.heroCharges;
+      const held = charges[ctx.sourceId] && charges[ctx.sourceId].count ? charges[ctx.sourceId].count : 0;
+      if (!held) return null;
+      const bonus = held * effect.value;
+      charges[ctx.sourceId].count = 0;
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} силы (${held} заряда из сбросов)` };
+    },
+    // Скипетр «Invoke Mastery» (Invoker): N зарядов — усиление множителем.
+    SPEND_CHARGES_MULT(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      const charges = ctx.state.run.heroCharges;
+      const held = charges[ctx.sourceId] && charges[ctx.sourceId].count ? charges[ctx.sourceId].count : 0;
+      const amount = effect.amount || 3;
+      if (held < amount) return null;
+      charges[ctx.sourceId].count = held - amount;
+      ctx.scoring.mult *= effect.mult;
+      return { label: `${ctx.sourceName}: заряды собраны — ×${effect.mult} к множителю` };
+    },
+    // Скипетр «Flesh Heap» (Pudge): перестановки формации за волну — Heap.
+    ADD_POWER_PER_FORMATION_MOVE(effect, ctx) {
+      const moves = ctx.state.combat.movesUsed || 0;
+      if (!moves) return null;
+      const bonus = Math.min(effect.cap || Infinity, moves * effect.value);
+      ctx.scoring.power += bonus;
+      if (effect.consume) ctx.state.combat.movesUsed = 0;
+      return { label: `${ctx.sourceName}: +${bonus} силы (${moves} перестановок)` };
+    },
+    // Скипетр «Rearm Protocol» (Tinker): рероллы лавки — заряды перегрева.
+    ADD_POWER_PER_REROLL_CHARGE(effect, ctx) {
+      const charges = ctx.state.run.rerollCharges || 0;
+      if (!charges) return null;
+      const bonus = charges * effect.value;
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} силы (${charges} реролла в ядре)` };
+    },
+    CONSUME_REROLL_CHARGES(effect, ctx) {
+      const before = ctx.state.run.rerollCharges || 0;
+      ctx.state.run.rerollCharges = Math.max(0, before - (effect.amount || 1));
+      if (before) return { label: `${ctx.sourceName}: перегрев потрачен (−${before - ctx.state.run.rerollCharges})` };
+      return null;
+    },
+    // Осколок «Frostbite Memory» (CM): использованные сбросы — золото.
+    ADD_GOLD_PER_USED_DISCARD(effect, ctx) {
+      const used = Math.max(0, Game.discardsPerWave(ctx.state) - ctx.state.player.discardsLeft);
+      if (!used) return null;
+      ctx.state.run.gold += used * effect.value;
+      return { label: `${ctx.sourceName}: +${used * effect.value} золота (${used} ТП-сброса)`, gold: used * effect.value };
+    },
+    // Скипетр «Arcane Reserve» (CM): Mana Reserve копится с неиспользованных
+    // сбросов волны (game.js) и тратится в первом бою следующей волны.
+    SPEND_MANA_RESERVE(effect, ctx) {
+      const reserve = ctx.state.run.manaReserve || 0;
+      if (!reserve) return null;
+      ctx.state.run.manaReserve = 0;
+      ctx.scoring.power += reserve * effect.value;
+      return { label: `${ctx.sourceName}: Mana Reserve разряжен — +${reserve * effect.value} силы` };
+    },
+    // Скипетр «Blade Dance» (Juggernaut): серия одинаковых комбо подряд.
+    ADD_MULT_PER_COMBO_STREAK(effect, ctx) {
+      const streak = ctx.state.run.comboStreak || 0;
+      if (!streak) return null;
+      const bonus = Math.min(effect.cap || Infinity, streak * effect.value);
+      ctx.scoring.mult += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (серия ${streak})` };
+    },
+    // Скипетры «Thundergod's Circuit» (Zeus) и «Torrent Combo» (Kunkka):
+    // награда за разнообразие типов комбо за забег.
+    ADD_MULT_PER_DISTINCT_COMBO(effect, ctx) {
+      if (!ctx.combo) return null;
+      const seen = ctx.state.run.comboTypes || {};
+      const distinct = Object.keys(seen).length + (seen[ctx.combo.type] ? 0 : 1);
+      const bonus = Math.min(effect.cap || Infinity, distinct * effect.value);
+      if (!bonus) return null;
+      ctx.scoring.mult += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${distinct} типа комбо)` };
+    },
+    ADD_POWER_PER_DISTINCT_COMBO(effect, ctx) {
+      if (!ctx.combo) return null;
+      const seen = ctx.state.run.comboTypes || {};
+      const distinct = Object.keys(seen).length + (seen[ctx.combo.type] ? 0 : 1);
+      const bonus = Math.min(effect.cap || Infinity, distinct * effect.value);
+      if (!bonus) return null;
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} силы (${distinct} типа комбо)` };
+    },
+    // Скипетр «Multicast+» (Ogre): шанс повторить удар мелкой копией.
+    SET_ECHO_POWER(effect, ctx) {
+      ctx.scoring.flags.echoPower = { pct: effect.pct, chance: effect.chance || 100 };
+      return { label: `${ctx.sourceName}: ${effect.chance || 100}% шанс повторить ${effect.pct}% урона` };
+    },
+    // Скипетр «Echo Strike» (PA): эхо встаёт на armed только после crit-эффекта.
+    ARM_ECHO_ON_CRIT(effect, ctx) {
+      const crits = ctx.resolution && ctx.resolution.crits;
+      if (!crits || !crits.length) return null;
+      ctx.scoring.flags.echoPower = { pct: effect.pct, chance: 100 };
+      return { label: `${ctx.sourceName}: крит! Эхо повторит ${effect.pct}% урона` };
+    },
+    // Скипетр «Walrus Chain» (Tusk): в бою сработал крит — цепь передаёт бонус.
+    ADD_POWER_IF_CRIT(effect, ctx) {
+      const crits = ctx.resolution && ctx.resolution.crits;
+      if (!crits || !crits.length) return null;
+      ctx.scoring.power += effect.value;
+      return { label: `${ctx.sourceName}: +${effect.value} силы от крита` };
+    },
+    // Скипетр «Duel+» (Legion): точный ласт-хит — Duel stack (грант в пост-бое).
+    GAIN_CHARGE_ON_LAST_HIT(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      ctx.scoring.flags.chargeOnLastHit = { heroId: ctx.sourceId, cap: effect.cap || 6 };
+      return { label: `${ctx.sourceName}: точный ласт-хит даст Duel stack` };
+    },
+    // Чтение зарядов героя: +сила за каждый накопленный count.
+    ADD_POWER_PER_CHARGE(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      const held = (ctx.state.run.heroCharges[ctx.sourceId] || {}).count || 0;
+      if (!held) return null;
+      ctx.scoring.power += held * effect.value;
+      return { label: `${ctx.sourceName}: +${held * effect.value} силы (${held} stacks)` };
+    },
+    // Осколок «Press the Attack» (Legion): прокачанные герои бьют плотнее.
+    ADD_POWER_PER_LEVELED_HERO(effect, ctx) {
+      if (!ctx.playedCards || !ctx.playedCards.length) return null;
+      const leveled = ctx.playedCards.filter((c) => Game.heroLevel(ctx.state, c.heroId) > 0).length;
+      if (!leveled) return null;
+      ctx.scoring.power += leveled * effect.value;
+      return { label: `${ctx.sourceName}: +${leveled * effect.value} силы (${leveled} с уровнем)` };
+    },
+    // Скипетр «Grand Magus» (Rubick): +сила за каждую чужую сработавшую способность.
+    ADD_POWER_PER_TRIGGERED_HEROES(effect, ctx) {
+      const triggered = ctx.resolution && ctx.resolution.heroTriggers;
+      if (!triggered || !triggered.length) return null;
+      const others = triggered.filter((id) => id !== ctx.sourceId);
+      if (!others.length) return null;
+      const bonus = Math.min(effect.cap || Infinity, others.length * effect.value);
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: +${bonus} силы (украл ${others.length} способност${others.length === 1 ? "ь" : "и"})` };
+    },
   };
 
   function apply(effect, ctx) {
@@ -3081,18 +4277,57 @@ const Effects = (function () {
 // Runs every trigger registered for an event, checks its conditions,
 // applies its effects and records each application as a resolution step.
 //
-// Trigger shape (heroes, items, modifiers — one format for all):
+// Trigger shape (heroes, items, upgrades, aghanims, modifiers — one format):
 //   { event, when?, chance?, effects: [...] }
 const Triggers = (function () {
-  function collectSources(state, playedCards) {
+  // Аугменты героя (docs/AGHANIMS.md): скипетр (с override базовой способности)
+  // и осколок. Возвращают источники kind "aghanim" для сыгранного героя.
+  function aghSources(state, hero) {
+    const owned = state.run.aghanims && state.run.aghanims[hero.id];
+    if (!owned) return [];
+    const sources = [];
+    for (const kind of ["scepter", "shard"]) {
+      const aug = owned[kind] ? Content.aghanims.byId[owned[kind]] : null;
+      if (!aug) continue;
+      for (const ability of aug.abilities || (aug.ability ? [aug.ability] : [])) {
+        sources.push({
+          kind: "aghanim",
+          def: { ...ability, sourceId: hero.id, sourceName: aug.name },
+        });
+      }
+    }
+    return sources;
+  }
+
+  function collectSources(state, playedCards, eventName) {
+    // ON_ANY_DISCARD: сброс вне боя — аугменты всех владельческих героев.
+    if (eventName === "ON_ANY_DISCARD") {
+      const sources = [];
+      const owned = new Set([...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids]
+        .map((uid) => state.cards[uid] && state.cards[uid].heroId));
+      for (const heroId of owned) {
+        const hero = Content.heroes.byId[heroId];
+        if (!hero) continue;
+        for (const agh of aghSources(state, hero)) sources.push({ ...agh, card: null, slotIndex: -1, hero });
+      }
+      return sources;
+    }
     // Heroes in slot order, then items in acquisition order, then shop
     // upgrades (фаза F), then tower/boss modifiers.
     const sources = [];
     playedCards.forEach((card, slotIndex) => {
       const hero = Content.heroes.byId[card.heroId];
       if (!hero || card.illusion) return; // illusions never activate abilities
-      if (hero.ability) {
+      const aghs = aghSources(state, hero);
+      // Скипетр с override заменяет базовую способность героя.
+      const overridden = state.run.aghanims && state.run.aghanims[hero.id] && state.run.aghanims[hero.id].scepter &&
+        Content.aghanims.byId[state.run.aghanims[hero.id].scepter] &&
+        Content.aghanims.byId[state.run.aghanims[hero.id].scepter].override;
+      if (hero.ability && !overridden) {
         sources.push({ kind: "hero", card, slotIndex, hero, def: { ...hero.ability, sourceId: hero.id, sourceName: hero.name } });
+      }
+      for (const agh of aghs) {
+        sources.push({ ...agh, card, slotIndex, hero });
       }
     });
     state.player.items.forEach((itemId) => {
@@ -3131,7 +4366,7 @@ const Triggers = (function () {
 
   function runEvent(state, bus, eventName, payload, resolution) {
     const playedCards = payload.playedCards || [];
-    const sources = collectSources(state, playedCards);
+    const sources = collectSources(state, playedCards, eventName);
 
     for (const source of sources) {
       if (payload.onlyKinds && !payload.onlyKinds.includes(source.kind)) continue;
@@ -3146,14 +4381,22 @@ const Triggers = (function () {
         card: source.card || null,
         hero: source.hero,
         power: payload.power,
+        sourceId: def.sourceId,
         sourceName: def.sourceName,
         sourceKind: source.kind,
         scoring: payload.scoring,
+        resolution,
         discardCtx: payload.discardCtx || null,
         note: null,
       };
 
       if (def.when && !Cond.evaluate(def.when, ctxBase)) continue;
+
+      // Скипетр «Grand Magus» (Rubick) читает, чьи способности уже сработали.
+      if (source.kind === "hero" && source.hero) {
+        resolution.heroTriggers = resolution.heroTriggers || [];
+        if (!resolution.heroTriggers.includes(source.hero.id)) resolution.heroTriggers.push(source.hero.id);
+      }
 
       // Synergy feedback: если условие стало выполнимым ТОЛЬКО из-за копий
       // атрибута (Morphling) — пометить цепочку в стеке.
@@ -3189,7 +4432,7 @@ const Triggers = (function () {
       for (const effect of def.effects || []) {
         const result = Effects.apply(effect, ctxBase);
         if (result) {
-          const iconByKind = { hero: "✦", item: "◆", upgrade: "🔧", modifier: "☠" };
+          const iconByKind = { hero: "✦", item: "◆", upgrade: "🔧", aghanim: "🟣", modifier: "☠" };
           resolution.steps.push({ icon: iconByKind[source.kind] || "☠", label: result.label, kind: source.kind });
         }
       }
@@ -3255,10 +4498,10 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, aghanims: {}, heroCharges: {}, manaReserve: 0, rerollCharges: 0, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
-      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
+      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, lastSlot: {}, movesUsed: 0, campTaken: false, forbiddenSlot: null, routeOptions: [] },
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
@@ -3286,7 +4529,10 @@ const Game = (function () {
   function rankOf(state, heroId) {
     const overrides = state.run.ranks || {};
     const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
-    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId));
+    // Скипетр «Avalanche» (Tiny): ранг растёт от использованных ТП-сбросов.
+    const charge = state.run.heroCharges && state.run.heroCharges[heroId];
+    const rankCharge = charge && charge.rank ? charge.rank : 0;
+    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId) + rankCharge);
   }
 
   // Перк стартового архетипа (run.archetype), null для «Стандарта»/старых сейвов.
@@ -3362,6 +4608,12 @@ const Game = (function () {
     const elite = !!(route && route.curse);
     let hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (route && route.hp ? route.hp : 1) * ((routeOpt && routeOpt.hpMultRoll) || 1));
     if (route && route.hpPerItem) hp += route.hpPerItem * state.player.items.length;
+    // Скипетр «Shatter» (AA): ослабление следующей башни после зачистки.
+    if (state.run.nextWaveHpPct) {
+      hp = Math.max(1, Math.round(hp * (1 - state.run.nextWaveHpPct / 100)));
+      log(state, `Shatter: башня «${def.name}» ослаблена на −${state.run.nextWaveHpPct}% HP (${hp})`);
+      state.run.nextWaveHpPct = 0;
+    }
     state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
@@ -3421,6 +4673,7 @@ const Game = (function () {
     // Нестабильная позиция (Властелин+): один слот волны с −40% силы.
     state.combat.forbiddenSlot = Ranks.has(state, "unstable") ? Rng.current().int(1, 5) : null;
     state.combat.fightIndex = 0;
+    state.combat.movesUsed = 0; // счётчик перестановок формаций (Pudge/PA/AM/Tusk/Legion)
     state.combat.selectedUids = [];
     state.combat.outcome = null;
     state.combat.lastComboType = null;
@@ -3432,7 +4685,8 @@ const Game = (function () {
     state.run.pendingHandBonus = 0;
     state.player.fightsLeft = Ranks.fightsPerWave(state) + (route && route.fights ? route.fights : 0);
     state.combat.wave.fightsTotal = state.player.fightsLeft;
-    state.player.discardsLeft = discardsPerWave(state);
+    state.player.discardsLeft = discardsPerWave(state) + (state.run.pendingDiscardBonus || 0);
+    state.run.pendingDiscardBonus = 0; // скипетр «Jinada»: возврат сброса на эту волну
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
@@ -3480,9 +4734,31 @@ const Game = (function () {
     return cost;
   }
 
+  // Аугменты героев (docs/AGHANIMS.md): ролл предложений лавки.
+  // Осколок 🔹 — обычный товар (шанс 55% с акта 1). Скипетр 🔮 — гарантия в
+  // лавке после босса акта, с акта 2 — редкий шанс (12%). Герой — из ростера,
+  // без этого аугмента; оба слота не занимают слоты предметов.
+  function aghanimOffers(state) {
+    const equipped = state.run.aghanims || {};
+    const owned = [...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids]
+      .map((uid) => state.cards[uid].heroId);
+    const uniq = [...new Set(owned)];
+    const rng = Rng.current();
+    const offers = [];
+    const shardPool = uniq.filter((h) => !(equipped[h] && equipped[h].shard) && Content.aghanims.forHero(h, "shard"));
+    if (shardPool.length && rng.chance(0.55)) {
+      offers.push({ kind: "shard", heroId: shardPool[Math.floor(rng.next() * shardPool.length)] });
+    }
+    const scPool = uniq.filter((h) => !(equipped[h] && equipped[h].scepter) && Content.aghanims.forHero(h, "scepter"));
+    const scChance = state.run.afterBoss ? 1 : (state.run.act || 1) >= 2 ? 0.12 : 0;
+    if (scPool.length && rng.chance(scChance)) {
+      offers.push({ kind: "scepter", heroId: scPool[Math.floor(rng.next() * scPool.length)] });
+    }
+    return offers;
+  }
+
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
-  function pickRecruits(state) {
-    const owned = new Set([...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids].map((uid) => state.cards[uid].heroId));
+  function pickRecruits(state) {    const owned = new Set([...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids].map((uid) => state.cards[uid].heroId));
     const pool = Content.heroes.list.filter((h) => !h.inDeck && !owned.has(h.id)).map((h) => h.id);
     const rng = Rng.current();
     const recruits = [];
@@ -3655,6 +4931,11 @@ const Game = (function () {
             clearGold += 1;
             luckyGold = 1;
           }
+          // Скипетр «Arcane Reserve» (CM): неиспользованные сбросы волны — мана.
+          if (s.run.aghanims && s.run.aghanims.cm && s.run.aghanims.cm.scepter === "cm_sc" && s.player.discardsLeft > 0) {
+            s.run.manaReserve = Math.min(3, (s.run.manaReserve || 0) + s.player.discardsLeft);
+            log(s, `Arcane Reserve: Mana Reserve ${s.run.manaReserve}/3 (неиспользованные сбросы)`);
+          }
           s.run.gold += clearGold;
           const drawChance = Upgrades.sum(s, "extraDrawChance");
           if (drawChance && Rng.current().chance(drawChance / 100)) {
@@ -3717,6 +4998,10 @@ const Game = (function () {
         }
         s.combat.selectedUids = s.combat.selectedUids.filter((uid) => !uids.includes(uid));
         s.player.discardsLeft -= 1;
+        // Аугменты «на любой сброс» (Soul Rip Undying): заряд за ТП-сброс.
+        const aghRes = { steps: [] };
+        Triggers.runEvent(s, null, "ON_ANY_DISCARD", { playedCards: [], onlyKinds: ["aghanim"] }, aghRes);
+        aghRes.steps.forEach((st) => log(s, st.label));
         DeckSys.draw(s, Rng.current());
         assignMines(s);
         return s;
@@ -3754,6 +5039,7 @@ const Game = (function () {
         s.run.pendingFreeCommons = 0;
         s.shop.recruits = pickRecruits(s);
         s.shop.upgrades = Upgrades.generateOffers(s);
+        s.shop.aghanims = aghanimOffers(s);
         s.run.shopRerolls = 0;
         s.run.shopBuys = 0;
         s.run.loyaltyUsed = false;
@@ -3868,8 +5154,27 @@ const Game = (function () {
         return s;
       }
 
-      case "LOCK_OFFER": {
+      // Аугмент Аганима (docs/AGHANIMS.md): покупка на конкретного героя.
+      // Не занимает слоты предметов, 1 скептер + 1 осколок на героя.
+      case "BUY_AUGMENT": {
         if (s.phase !== "shop") return s;
+        const kind = action.kind === "scepter" ? "scepter" : "shard";
+        const offerIdx = (s.shop.aghanims || []).findIndex((o) => o.kind === kind && o.heroId === action.heroId);
+        if (offerIdx === -1) return s;
+        const aug = Content.aghanims.forHero(action.heroId, kind);
+        if (!aug) return s;
+        s.run.aghanims = s.run.aghanims || {};
+        s.run.aghanims[action.heroId] = s.run.aghanims[action.heroId] || {};
+        if (s.run.aghanims[action.heroId][kind]) return s;
+        if (s.run.gold < aug.cost) return s;
+        s.run.gold -= aug.cost;
+        s.run.aghanims[action.heroId][kind] = aug.id;
+        s.shop.aghanims.splice(offerIdx, 1);
+        log(s, `${aug.emoji} ${aug.name}: ${Content.heroes.byId[action.heroId].name} получает ${kind === "scepter" ? "скипетр" : "осколок"} (−${aug.cost} золота)`);
+        return s;
+      }
+
+      case "LOCK_OFFER": {        if (s.phase !== "shop") return s;
         const offer = s.shop.offers.find((o) => o.id === action.itemId);
         if (!offer) return s;
         offer.locked = !offer.locked;
@@ -3895,6 +5200,8 @@ const Game = (function () {
         if (freeReroll) cost = 0;
         if (s.phase !== "shop" || s.run.gold < cost) return s;
         s.run.shopRerolls = (s.run.shopRerolls || 0) + 1;
+        // Скипетр «Rearm Protocol» (Tinker): рероллы копятся в ядре (кап 3).
+        s.run.rerollCharges = Math.min(3, (s.run.rerollCharges || 0) + 1);
         if (freeReroll) {
           s.run.freeRerollUsed = true;
           log(s, "Магия: первый реролл лавки бесплатен");
@@ -3904,6 +5211,7 @@ const Game = (function () {
         const locked = s.shop.offers.filter((o) => o.locked);
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, locked);
         s.shop.recruits = pickRecruits(s);
+        s.shop.aghanims = aghanimOffers(s);
         return s;
       }
 
@@ -4189,6 +5497,13 @@ const Game = (function () {
           }
         }
         if (!removed) return s;
+        // Аугменты героя уходят вместе с ним (docs/AGHANIMS.md).
+        if (s.run.aghanims && s.run.aghanims[heroId]) {
+          const lost = s.run.aghanims[heroId];
+          delete s.run.aghanims[heroId];
+          log(s, `Аугменты ${Content.heroes.byId[heroId].name} потеряны: ${[lost.scepter, lost.shard].filter(Boolean).map((id) => Content.aghanims.byId[id].name).join(", ")}`);
+        }
+        if (s.run.heroCharges && s.run.heroCharges[heroId]) delete s.run.heroCharges[heroId];
         s.run.exiledHeroes = s.run.exiledHeroes || [];
         s.run.exiledHeroes.push(heroId);
         s.combat.selectedUids = s.combat.selectedUids.filter((uid) => s.cards[uid]);
@@ -4265,6 +5580,7 @@ const Game = (function () {
         }
         s.run.failedLastWave = true;
         s.combat.fightIndex = 0;
+        s.combat.movesUsed = 0;
         s.combat.outcome = null;
         s.player.fightsLeft = Ranks.fightsPerWave(s);
         s.player.discardsLeft = discardsPerWave(s);
@@ -4318,7 +5634,7 @@ const Game = (function () {
     assignMines, rankOf, heroAttr, heroLevel, maxSlots, recruitPrice, itemCost, rerollCost,
     XP_PER_LEVEL, XP_LEVEL_CAP,
     archPerk, discardsPerWave, starterDeckIds,
-    itemCapacity, itemBlockedReason, rollRouteOptions,
+    itemCapacity, itemBlockedReason, rollRouteOptions, aghanimOffers,
   };
 })();
 
@@ -4784,7 +6100,11 @@ const Upgrades = (function () {
   }
 
   function luck(state) {
-    return sum(state, "luck");
+    let l = sum(state, "luck");
+    // Осколок «Shuriken Toss» (Bounty): удача копится ласт-хитами в heroCharges.
+    const charges = state.run && state.run.heroCharges;
+    if (charges) for (const h of Object.values(charges)) l += h.luck || 0;
+    return l;
   }
 
   // Веса редкостей с удачей: common выгорает, топ подрастает.
@@ -4903,6 +6223,9 @@ const Upgrades = (function () {
 const Combat = (function () {
   const HAND_SIZE = DeckSys.HAND_SIZE;
   const MAX_SLOTS = 5;
+  // Герои и их аугменты (docs/AGHANIMS.md) бегут одной фазой: глушатся
+  // «Безмолвием» вместе и обновляются Refresher'ом вместе.
+  const HERO_KINDS = ["hero", "aghanim"];
 
   // Ставка: сколько героев отправил в бой. 2-3 героя — нейтрально.
   const COMMIT_TIERS = {
@@ -4939,14 +6262,24 @@ const Combat = (function () {
     playedCards.forEach((card, slotIndex) => {
       if (card.illusion) return;
       const hero = Content.heroes.byId[card.heroId];
-      if (hero.ability && hero.ability.event === "PRE_DETECT") {
-        effects.push({ effect: hero.ability.effects[0], card, slotIndex, sourceName: hero.name });
+      // Аугменты героя (docs/AGHANIMS.md): PRE_DETECT-осколки/скептеры.
+      // Скипетр с override заменяет базовую PRE_DETECT-способность.
+      const owned = state.run.aghanims && state.run.aghanims[hero.id];
+      const scDef = owned && owned.scepter ? Content.aghanims.byId[owned.scepter] : null;
+      if (hero.ability && !(scDef && scDef.override) && hero.ability.event === "PRE_DETECT") {
+        effects.push({ effect: hero.ability.effects[0], card, slotIndex, sourceName: hero.name, sourceId: hero.id });
+      }
+      for (const kind of ["scepter", "shard"]) {
+        const aug = owned && owned[kind] ? Content.aghanims.byId[owned[kind]] : null;
+        if (aug && aug.ability && aug.ability.event === "PRE_DETECT") {
+          effects.push({ effect: aug.ability.effects[0], card, slotIndex, sourceName: aug.name, sourceId: hero.id });
+        }
       }
     });
     state.player.items.forEach((itemId) => {
       const item = Content.items.byId[itemId];
       if (item.ability && item.ability.event === "PRE_DETECT") {
-        effects.push({ effect: item.ability.effects[0], card: null, slotIndex: -1, sourceName: item.name });
+        effects.push({ effect: item.ability.effects[0], card: null, slotIndex: -1, sourceName: item.name, sourceId: item.id });
       }
     });
     return effects;
@@ -4961,7 +6294,7 @@ const Combat = (function () {
     let strongestBump = 0;
     let bumpSource = null;
 
-    for (const { effect, card, slotIndex, sourceName } of collectPreDetectEffects(state, effective)) {
+    for (const { effect, card, slotIndex, sourceName, sourceId } of collectPreDetectEffects(state, effective)) {
       switch (effect.type) {
         case "COPY_ATTRIBUTE": {
           const right = effect.target === "right_neighbor";
@@ -4980,15 +6313,98 @@ const Combat = (function () {
                 from: effective[slotIndex].attr,
                 to: neighbor.attr,
               });
+              effective[slotIndex].baseAttr = effective[slotIndex].attr;
               effective[slotIndex].attr = neighbor.attr;
             }
+          break;
+        }
+        case "COPY_ATTRIBUTE_FALLBACK": {
+          // Осколок «Waveform» (Morphling): слева пусто — копируем правого.
+          if (slotIndex === 0 && effective.length > 1 && effective[1].attr !== effective[0].attr) {
+            Resolver.pushStep(resolution, {
+              icon: "🟣",
+              label: `${sourceName}: слева пусто — копирует «${Content.attrNames[effective[1].attr]}» у ${Content.heroes.byId[effective[1].heroId].name}`,
+              kind: "aghanim",
+            });
+            effective[0].baseAttr = effective[0].attr;
+            effective[0].attr = effective[1].attr;
+            copyLog.push({ uid: effective[0].uid, heroId: effective[0].heroId, from: effective[0].baseAttr, to: effective[1].attr });
+          }
+          break;
+        }
+        case "KEEP_NATIVE_ATTR": {
+          // Скипетр «Attribute Shift» (Morphling): карта «двух цветов» для условий.
+          const native = effective[slotIndex].baseAttr || effective[slotIndex].attr;
+          if (native !== effective[slotIndex].attr) {
+            effective[slotIndex].nativeAttr = native;
+            Resolver.pushStep(resolution, {
+              icon: "🟣",
+              label: `${sourceName}: помнит родной ${Content.attrNames[native]} — карта двух атрибутов`,
+              kind: "aghanim",
+            });
+          }
+          break;
+        }
+        case "MIRROR_RANK": {
+          // Скипетр «Reflection» (Terrorblade): в детекции считается рангом
+          // правого соседа (сила остаётся своей).
+          const neighbor = slotIndex < effective.length - 1 ? effective[slotIndex + 1] : null;
+          if (neighbor) {
+            const target = neighbor.detectPower != null ? neighbor.detectPower : neighbor.power;
+            if (target !== effective[slotIndex].power) {
+              effective[slotIndex].detectPower = target;
+              Resolver.pushStep(resolution, {
+                icon: "🟣",
+                label: `${sourceName}: в комбо считается рангом ${Content.heroes.byId[neighbor.heroId].name} (${target})`,
+                kind: "aghanim",
+              });
+            }
+          }
+          break;
+        }
+        case "STEAL_ATTR": {
+          // Скипетр «Essence Shift+» (Slark): крадёт атрибут соседа слева —
+          // карта двух атрибутов (родной + украденный) для всех условий.
+          const neighbor = slotIndex > 0 ? effective[slotIndex - 1] : null;
+          if (neighbor && neighbor.attr !== effective[slotIndex].attr) {
+            effective[slotIndex].baseAttr = effective[slotIndex].attr;
+            effective[slotIndex].nativeAttr = effective[slotIndex].attr;
+            effective[slotIndex].attr = neighbor.attr;
+            Resolver.pushStep(resolution, {
+              icon: "🟣",
+              label: `${sourceName}: крадёт «${Content.attrNames[neighbor.attr]}» у ${Content.heroes.byId[neighbor.heroId].name}`,
+              kind: "aghanim",
+            });
+          }
+          break;
+        }
+        case "ILLUSION_RATIO": {
+          // Осколок «Malefice» (Enigma): его иллюзия 75% силы вместо 50%.
+          if (state.combat.scoring && sourceId === "enigma") {
+            state.combat.scoring.flags.enigmaRatio = effect.value;
+            Resolver.pushStep(resolution, { icon: "🟣", label: `${sourceName}: иллюзия ${Math.round(effect.value * 100)}% силы`, kind: "aghanim" });
+          }
           break;
         }
         case "CREATE_ILLUSION": {
           const strongest = effective.reduce((a, b) => (b.power > a.power ? b : a), effective[0]);
           if (strongest) {
-            pendingIllusions.push({ sourceName, of: strongest, ratio: effect.powerRatio || 0.5 });
+            const ratio = sourceId === "enigma" && state.combat.scoring && state.combat.scoring.flags.enigmaRatio
+              ? state.combat.scoring.flags.enigmaRatio
+              : (effect.powerRatio || 0.5);
+            pendingIllusions.push({ sourceName, of: strongest, ratio, fullRank: !!effect.fullRank, sourceId });
           }
+          break;
+        }
+        case "ILLUSION_ATTR": {
+          // Осколок PL: иллюзии этого боя считаются заданным атрибутом.
+          // Флаг читается при материализации иллюзий (ниже).
+          if (state.combat.scoring) state.combat.scoring.flags.illusionAttr = effect.attr;
+          Resolver.pushStep(resolution, {
+            icon: "🟣",
+            label: `${sourceName}: иллюзии этого боя считаются «${Content.attrNames[effect.attr]}»`,
+            kind: "aghanim",
+          });
           break;
         }
         case "WILD_RANK": {
@@ -5004,14 +6420,16 @@ const Combat = (function () {
     }
 
     // Illusions join the effective set (half power, count for combos, never trigger).
-    for (const { sourceName, of, ratio } of pendingIllusions) {
+    for (const { sourceName, of, ratio, fullRank } of pendingIllusions) {
       const illusionPower = Math.floor(of.power * ratio);
+      const illusionAttr = (state.combat.scoring && state.combat.scoring.flags.illusionAttr) || of.attr;
       effective.push({
         uid: "illusion_" + of.uid,
         heroId: of.heroId,
         power: illusionPower,
-        detectPower: of.detectPower != null ? of.detectPower : of.power,
-        attr: of.attr,
+        // Скипетр «Demonic Conversion» (Enigma): детекция видит ПОЛНЫЙ ранг.
+        detectPower: fullRank ? of.power : (of.detectPower != null ? of.detectPower : of.power),
+        attr: illusionAttr,
         illusion: true,
       });
       Resolver.pushStep(resolution, {
@@ -5168,6 +6586,22 @@ const Combat = (function () {
     played.forEach((c, i) => (c.slotIndex = i));
 
     state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb"), lastHitGold: 0 } };
+    // Скипетр- и осколок-правила боя (preFlag): до триггеров, без порядка слотов.
+    for (const card of played) {
+      const owned = state.run.aghanims && state.run.aghanims[card.heroId];
+      if (!owned) continue;
+      for (const kind of ["scepter", "shard"]) {
+        const aug = owned[kind] ? Content.aghanims.byId[owned[kind]] : null;
+        if (aug && aug.preFlag) {
+          Object.assign(state.combat.scoring.flags, aug.preFlag);
+          Resolver.pushStep(resolution, {
+            icon: "🟣",
+            label: `${aug.name}: ${aug.preFlag.uniWildcard ? "Универсалы — джокеры атрибутов для условий" : aug.desc}`,
+            kind: "aghanim",
+          });
+        }
+      }
+    }
     // Аудит силы (фаза D): слои урона для tests/audit.mjs.
     state.combat.scoring.trace = {
       played: played.length,
@@ -5326,8 +6760,8 @@ const Combat = (function () {
     state.combat.scoring.trace.cardsPower = cardPowerSum;
     state.combat.scoring.trace.comboMult = combo.baseMult;
 
-    // 4. Hero triggers.
-    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, silenced ? [] : ["hero"]);
+    // 4. Hero triggers (+ аугменты героев).
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, silenced ? [] : HERO_KINDS);
 
     // 5. Item triggers.
     runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["item"]);
@@ -5337,7 +6771,7 @@ const Combat = (function () {
 
     // 6. Refresher: hero triggers again.
     if (state.combat.scoring.flags.refreshHeroTriggers && !silenced) {
-      runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: ["hero"], refreshed: true }, ["hero"]);
+      runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: HERO_KINDS, refreshed: true }, HERO_KINDS);
     }
 
     // 6.5 Ставка: чем больше отряд, тем жирнее удар.
@@ -5460,6 +6894,15 @@ const Combat = (function () {
       if (s.trace) s.trace.finalMult.push({ source: "Улучшения лавки", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
       Resolver.pushStep(resolution, { icon: "🔧", label: `Улучшения лавки: +${dmgPct}% урона`, kind: "info" });
     }
+    // Эхо-аугменты (Multicast+ Огра, Echo Strike ПА): повтор части урона.
+    if (!resolution.blocked && s.flags.echoPower && !state.simulate) {
+      const echo = s.flags.echoPower;
+      if (Rng.current().chance(echo.chance / 100)) {
+        const extra = Math.max(1, Math.floor(damage * echo.pct / 100));
+        damage += extra;
+        Resolver.pushStep(resolution, { icon: "🟣", label: `Эхо: +${extra} урона (${echo.pct}% повтор)`, kind: "aghanim" });
+      }
+    }
     // Осада (TOWER_BURN): чистый добор поверх удара, глиф блокирует всё.
     if (!resolution.blocked && s.flags.towerBurn) {
       damage += s.flags.towerBurn;
@@ -5540,6 +6983,33 @@ const Combat = (function () {
         gold += 2;
         Resolver.pushStep(resolution, { icon: "💀", label: "Отряд «Крит»: +2 золота за точный ласт-хит", kind: "gold" });
       }
+      // Скипетр «Jinada» (Bounty): ласт-хит возвращает ТП-сброс на следующую волну.
+      if (s.flags.refundDiscards) {
+        state.run.pendingDiscardBonus = (state.run.pendingDiscardBonus || 0) + s.flags.refundDiscards;
+        Resolver.pushStep(resolution, { icon: "🟣", label: `Jinada: +${s.flags.refundDiscards} ТП-сброс на следующую волну`, kind: "aghanim" });
+      }
+      // Осколок «Shuriken Toss» (Bounty): ласт-хит копит удачу (кап).
+      const luckHit = s.flags.luckOnLastHit;
+      if (luckHit) {
+        const charges = state.run.heroCharges;
+        charges[luckHit.heroId] = charges[luckHit.heroId] || {};
+        const before = charges[luckHit.heroId].luck || 0;
+        if (before < luckHit.cap) {
+          charges[luckHit.heroId].luck = Math.min(luckHit.cap, before + 1);
+          Resolver.pushStep(resolution, { icon: "🟣", label: `Shuriken Toss: удача ${charges[luckHit.heroId].luck}/${luckHit.cap}`, kind: "aghanim" });
+        }
+      }
+      // Скипетр «Duel+» (Legion): точный ласт-хит — Duel stack.
+      const duel = s.flags.chargeOnLastHit;
+      if (duel) {
+        const charges = state.run.heroCharges;
+        charges[duel.heroId] = charges[duel.heroId] || {};
+        const before = charges[duel.heroId].count || 0;
+        if (before < duel.cap) {
+          charges[duel.heroId].count = Math.min(duel.cap, before + 1);
+          Resolver.pushStep(resolution, { icon: "🟣", label: `Duel stack: ${charges[duel.heroId].count}/${duel.cap}`, kind: "aghanim" });
+        }
+      }
     }
     if (commit && commit.gold) {
       gold += commit.gold;
@@ -5554,6 +7024,12 @@ const Combat = (function () {
     state.stats.totalDamage += damage;
     if (damage > state.stats.biggestHit) state.stats.biggestHit = damage;
 
+    // Скипетр «Shatter» (AA): зачистка волны ослабляет следующую башню акта.
+    if (!state.simulate && resolution.killed && s.flags.nextWaveHpPct) {
+      state.run.nextWaveHpPct = Math.min(30, (state.run.nextWaveHpPct || 0) + s.flags.nextWaveHpPct);
+      Resolver.pushStep(resolution, { icon: "🟣", label: `Shatter: следующая башня акта начнёт с −${state.run.nextWaveHpPct}% HP`, kind: "aghanim" });
+    }
+
     // Аудит силы: итоги боя в структурный след (tests/audit.mjs).
     state.combat.scoring.trace.damage = damage;
     state.combat.scoring.trace.gold = gold;
@@ -5566,6 +7042,16 @@ const Combat = (function () {
     state.player.fightsLeft -= 1;
     state.combat.fightIndex += 1;
     state.combat.lastComboType = combo.type; // для проклятия «Адаптация» и памяти башен
+    // Разнообразие и серии комбо за забег: Zeus/Kunkka читают набор типов,
+    // Juggernaut — длину серии одинаковых подряд.
+    state.run.comboTypes = state.run.comboTypes || {};
+    state.run.comboTypes[combo.type] = 1;
+    state.run.comboStreak = state.run.lastComboTypeRaw === combo.type ? (state.run.comboStreak || 1) + 1 : 1;
+    state.run.lastComboTypeRaw = combo.type;
+    // Память слотов: скипетр «Overload» (Storm, шаг 3) сравнивает позицию
+    // героя с прошлым боем.
+    state.combat.lastSlot = state.combat.lastSlot || {};
+    for (const card of played) state.combat.lastSlot[card.heroId] = card.slotIndex;
     // Последовательность (#47): состав пачки для запрета повтора.
     state.combat.wave.lastFightHeroes = played.map((c) => c.heroId);
     // Плавающие позиции (#64): рука перемешивается после боя.
@@ -5584,15 +7070,21 @@ const Combat = (function () {
       let xpGain = resolution.killed ? 2 : 1;
       const closeWin = resolution.killed && (overkill === 0 || overkill < tower.maxHp * 0.1);
       if (closeWin) xpGain += Upgrades.sum(state, "inspireXp");
+      // Скипетр «Burn the Racks» (Huskar): зачистка с потерянной казармой — +XP.
+      const grantXp = state.combat.scoring.flags.grantXpOnClear;
+      const racksBurned = grantXp && resolution.killed && state.run.barracks < Game.BARRACKS_MAX;
       for (const card of played) {
         const hid = card.heroId;
         const before = Game.heroLevel(state, hid);
         state.run.heroXp = state.run.heroXp || {};
-        state.run.heroXp[hid] = (state.run.heroXp[hid] || 0) + xpGain;
+        state.run.heroXp[hid] = (state.run.heroXp[hid] || 0) + xpGain + (racksBurned ? grantXp : 0);
         const after = Game.heroLevel(state, hid);
         if (after > before) {
           Resolver.pushStep(resolution, { icon: "🌱", label: `${Content.heroes.byId[hid].name} растёт: уровень ${after} (+1 сила)`, kind: "info" });
         }
+      }
+      if (racksBurned) {
+        Resolver.pushStep(resolution, { icon: "🟣", label: `Burn the Racks: казармы = опыт, героям боя +${grantXp} XP`, kind: "aghanim" });
       }
     }
     state.combat.lastResolution = resolution;
@@ -6442,6 +7934,11 @@ const Art = (function () {
     ].join(" ");
     const lvl = Game.heroLevel(state, hero.id);
     const xp = (state.run.heroXp || {})[hero.id] || 0;
+    const augs = (state.run.aghanims || {})[hero.id];
+    const augBadges = augs ? ["scepter", "shard"].filter((k) => augs[k]).map((k) => {
+      const a = Content.aghanims.byId[augs[k]];
+      return `<span class="augh-mark" data-tip>${a.emoji}<span class="pop"><strong>${a.emoji} ${a.name}</strong><p>${esc(a.desc)}</p><small>${k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима"}</small></span></span>`;
+    }).join("") : "";
     const trained = rank !== hero.power;
     const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
     const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
@@ -6458,7 +7955,7 @@ const Art = (function () {
       </div>
       <div class="hero-card-bottom">
         <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
-        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
+        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${augBadges}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
       <span class="hero-tooltip">
@@ -7018,18 +8515,14 @@ const Art = (function () {
     }).join("")}</div>`;
   }
 
-  // Выбор ядра скоринга (state.rules). Один и тот же блок на титульном экране
-  // и в окне «Новый забег» — режим применяется к следующему запускаемому забегу.
-  function rulesToggleHtml(active) {    const rules = active === "formation" ? "formation" : "classic";
+  // Ядро скоринга одно — формации. Тумблер «Классика/Формации» выпилен:
+  // блок на титульном экране просто объясняет правила игры.
+  function rulesBlockHtml() {
     return `<div class="title-rules">
-      <button class="rule-choice ${rules === "classic" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="classic">
-        <strong>Классика</strong>
-        <small>Покерные комбо: пары, сеты, стриты. Сила × множитель = урон.</small>
-      </button>
-      <button class="rule-choice ${rules === "formation" ? "active-rule" : ""}" data-action="toggle-rules" data-rules="formation">
-        <strong>Формации <span class="rule-beta">эксперимент</span></strong>
+      <div class="rule-choice active-rule">
+        <strong>Формации</strong>
         <small>Строй тимфайт: порядок слотов решает, связки складываются все, урон встречает броню башни.</small>
-      </button>
+      </div>
     </div>`;
   }
 
@@ -7067,7 +8560,6 @@ const Art = (function () {
   // ---------- screens ----------
 
   function renderTitle(state) {
-    const rules = UIState.rulesDraft === "formation" ? "formation" : "classic";
     app().innerHTML = `
     <div class="title-screen">
       <div class="title-bg"></div>
@@ -7081,7 +8573,7 @@ const Art = (function () {
           <span class="equals">=</span>
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
-        ${rulesToggleHtml(UIState.rulesDraft)}
+        ${rulesBlockHtml()}
         <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
         ${starterPickerHtml()}
         <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
@@ -7093,7 +8585,7 @@ const Art = (function () {
         <div class="title-links">
           <button class="subtle-button" data-action="onboard-start">${icon("book", 13)}Как играть — 5 шагов</button>
           <span class="keyboard-divider">·</span>
-          <span class="title-hint">${rules === "formation" ? "Собирай формации из героев Dota: порядок слотов решает" : "Собирай покерные комбинации из героев Dota и сноси башни"}</span>
+          <span class="title-hint">Собирай формации из героев Dota: порядок слотов решает</span>
         </div>
       </div>
     </div>
@@ -7303,6 +8795,20 @@ const Art = (function () {
             <div class="shop-section-title"><h3>Предметы торговца</h3>
               <button class="secondary-button" data-action="reroll" ${state.run.gold >= Game.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Game.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
+            ${(state.shop.aghanims || []).length ? `<div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">герой-персональные · не занимают слоты предметов · 1+1 на героя</small></h3></div>
+            <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">${state.shop.aghanims.map((o) => {
+    const aug = Content.aghanims.forHero(o.heroId, o.kind);
+    const hero = Content.heroes.byId[o.heroId];
+    const afford = state.run.gold >= aug.cost;
+    return `<div class="upgrade-card ${o.kind === "scepter" ? "mythic" : "rare"}" data-tip>
+                <span class="upgrade-emoji">${aug.emoji}</span>
+                <div class="upgrade-info"><strong>${aug.name} <small>· ${hero.name}</small></strong><small>${esc(aug.desc)}</small></div>
+                <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-augh" data-hero="${o.heroId}" data-kind="${o.kind}">
+                  <span>${afford ? "Купить" : "Дорого"}</span><span>${aug.cost} ${icon("coins", 12)}</span>
+                </button>
+                <span class="pop"><strong>${aug.emoji} ${aug.name} — ${hero.name}</strong><p>${esc(aug.desc)}</p><small>${o.kind === "scepter" ? "Скипетр: меняет поведение героя" : "Осколок: малое изменение паттерна"} · остаётся до увольнения героя</small></span>
+              </div>`;
+  }).join("")}</div>` : ""}
             <div class="shop-upgrades">
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
                 <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
@@ -7675,24 +9181,16 @@ const Art = (function () {
 
   function helpModalHtml(state) {
     const steps = onboardingSteps();
-    const formationMode = state.rules === "formation";
-    const comboRows = formationMode
-      ? Content.formations.list.map((f) => `<div><span><strong>${f.name}</strong><small>${Content.damageTypeNames[f.damageType] || f.damageType}${f.positional ? " · порядок" : ""}</small></span><span>${f.rule}</span>
+    const comboRows = Content.formations.list.map((f) => `<div><span><strong>${f.name}</strong><small>${Content.damageTypeNames[f.damageType] || f.damageType}${f.positional ? " · порядок" : ""}</small></span><span>${f.rule}</span>
           <span><b class="mint">${f.basePower}</b><span class="table-x">✕</span><b class="gold">${f.baseMult}</b></span></div>`).join("")
       + Content.bonds.list.map((b) => {
         const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
         return `<div><span><strong>Связка «${b.trait}»</strong><small>складывается</small></span><span>${val || "—"}</span>
           <span><b class="gold">${val}</b></span></div>`;
-      }).join("")
-      : Content.combos.list.map((c) => {
-        const meta = COMBO_META[c.id];
-        return `<div><span><strong>${c.name}</strong><small>${meta.poker}</small></span><span>${meta.rule}</span>
-          <span><b class="mint">${c.basePower}</b><span class="table-x">✕</span><b class="gold">${c.baseMult}</b></span></div>`;
       }).join("");
     return `<span class="section-label mint">${icon("book", 15)}СПРАВОЧНИК</span>
-      <h2>${formationMode ? "Формации. Порядок решает." : "Покерные правила. Дотовские привычки."}</h2>
-      ${formationMode ? `<p class="modal-description">Формация — одна лучшая по итоговому урону против цели: часть правил читает порядок слотов. Связки активны все сразу и складываются. Тип урона встречается с защитой башни: физический — минус броня, магический — минус сопротивление, чистый — игнорирует всё. Альтернативы и связки видны в панели справа.</p>` : `
-      <p class="modal-description">Собери до ${Combat.MAX_SLOTS} героев: ранг даёт силу и собирает комбо, атрибут (цвет) собирает флеш, порядок клика — позиции. Сила × множитель = урон по башне.</p>`}
+      <h2>Формации. Порядок решает.</h2>
+      <p class="modal-description">Формация — одна лучшая по итоговому урону против цели: часть правил читает порядок слотов. Связки активны все сразу и складываются. Тип урона встречается с защитой башни: физический — минус броня, магический — минус сопротивление, чистый — игнорирует всё. Альтернативы и связки видны в панели справа.</p>
       <div class="help-steps">${steps.map((s, i) => `<div><span>0${i + 1}</span><strong>${s.title}</strong><p>${s.body}</p></div>`).join("")}</div>
       <div class="combo-table">
         <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>
@@ -7742,6 +9240,10 @@ const Art = (function () {
             <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}${(state.run.heroXp || {})[hr.id] ? ` · опыт ${(state.run.heroXp || {})[hr.id]} (ур. ${Game.heroLevel(state, hr.id)})` : ""}</span>
             <p>${heroDesc(hr)}</p>
             <small class="gold">${where}</small>
+            ${(state.run.aghanims || {})[hr.id] ? `<small class="augh-lab">${["scepter", "shard"].filter((k) => state.run.aghanims[hr.id][k]).map((k) => {
+      const a = Content.aghanims.byId[state.run.aghanims[hr.id][k]];
+      return `${a.emoji} <b>${a.name}</b> — ${esc(a.desc)}`;
+    }).join("<br>")}</small>` : ""}
             ${labMode ? `<div class="attr-change-row">${["str", "agi", "int", "uni"].map((a) => {
       const cur = Game.heroAttr(state, hr.id);
       const has = (state.run.attrCharges || 0) > 0;
@@ -7813,12 +9315,9 @@ const Art = (function () {
   }
 
   function newRunModalHtml() {
-    const current = UIState.rulesDraft === "formation" ? "formation" : "classic";
     return `<div class="reset-icon">${icon("rotate", 28)}</div>
       <h2>Ещё один забег?</h2>
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
-      <span class="section-label">ЯДРО СКОРИНГА НОВОГО ЗАБЕГА</span>
-      ${rulesToggleHtml(current)}
       <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
       ${starterPickerHtml()}
       <span class="section-label">РАНГ СЛОЖНОСТИ</span>
@@ -8152,6 +9651,9 @@ const Art = (function () {
       const [moved] = uids.splice(from, 1);
       uids.splice(to, 0, moved);
     }
+    // Счётчик перестановок формаций: кормит скипетры Pudge/Axe и шарды
+    // PA/Legion/Anti-Mage/Tusk (docs/AGHANIMS.md).
+    state.combat.movesUsed = (state.combat.movesUsed || 0) + 1;
     rerender();
   }
 
@@ -8198,9 +9700,9 @@ const Art = (function () {
   });
 
   function startRun(seedCode) {
-    // Правила: URL ?rules=formation приоритетнее тумблера на титульном экране.
-    const urlRules = new URLSearchParams(location.search).get("rules");
-    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: urlRules || UI.UIState.rulesDraft, rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
+    // Ядро скоринга одно — формации. Тумблер и ?rules= выпилены:
+    // какой-либо выбор режима больше не предусмотрен.
+    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: "formation", rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
     UI.UIState.unlockBanner = null;
     saveState();
     if (!localStorage.getItem(ONBOARD_KEY)) {
@@ -8221,10 +9723,6 @@ const Art = (function () {
         break;
       }
       case "select": Sfx.play("select"); dispatchAndRender({ type: "SELECT_CARD", uid: el.dataset.uid }); break;
-      case "toggle-rules":
-        UI.UIState.rulesDraft = el.dataset.rules;
-        rerender();
-        break;
       case "pick-rank":
         UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, Number(el.dataset.rank) || 1));
         Sfx.play("select");
@@ -8284,6 +9782,14 @@ const Art = (function () {
         dispatchAndRender({ type: "BUY_RECRUIT", heroId: el.dataset.id });
         UI.toast(state, "Герой нанят — он в колоде");
         break;
+      case "buy-augh": {
+        Sfx.play("buy");
+        const kindWord = el.dataset.kind === "scepter" ? "Скипетр" : "Осколок";
+        dispatchAndRender({ type: "BUY_AUGMENT", heroId: el.dataset.hero, kind: el.dataset.kind });
+        const aug = Content.aghanims.forHero(el.dataset.hero, el.dataset.kind);
+        if (aug) UI.toast(state, `${kindWord} «${aug.name}» — ${Content.heroes.byId[el.dataset.hero].name}`);
+        break;
+      }
       case "exile":
         Sfx.play("discard");
         dispatchAndRender({ type: "EXILE_HERO", heroId: el.dataset.id });

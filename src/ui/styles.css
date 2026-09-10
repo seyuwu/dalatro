@@ -1197,3 +1197,8 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .unlock-banner b { letter-spacing: .5px; }
 /* цена предмета с ранговыми эффектами */
 .price-note { display: block; text-align: center; font-size: 9.5px; color: #d8a56b; margin: -4px 0 6px; }
+
+/* аугменты Аганима (docs/AGHANIMS.md): бейджи на карточках героев и в лаборатории */
+.augh-mark { display: inline-block; font-size: 9px; margin-left: 3px; vertical-align: 1px; filter: drop-shadow(0 0 3px rgba(186,104,200,.75)); cursor: help; }
+.augh-lab { display: block; margin-top: 4px; padding: 6px 8px; border: 1px solid #6b4a78; border-radius: 7px; background: #221826; color: #cfa9dd; font-size: 10.5px; line-height: 1.5; }
+.augh-lab b { color: #e3c6ef; }

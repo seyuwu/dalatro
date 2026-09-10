@@ -17,6 +17,9 @@
 const Combat = (function () {
   const HAND_SIZE = DeckSys.HAND_SIZE;
   const MAX_SLOTS = 5;
+  // Герои и их аугменты (docs/AGHANIMS.md) бегут одной фазой: глушатся
+  // «Безмолвием» вместе и обновляются Refresher'ом вместе.
+  const HERO_KINDS = ["hero", "aghanim"];
 
   // Ставка: сколько героев отправил в бой. 2-3 героя — нейтрально.
   const COMMIT_TIERS = {
@@ -53,14 +56,24 @@ const Combat = (function () {
     playedCards.forEach((card, slotIndex) => {
       if (card.illusion) return;
       const hero = Content.heroes.byId[card.heroId];
-      if (hero.ability && hero.ability.event === "PRE_DETECT") {
-        effects.push({ effect: hero.ability.effects[0], card, slotIndex, sourceName: hero.name });
+      // Аугменты героя (docs/AGHANIMS.md): PRE_DETECT-осколки/скептеры.
+      // Скипетр с override заменяет базовую PRE_DETECT-способность.
+      const owned = state.run.aghanims && state.run.aghanims[hero.id];
+      const scDef = owned && owned.scepter ? Content.aghanims.byId[owned.scepter] : null;
+      if (hero.ability && !(scDef && scDef.override) && hero.ability.event === "PRE_DETECT") {
+        effects.push({ effect: hero.ability.effects[0], card, slotIndex, sourceName: hero.name, sourceId: hero.id });
+      }
+      for (const kind of ["scepter", "shard"]) {
+        const aug = owned && owned[kind] ? Content.aghanims.byId[owned[kind]] : null;
+        if (aug && aug.ability && aug.ability.event === "PRE_DETECT") {
+          effects.push({ effect: aug.ability.effects[0], card, slotIndex, sourceName: aug.name, sourceId: hero.id });
+        }
       }
     });
     state.player.items.forEach((itemId) => {
       const item = Content.items.byId[itemId];
       if (item.ability && item.ability.event === "PRE_DETECT") {
-        effects.push({ effect: item.ability.effects[0], card: null, slotIndex: -1, sourceName: item.name });
+        effects.push({ effect: item.ability.effects[0], card: null, slotIndex: -1, sourceName: item.name, sourceId: item.id });
       }
     });
     return effects;
@@ -75,7 +88,7 @@ const Combat = (function () {
     let strongestBump = 0;
     let bumpSource = null;
 
-    for (const { effect, card, slotIndex, sourceName } of collectPreDetectEffects(state, effective)) {
+    for (const { effect, card, slotIndex, sourceName, sourceId } of collectPreDetectEffects(state, effective)) {
       switch (effect.type) {
         case "COPY_ATTRIBUTE": {
           const right = effect.target === "right_neighbor";
@@ -94,15 +107,98 @@ const Combat = (function () {
                 from: effective[slotIndex].attr,
                 to: neighbor.attr,
               });
+              effective[slotIndex].baseAttr = effective[slotIndex].attr;
               effective[slotIndex].attr = neighbor.attr;
             }
+          break;
+        }
+        case "COPY_ATTRIBUTE_FALLBACK": {
+          // Осколок «Waveform» (Morphling): слева пусто — копируем правого.
+          if (slotIndex === 0 && effective.length > 1 && effective[1].attr !== effective[0].attr) {
+            Resolver.pushStep(resolution, {
+              icon: "🟣",
+              label: `${sourceName}: слева пусто — копирует «${Content.attrNames[effective[1].attr]}» у ${Content.heroes.byId[effective[1].heroId].name}`,
+              kind: "aghanim",
+            });
+            effective[0].baseAttr = effective[0].attr;
+            effective[0].attr = effective[1].attr;
+            copyLog.push({ uid: effective[0].uid, heroId: effective[0].heroId, from: effective[0].baseAttr, to: effective[1].attr });
+          }
+          break;
+        }
+        case "KEEP_NATIVE_ATTR": {
+          // Скипетр «Attribute Shift» (Morphling): карта «двух цветов» для условий.
+          const native = effective[slotIndex].baseAttr || effective[slotIndex].attr;
+          if (native !== effective[slotIndex].attr) {
+            effective[slotIndex].nativeAttr = native;
+            Resolver.pushStep(resolution, {
+              icon: "🟣",
+              label: `${sourceName}: помнит родной ${Content.attrNames[native]} — карта двух атрибутов`,
+              kind: "aghanim",
+            });
+          }
+          break;
+        }
+        case "MIRROR_RANK": {
+          // Скипетр «Reflection» (Terrorblade): в детекции считается рангом
+          // правого соседа (сила остаётся своей).
+          const neighbor = slotIndex < effective.length - 1 ? effective[slotIndex + 1] : null;
+          if (neighbor) {
+            const target = neighbor.detectPower != null ? neighbor.detectPower : neighbor.power;
+            if (target !== effective[slotIndex].power) {
+              effective[slotIndex].detectPower = target;
+              Resolver.pushStep(resolution, {
+                icon: "🟣",
+                label: `${sourceName}: в комбо считается рангом ${Content.heroes.byId[neighbor.heroId].name} (${target})`,
+                kind: "aghanim",
+              });
+            }
+          }
+          break;
+        }
+        case "STEAL_ATTR": {
+          // Скипетр «Essence Shift+» (Slark): крадёт атрибут соседа слева —
+          // карта двух атрибутов (родной + украденный) для всех условий.
+          const neighbor = slotIndex > 0 ? effective[slotIndex - 1] : null;
+          if (neighbor && neighbor.attr !== effective[slotIndex].attr) {
+            effective[slotIndex].baseAttr = effective[slotIndex].attr;
+            effective[slotIndex].nativeAttr = effective[slotIndex].attr;
+            effective[slotIndex].attr = neighbor.attr;
+            Resolver.pushStep(resolution, {
+              icon: "🟣",
+              label: `${sourceName}: крадёт «${Content.attrNames[neighbor.attr]}» у ${Content.heroes.byId[neighbor.heroId].name}`,
+              kind: "aghanim",
+            });
+          }
+          break;
+        }
+        case "ILLUSION_RATIO": {
+          // Осколок «Malefice» (Enigma): его иллюзия 75% силы вместо 50%.
+          if (state.combat.scoring && sourceId === "enigma") {
+            state.combat.scoring.flags.enigmaRatio = effect.value;
+            Resolver.pushStep(resolution, { icon: "🟣", label: `${sourceName}: иллюзия ${Math.round(effect.value * 100)}% силы`, kind: "aghanim" });
+          }
           break;
         }
         case "CREATE_ILLUSION": {
           const strongest = effective.reduce((a, b) => (b.power > a.power ? b : a), effective[0]);
           if (strongest) {
-            pendingIllusions.push({ sourceName, of: strongest, ratio: effect.powerRatio || 0.5 });
+            const ratio = sourceId === "enigma" && state.combat.scoring && state.combat.scoring.flags.enigmaRatio
+              ? state.combat.scoring.flags.enigmaRatio
+              : (effect.powerRatio || 0.5);
+            pendingIllusions.push({ sourceName, of: strongest, ratio, fullRank: !!effect.fullRank, sourceId });
           }
+          break;
+        }
+        case "ILLUSION_ATTR": {
+          // Осколок PL: иллюзии этого боя считаются заданным атрибутом.
+          // Флаг читается при материализации иллюзий (ниже).
+          if (state.combat.scoring) state.combat.scoring.flags.illusionAttr = effect.attr;
+          Resolver.pushStep(resolution, {
+            icon: "🟣",
+            label: `${sourceName}: иллюзии этого боя считаются «${Content.attrNames[effect.attr]}»`,
+            kind: "aghanim",
+          });
           break;
         }
         case "WILD_RANK": {
@@ -118,14 +214,16 @@ const Combat = (function () {
     }
 
     // Illusions join the effective set (half power, count for combos, never trigger).
-    for (const { sourceName, of, ratio } of pendingIllusions) {
+    for (const { sourceName, of, ratio, fullRank } of pendingIllusions) {
       const illusionPower = Math.floor(of.power * ratio);
+      const illusionAttr = (state.combat.scoring && state.combat.scoring.flags.illusionAttr) || of.attr;
       effective.push({
         uid: "illusion_" + of.uid,
         heroId: of.heroId,
         power: illusionPower,
-        detectPower: of.detectPower != null ? of.detectPower : of.power,
-        attr: of.attr,
+        // Скипетр «Demonic Conversion» (Enigma): детекция видит ПОЛНЫЙ ранг.
+        detectPower: fullRank ? of.power : (of.detectPower != null ? of.detectPower : of.power),
+        attr: illusionAttr,
         illusion: true,
       });
       Resolver.pushStep(resolution, {
@@ -282,6 +380,22 @@ const Combat = (function () {
     played.forEach((c, i) => (c.slotIndex = i));
 
     state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb"), lastHitGold: 0 } };
+    // Скипетр- и осколок-правила боя (preFlag): до триггеров, без порядка слотов.
+    for (const card of played) {
+      const owned = state.run.aghanims && state.run.aghanims[card.heroId];
+      if (!owned) continue;
+      for (const kind of ["scepter", "shard"]) {
+        const aug = owned[kind] ? Content.aghanims.byId[owned[kind]] : null;
+        if (aug && aug.preFlag) {
+          Object.assign(state.combat.scoring.flags, aug.preFlag);
+          Resolver.pushStep(resolution, {
+            icon: "🟣",
+            label: `${aug.name}: ${aug.preFlag.uniWildcard ? "Универсалы — джокеры атрибутов для условий" : aug.desc}`,
+            kind: "aghanim",
+          });
+        }
+      }
+    }
     // Аудит силы (фаза D): слои урона для tests/audit.mjs.
     state.combat.scoring.trace = {
       played: played.length,
@@ -440,8 +554,8 @@ const Combat = (function () {
     state.combat.scoring.trace.cardsPower = cardPowerSum;
     state.combat.scoring.trace.comboMult = combo.baseMult;
 
-    // 4. Hero triggers.
-    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, silenced ? [] : ["hero"]);
+    // 4. Hero triggers (+ аугменты героев).
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, silenced ? [] : HERO_KINDS);
 
     // 5. Item triggers.
     runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["item"]);
@@ -451,7 +565,7 @@ const Combat = (function () {
 
     // 6. Refresher: hero triggers again.
     if (state.combat.scoring.flags.refreshHeroTriggers && !silenced) {
-      runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: ["hero"], refreshed: true }, ["hero"]);
+      runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: HERO_KINDS, refreshed: true }, HERO_KINDS);
     }
 
     // 6.5 Ставка: чем больше отряд, тем жирнее удар.
@@ -574,6 +688,15 @@ const Combat = (function () {
       if (s.trace) s.trace.finalMult.push({ source: "Улучшения лавки", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
       Resolver.pushStep(resolution, { icon: "🔧", label: `Улучшения лавки: +${dmgPct}% урона`, kind: "info" });
     }
+    // Эхо-аугменты (Multicast+ Огра, Echo Strike ПА): повтор части урона.
+    if (!resolution.blocked && s.flags.echoPower && !state.simulate) {
+      const echo = s.flags.echoPower;
+      if (Rng.current().chance(echo.chance / 100)) {
+        const extra = Math.max(1, Math.floor(damage * echo.pct / 100));
+        damage += extra;
+        Resolver.pushStep(resolution, { icon: "🟣", label: `Эхо: +${extra} урона (${echo.pct}% повтор)`, kind: "aghanim" });
+      }
+    }
     // Осада (TOWER_BURN): чистый добор поверх удара, глиф блокирует всё.
     if (!resolution.blocked && s.flags.towerBurn) {
       damage += s.flags.towerBurn;
@@ -654,6 +777,33 @@ const Combat = (function () {
         gold += 2;
         Resolver.pushStep(resolution, { icon: "💀", label: "Отряд «Крит»: +2 золота за точный ласт-хит", kind: "gold" });
       }
+      // Скипетр «Jinada» (Bounty): ласт-хит возвращает ТП-сброс на следующую волну.
+      if (s.flags.refundDiscards) {
+        state.run.pendingDiscardBonus = (state.run.pendingDiscardBonus || 0) + s.flags.refundDiscards;
+        Resolver.pushStep(resolution, { icon: "🟣", label: `Jinada: +${s.flags.refundDiscards} ТП-сброс на следующую волну`, kind: "aghanim" });
+      }
+      // Осколок «Shuriken Toss» (Bounty): ласт-хит копит удачу (кап).
+      const luckHit = s.flags.luckOnLastHit;
+      if (luckHit) {
+        const charges = state.run.heroCharges;
+        charges[luckHit.heroId] = charges[luckHit.heroId] || {};
+        const before = charges[luckHit.heroId].luck || 0;
+        if (before < luckHit.cap) {
+          charges[luckHit.heroId].luck = Math.min(luckHit.cap, before + 1);
+          Resolver.pushStep(resolution, { icon: "🟣", label: `Shuriken Toss: удача ${charges[luckHit.heroId].luck}/${luckHit.cap}`, kind: "aghanim" });
+        }
+      }
+      // Скипетр «Duel+» (Legion): точный ласт-хит — Duel stack.
+      const duel = s.flags.chargeOnLastHit;
+      if (duel) {
+        const charges = state.run.heroCharges;
+        charges[duel.heroId] = charges[duel.heroId] || {};
+        const before = charges[duel.heroId].count || 0;
+        if (before < duel.cap) {
+          charges[duel.heroId].count = Math.min(duel.cap, before + 1);
+          Resolver.pushStep(resolution, { icon: "🟣", label: `Duel stack: ${charges[duel.heroId].count}/${duel.cap}`, kind: "aghanim" });
+        }
+      }
     }
     if (commit && commit.gold) {
       gold += commit.gold;
@@ -668,6 +818,12 @@ const Combat = (function () {
     state.stats.totalDamage += damage;
     if (damage > state.stats.biggestHit) state.stats.biggestHit = damage;
 
+    // Скипетр «Shatter» (AA): зачистка волны ослабляет следующую башню акта.
+    if (!state.simulate && resolution.killed && s.flags.nextWaveHpPct) {
+      state.run.nextWaveHpPct = Math.min(30, (state.run.nextWaveHpPct || 0) + s.flags.nextWaveHpPct);
+      Resolver.pushStep(resolution, { icon: "🟣", label: `Shatter: следующая башня акта начнёт с −${state.run.nextWaveHpPct}% HP`, kind: "aghanim" });
+    }
+
     // Аудит силы: итоги боя в структурный след (tests/audit.mjs).
     state.combat.scoring.trace.damage = damage;
     state.combat.scoring.trace.gold = gold;
@@ -680,6 +836,16 @@ const Combat = (function () {
     state.player.fightsLeft -= 1;
     state.combat.fightIndex += 1;
     state.combat.lastComboType = combo.type; // для проклятия «Адаптация» и памяти башен
+    // Разнообразие и серии комбо за забег: Zeus/Kunkka читают набор типов,
+    // Juggernaut — длину серии одинаковых подряд.
+    state.run.comboTypes = state.run.comboTypes || {};
+    state.run.comboTypes[combo.type] = 1;
+    state.run.comboStreak = state.run.lastComboTypeRaw === combo.type ? (state.run.comboStreak || 1) + 1 : 1;
+    state.run.lastComboTypeRaw = combo.type;
+    // Память слотов: скипетр «Overload» (Storm, шаг 3) сравнивает позицию
+    // героя с прошлым боем.
+    state.combat.lastSlot = state.combat.lastSlot || {};
+    for (const card of played) state.combat.lastSlot[card.heroId] = card.slotIndex;
     // Последовательность (#47): состав пачки для запрета повтора.
     state.combat.wave.lastFightHeroes = played.map((c) => c.heroId);
     // Плавающие позиции (#64): рука перемешивается после боя.
@@ -698,15 +864,21 @@ const Combat = (function () {
       let xpGain = resolution.killed ? 2 : 1;
       const closeWin = resolution.killed && (overkill === 0 || overkill < tower.maxHp * 0.1);
       if (closeWin) xpGain += Upgrades.sum(state, "inspireXp");
+      // Скипетр «Burn the Racks» (Huskar): зачистка с потерянной казармой — +XP.
+      const grantXp = state.combat.scoring.flags.grantXpOnClear;
+      const racksBurned = grantXp && resolution.killed && state.run.barracks < Game.BARRACKS_MAX;
       for (const card of played) {
         const hid = card.heroId;
         const before = Game.heroLevel(state, hid);
         state.run.heroXp = state.run.heroXp || {};
-        state.run.heroXp[hid] = (state.run.heroXp[hid] || 0) + xpGain;
+        state.run.heroXp[hid] = (state.run.heroXp[hid] || 0) + xpGain + (racksBurned ? grantXp : 0);
         const after = Game.heroLevel(state, hid);
         if (after > before) {
           Resolver.pushStep(resolution, { icon: "🌱", label: `${Content.heroes.byId[hid].name} растёт: уровень ${after} (+1 сила)`, kind: "info" });
         }
+      }
+      if (racksBurned) {
+        Resolver.pushStep(resolution, { icon: "🟣", label: `Burn the Racks: казармы = опыт, героям боя +${grantXp} XP`, kind: "aghanim" });
       }
     }
     state.combat.lastResolution = resolution;

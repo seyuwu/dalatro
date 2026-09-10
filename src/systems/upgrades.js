@@ -35,7 +35,11 @@ const Upgrades = (function () {
   }
 
   function luck(state) {
-    return sum(state, "luck");
+    let l = sum(state, "luck");
+    // Осколок «Shuriken Toss» (Bounty): удача копится ласт-хитами в heroCharges.
+    const charges = state.run && state.run.heroCharges;
+    if (charges) for (const h of Object.values(charges)) l += h.luck || 0;
+    return l;
   }
 
   // Веса редкостей с удачей: common выгорает, топ подрастает.

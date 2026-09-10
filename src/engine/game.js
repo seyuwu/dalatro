@@ -18,10 +18,10 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, aghanims: {}, heroCharges: {}, manaReserve: 0, rerollCharges: 0, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
-      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
+      combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, lastSlot: {}, movesUsed: 0, campTaken: false, forbiddenSlot: null, routeOptions: [] },
       shop: { offers: [], recruits: [] },
       log: [],
       stats: { totalDamage: 0, biggestHit: 0 },
@@ -49,7 +49,10 @@ const Game = (function () {
   function rankOf(state, heroId) {
     const overrides = state.run.ranks || {};
     const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
-    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId));
+    // Скипетр «Avalanche» (Tiny): ранг растёт от использованных ТП-сбросов.
+    const charge = state.run.heroCharges && state.run.heroCharges[heroId];
+    const rankCharge = charge && charge.rank ? charge.rank : 0;
+    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId) + rankCharge);
   }
 
   // Перк стартового архетипа (run.archetype), null для «Стандарта»/старых сейвов.
@@ -125,6 +128,12 @@ const Game = (function () {
     const elite = !!(route && route.curse);
     let hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (route && route.hp ? route.hp : 1) * ((routeOpt && routeOpt.hpMultRoll) || 1));
     if (route && route.hpPerItem) hp += route.hpPerItem * state.player.items.length;
+    // Скипетр «Shatter» (AA): ослабление следующей башни после зачистки.
+    if (state.run.nextWaveHpPct) {
+      hp = Math.max(1, Math.round(hp * (1 - state.run.nextWaveHpPct / 100)));
+      log(state, `Shatter: башня «${def.name}» ослаблена на −${state.run.nextWaveHpPct}% HP (${hp})`);
+      state.run.nextWaveHpPct = 0;
+    }
     state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
@@ -184,6 +193,7 @@ const Game = (function () {
     // Нестабильная позиция (Властелин+): один слот волны с −40% силы.
     state.combat.forbiddenSlot = Ranks.has(state, "unstable") ? Rng.current().int(1, 5) : null;
     state.combat.fightIndex = 0;
+    state.combat.movesUsed = 0; // счётчик перестановок формаций (Pudge/PA/AM/Tusk/Legion)
     state.combat.selectedUids = [];
     state.combat.outcome = null;
     state.combat.lastComboType = null;
@@ -195,7 +205,8 @@ const Game = (function () {
     state.run.pendingHandBonus = 0;
     state.player.fightsLeft = Ranks.fightsPerWave(state) + (route && route.fights ? route.fights : 0);
     state.combat.wave.fightsTotal = state.player.fightsLeft;
-    state.player.discardsLeft = discardsPerWave(state);
+    state.player.discardsLeft = discardsPerWave(state) + (state.run.pendingDiscardBonus || 0);
+    state.run.pendingDiscardBonus = 0; // скипетр «Jinada»: возврат сброса на эту волну
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
     assignMines(state);
@@ -243,9 +254,31 @@ const Game = (function () {
     return cost;
   }
 
+  // Аугменты героев (docs/AGHANIMS.md): ролл предложений лавки.
+  // Осколок 🔹 — обычный товар (шанс 55% с акта 1). Скипетр 🔮 — гарантия в
+  // лавке после босса акта, с акта 2 — редкий шанс (12%). Герой — из ростера,
+  // без этого аугмента; оба слота не занимают слоты предметов.
+  function aghanimOffers(state) {
+    const equipped = state.run.aghanims || {};
+    const owned = [...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids]
+      .map((uid) => state.cards[uid].heroId);
+    const uniq = [...new Set(owned)];
+    const rng = Rng.current();
+    const offers = [];
+    const shardPool = uniq.filter((h) => !(equipped[h] && equipped[h].shard) && Content.aghanims.forHero(h, "shard"));
+    if (shardPool.length && rng.chance(0.55)) {
+      offers.push({ kind: "shard", heroId: shardPool[Math.floor(rng.next() * shardPool.length)] });
+    }
+    const scPool = uniq.filter((h) => !(equipped[h] && equipped[h].scepter) && Content.aghanims.forHero(h, "scepter"));
+    const scChance = state.run.afterBoss ? 1 : (state.run.act || 1) >= 2 ? 0.12 : 0;
+    if (scPool.length && rng.chance(scChance)) {
+      offers.push({ kind: "scepter", heroId: scPool[Math.floor(rng.next() * scPool.length)] });
+    }
+    return offers;
+  }
+
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
-  function pickRecruits(state) {
-    const owned = new Set([...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids].map((uid) => state.cards[uid].heroId));
+  function pickRecruits(state) {    const owned = new Set([...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids].map((uid) => state.cards[uid].heroId));
     const pool = Content.heroes.list.filter((h) => !h.inDeck && !owned.has(h.id)).map((h) => h.id);
     const rng = Rng.current();
     const recruits = [];
@@ -418,6 +451,11 @@ const Game = (function () {
             clearGold += 1;
             luckyGold = 1;
           }
+          // Скипетр «Arcane Reserve» (CM): неиспользованные сбросы волны — мана.
+          if (s.run.aghanims && s.run.aghanims.cm && s.run.aghanims.cm.scepter === "cm_sc" && s.player.discardsLeft > 0) {
+            s.run.manaReserve = Math.min(3, (s.run.manaReserve || 0) + s.player.discardsLeft);
+            log(s, `Arcane Reserve: Mana Reserve ${s.run.manaReserve}/3 (неиспользованные сбросы)`);
+          }
           s.run.gold += clearGold;
           const drawChance = Upgrades.sum(s, "extraDrawChance");
           if (drawChance && Rng.current().chance(drawChance / 100)) {
@@ -480,6 +518,10 @@ const Game = (function () {
         }
         s.combat.selectedUids = s.combat.selectedUids.filter((uid) => !uids.includes(uid));
         s.player.discardsLeft -= 1;
+        // Аугменты «на любой сброс» (Soul Rip Undying): заряд за ТП-сброс.
+        const aghRes = { steps: [] };
+        Triggers.runEvent(s, null, "ON_ANY_DISCARD", { playedCards: [], onlyKinds: ["aghanim"] }, aghRes);
+        aghRes.steps.forEach((st) => log(s, st.label));
         DeckSys.draw(s, Rng.current());
         assignMines(s);
         return s;
@@ -517,6 +559,7 @@ const Game = (function () {
         s.run.pendingFreeCommons = 0;
         s.shop.recruits = pickRecruits(s);
         s.shop.upgrades = Upgrades.generateOffers(s);
+        s.shop.aghanims = aghanimOffers(s);
         s.run.shopRerolls = 0;
         s.run.shopBuys = 0;
         s.run.loyaltyUsed = false;
@@ -631,8 +674,27 @@ const Game = (function () {
         return s;
       }
 
-      case "LOCK_OFFER": {
+      // Аугмент Аганима (docs/AGHANIMS.md): покупка на конкретного героя.
+      // Не занимает слоты предметов, 1 скептер + 1 осколок на героя.
+      case "BUY_AUGMENT": {
         if (s.phase !== "shop") return s;
+        const kind = action.kind === "scepter" ? "scepter" : "shard";
+        const offerIdx = (s.shop.aghanims || []).findIndex((o) => o.kind === kind && o.heroId === action.heroId);
+        if (offerIdx === -1) return s;
+        const aug = Content.aghanims.forHero(action.heroId, kind);
+        if (!aug) return s;
+        s.run.aghanims = s.run.aghanims || {};
+        s.run.aghanims[action.heroId] = s.run.aghanims[action.heroId] || {};
+        if (s.run.aghanims[action.heroId][kind]) return s;
+        if (s.run.gold < aug.cost) return s;
+        s.run.gold -= aug.cost;
+        s.run.aghanims[action.heroId][kind] = aug.id;
+        s.shop.aghanims.splice(offerIdx, 1);
+        log(s, `${aug.emoji} ${aug.name}: ${Content.heroes.byId[action.heroId].name} получает ${kind === "scepter" ? "скипетр" : "осколок"} (−${aug.cost} золота)`);
+        return s;
+      }
+
+      case "LOCK_OFFER": {        if (s.phase !== "shop") return s;
         const offer = s.shop.offers.find((o) => o.id === action.itemId);
         if (!offer) return s;
         offer.locked = !offer.locked;
@@ -658,6 +720,8 @@ const Game = (function () {
         if (freeReroll) cost = 0;
         if (s.phase !== "shop" || s.run.gold < cost) return s;
         s.run.shopRerolls = (s.run.shopRerolls || 0) + 1;
+        // Скипетр «Rearm Protocol» (Tinker): рероллы копятся в ядре (кап 3).
+        s.run.rerollCharges = Math.min(3, (s.run.rerollCharges || 0) + 1);
         if (freeReroll) {
           s.run.freeRerollUsed = true;
           log(s, "Магия: первый реролл лавки бесплатен");
@@ -667,6 +731,7 @@ const Game = (function () {
         const locked = s.shop.offers.filter((o) => o.locked);
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, locked);
         s.shop.recruits = pickRecruits(s);
+        s.shop.aghanims = aghanimOffers(s);
         return s;
       }
 
@@ -952,6 +1017,13 @@ const Game = (function () {
           }
         }
         if (!removed) return s;
+        // Аугменты героя уходят вместе с ним (docs/AGHANIMS.md).
+        if (s.run.aghanims && s.run.aghanims[heroId]) {
+          const lost = s.run.aghanims[heroId];
+          delete s.run.aghanims[heroId];
+          log(s, `Аугменты ${Content.heroes.byId[heroId].name} потеряны: ${[lost.scepter, lost.shard].filter(Boolean).map((id) => Content.aghanims.byId[id].name).join(", ")}`);
+        }
+        if (s.run.heroCharges && s.run.heroCharges[heroId]) delete s.run.heroCharges[heroId];
         s.run.exiledHeroes = s.run.exiledHeroes || [];
         s.run.exiledHeroes.push(heroId);
         s.combat.selectedUids = s.combat.selectedUids.filter((uid) => s.cards[uid]);
@@ -1028,6 +1100,7 @@ const Game = (function () {
         }
         s.run.failedLastWave = true;
         s.combat.fightIndex = 0;
+        s.combat.movesUsed = 0;
         s.combat.outcome = null;
         s.player.fightsLeft = Ranks.fightsPerWave(s);
         s.player.discardsLeft = discardsPerWave(s);
@@ -1081,6 +1154,6 @@ const Game = (function () {
     assignMines, rankOf, heroAttr, heroLevel, maxSlots, recruitPrice, itemCost, rerollCost,
     XP_PER_LEVEL, XP_LEVEL_CAP,
     archPerk, discardsPerWave, starterDeckIds,
-    itemCapacity, itemBlockedReason, rollRouteOptions,
+    itemCapacity, itemBlockedReason, rollRouteOptions, aghanimOffers,
   };
 })();
