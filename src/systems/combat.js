@@ -211,7 +211,12 @@ const Combat = (function () {
     if (state.combat.scoring && state.combat.scoring.flags.bkbBlocksMods) return { armor: 0, mr: 0 };
     const base = Content.towerDefense.byId[state.combat.wave.towerId] || { armor: 0, mr: 0 };
     const dm = state.combat.wave.defenseMult || 1;
-    return dm === 1 ? base : { armor: Math.round(base.armor * dm), mr: Math.round(base.mr * dm * 100) / 100 };
+    const perItem = state.combat.wave.defensePerItem || 0;
+    const mirror = perItem ? perItem * state.player.items.length : 0;
+    return {
+      armor: Math.round((base.armor * dm) + mirror),
+      mr: Math.min(0.9, Math.round((base.mr * dm + mirror / 200) * 100) / 100),
+    };
   }
 
   function towerDamageMult(state, resolution, playedCount) {
@@ -351,6 +356,14 @@ const Combat = (function () {
     if (forbiddenHit) {
       Resolver.pushStep(resolution, { icon: "☠", label: `Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы`, kind: "modifier" });
     }
+    // Вознесение (#56): сильнейший герой ×1.5.
+    if (state.combat.wave.heroAscend && effective.length) {
+      const top = effective.reduce((a, b) => (b.power > a.power ? b : a), effective[0]);
+      const before = top.power;
+      top.power = Math.round(top.power * 1.5);
+      state.combat.scoring.trace.itemPower += 0;
+      Resolver.pushStep(resolution, { icon: "🌟", label: `Вознесение: ${Content.heroes.byId[top.heroId].name} ×1.5 (+${top.power - before} силы)`, kind: "info" });
+    }
     state.combat.scoring.power += cardPowerSum;
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
@@ -367,6 +380,49 @@ const Combat = (function () {
         label: `Крепкая масть: ${Content.heroes.byId[lucky.heroId].name} +${bonus} силы`,
         kind: "info",
       });
+    }
+    // Эхо (#96): первый бой волны — способности героев дважды.
+    if (state.combat.wave.echoFirst && state.combat.fightIndex === 0) {
+      state.combat.scoring.flags.refreshHeroTriggers = true;
+      Resolver.pushStep(resolution, { icon: "📢", label: "Эхо: способности героев звучат дважды", kind: "info" });
+    }
+    // Форма руки (#49/#92): первые N карт сильнее, остальные слабее.
+    const shape = state.combat.wave.handShape;
+    if (shape && effective.length) {
+      let delta = 0;
+      effective.forEach((c, i) => {
+        const mult = i < shape.firstN ? shape.firstMult : shape.restMult;
+        const before = c.power;
+        c.power = Math.max(1, Math.round(c.power * mult));
+        delta += c.power - before;
+      });
+      if (delta !== 0) {
+        state.combat.scoring.trace.itemPower += 0;
+        Resolver.pushStep(resolution, { icon: "🩸", label: `Форма руки: первые ${shape.firstN} ×${shape.firstMult}, остальные ×${shape.restMult} (${delta >= 0 ? "+" : ""}${delta} силы)`, kind: "info" });
+      }
+    }
+    // Wildcard (#48): слабейший копирует сильнейшего.
+    if (state.combat.wave.wildcardCopy && effective.length > 1) {
+      const strongest = effective.reduce((a, b) => (b.power > a.power ? b : a), effective[0]);
+      const weakest = effective.reduce((a, b) => (b.power < a.power ? b : a), effective[0]);
+      weakest.power = Math.max(1, Math.floor(strongest.power * 0.75));
+      weakest.attr = strongest.attr;
+      Resolver.pushStep(resolution, { icon: "🃏", label: `Wildcard: ${Content.heroes.byId[weakest.heroId].name} копирует ${Content.heroes.byId[strongest.heroId].name} (75% силы)`, kind: "info" });
+    }
+    // Нестабильность (#45): случайная карта получает случайный множитель.
+    if (state.combat.wave.randomCardMult && effective.length) {
+      const card = effective[Math.floor(Rng.current().next() * effective.length)];
+      const mult = [0.5, 0.75, 1.25, 1.5, 2][Math.floor(Rng.current().next() * 5)];
+      card.power = Math.max(1, Math.round(card.power * mult));
+      Resolver.pushStep(resolution, { icon: "🎲", label: `Нестабильность: ${Content.heroes.byId[card.heroId].name} ×${mult} → ${card.power} силы`, kind: "info" });
+    }
+    // Золотая клетка (#63): герой в отмеченном слоте ×1.5.
+    if (state.combat.wave.goldenSlot) {
+      const golden = effective.find((c) => c.slotIndex === state.combat.wave.goldenSlot - 1);
+      if (golden) {
+        golden.power = Math.round(golden.power * 1.5);
+        Resolver.pushStep(resolution, { icon: "🟨", label: `Золотая клетка ${state.combat.wave.goldenSlot}: ${Content.heroes.byId[golden.heroId].name} ×1.5`, kind: "info" });
+      }
     }
     // Бонус силы маршрута (Пустая рука/Вознесение/Дуэль) — всем боям волны.
     if (state.combat.wave.powerBonus) {
@@ -423,6 +479,18 @@ const Combat = (function () {
       });
     }
 
+    // Близнецы (#58): повтор героя в отряде.
+    if (state.combat.wave.twinsBonus) {
+      const seen = new Set();
+      const hasDupe = played.some((c) => (seen.has(c.heroId) ? true : (seen.add(c.heroId), false)));
+      if (hasDupe) {
+        const mult = 1 + state.combat.wave.twinsBonus / 100;
+        state.combat.scoring.finalMult *= mult;
+        state.combat.scoring.trace.finalMult.push({ source: "Близнецы", value: Math.round(mult * 100) / 100 });
+        Resolver.pushStep(resolution, { icon: "👯", label: `Близнецы: повтор героя в отряде — ×${Math.round(mult * 100) / 100}`, kind: "info" });
+      }
+    }
+
     // 6.7 Проклятие забега «Кровоток»: весь урон ×1.15.
     if (Ranks.hasCurse(state, "blood")) {
       state.combat.scoring.finalMult *= 1.15;
@@ -434,6 +502,14 @@ const Combat = (function () {
     let curseMultiplier = 1;
     const towerTrace = state.combat.scoring.trace;
     const traceCurse = (source, value) => towerTrace.towerMult.push({ source, value });
+    if (curses.includes("archivist")) {
+      const hunted = Ranks.mostUsedCombo(s);
+      if (hunted && hunted.id === combo.type) {
+        curseMultiplier *= 0.75;
+        traceCurse("Архивариус", 0.75);
+        Resolver.pushStep(resolution, { icon: "☠", label: "Архивариус: изученное комбо — ×0.75", kind: "modifier" });
+      }
+    }
     if (curses.includes("adaptation") && state.combat.lastComboType === combo.type) {
       curseMultiplier *= 0.5;
       traceCurse("Адаптация", 0.5);
@@ -604,6 +680,12 @@ const Combat = (function () {
     state.player.fightsLeft -= 1;
     state.combat.fightIndex += 1;
     state.combat.lastComboType = combo.type; // для проклятия «Адаптация» и памяти башен
+    // Последовательность (#47): состав пачки для запрета повтора.
+    state.combat.wave.lastFightHeroes = played.map((c) => c.heroId);
+    // Плавающие позиции (#64): рука перемешивается после боя.
+    if (state.combat.wave.floatingHands && state.player.handUids.length > 1) {
+      state.player.handUids = Rng.current().shuffle(state.player.handUids.slice());
+    }
     // Ранги Легенда/Титан: мир считает, чем ты играешь — усталость героев,
     // охота на героя и адаптация мира читают эти счётчики.
     state.run.comboUses[combo.type] = (state.run.comboUses[combo.type] || 0) + 1;

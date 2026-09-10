@@ -67,8 +67,8 @@ test("Примитив gold: Золотая жила даёт +8 сразу и �
 
 test("Примитив shopPrice: Распродажа −25% только на следующую лавку", () => {
   const s = rtFork(rtRun("RSP1"));
-  s.combat.routeOptions = [{ id: "normal" }, { id: "sale" }];
-  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "sale" });
+  s.combat.routeOptions = [{ id: "normal" }, { id: "salered" }];
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "salered" });
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
   const item = Content.items.byId[s.shop.offers[0].id];
@@ -107,17 +107,18 @@ test("Примитив fights: Быстрая отнимает тимфайт", 
   assertEq(s.player.fightsLeft, Ranks.fightsPerWave(s) - 1, "на 1 тимфайт меньше");
 });
 
-test("Примитив power: Вознесение добавляет силу каждому бою (шаг в стеке)", () => {
+test("Примитив power: Клин/Tusk-маршрут даёт силу, Вознесение усиливает сильнейшего", () => {
   const s = rtFork(rtRun("RPW1"));
   s.combat.routeOptions = [{ id: "normal" }, { id: "ascension" }];
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "ascension" });
-  const uids = ["tusk"].map((h) => Object.values(s.cards).find((c) => c.heroId === h).uid);
+  // Пачка: ПА(9) сильнейшая — она и вознесётся
+  const uids = ["pa", "tusk"].map((h) => Object.values(s.cards).find((c) => c.heroId === h).uid);
   s.player.handUids = [...uids, ...Object.keys(s.cards).filter((u) => !uids.includes(u))];
   s.combat.selectedUids = uids.slice();
   Game.dispatch(s, { type: "CONFIRM_FIGHT" });
   const res = s.combat.lastResolution;
-  assert(res.steps.some((st) => st.label.includes("Вознесение")), "шаг маршрута в стеке");
-  assertEq(res.trace.routePower, 8, "в аудите учтено +8 силы маршрута");
+  assert(res.steps.some((st) => st.label.includes("Вознесение")), "шаг вознесения в стеке");
+  assert(res.steps.some((st) => st.label.includes("×1.5")), "сильнейший ×1.5");
 });
 
 test("Примитив mods: Отражатель вешает мутацию на волну", () => {
@@ -131,9 +132,9 @@ test("Примитив gamble: Казино даёт 0 или +12, детерм�
   const seen = new Set();
   for (let i = 0; i < 10; i++) {
     const s = rtFork(rtRun("RCS" + i));
-    s.combat.routeOptions = [{ id: "normal" }, { id: "casino" }];
+    s.combat.routeOptions = [{ id: "normal" }, { id: "casinoroute" }];
     const before = s.run.gold;
-    Game.dispatch(s, { type: "TAKE_ROUTE", kind: "casino" });
+    Game.dispatch(s, { type: "TAKE_ROUTE", kind: "casinoroute" });
     seen.add(s.run.gold - before);
   }
   for (const delta of seen) assert(delta === 0 || delta === 12, "исход 0 или +12 (видели " + [...seen] + ")");
@@ -147,4 +148,77 @@ test("Ролл уважает minRank: Аномалия не выпадает н
     // на ранге 10 аномалия возможна, но ролл тот же, что у Рекрута по структуре
     assert(s2.combat.routeOptions.length >= 3);
   }
+});
+
+test("Лихва: заём +12G, возврат −15G после зачистки", () => {
+  const s = rtFork(rtRun("RLN1"));
+  s.combat.routeOptions = [{ id: "normal" }, { id: "usury" }];
+  const gold0 = s.run.gold;
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "usury" });
+  assertEq(s.run.gold, gold0 + 12, "заём получен");
+  assertEq(s.run.debtGold, 15, "долг записан");
+  s.combat.wave.hp = 1;
+  s.player.fightsLeft = 4;
+  forceHandPlay(s, ["tusk"]);
+  // Зачистка харасом даёт 6G — долг гасится частично, остаток висит
+  assert(s.run.debtGold === 15 - 6, "долг погашен насколько хватило: " + s.run.debtGold);
+  assert(s.run.gold >= 0, "золото не ушло в минус");
+});
+
+test("Кости: выплата строго из таблицы 1–6", () => {
+  const seen = new Set();
+  for (let i = 0; i < 12; i++) {
+    const s = rtFork(rtRun("RDS" + i));
+    s.combat.routeOptions = [{ id: "normal" }, { id: "dice" }];
+    const g0 = s.run.gold;
+    Game.dispatch(s, { type: "TAKE_ROUTE", kind: "dice" });
+    seen.add(s.run.gold - g0);
+  }
+  const legal = [2, 4, 6, 8, 12, 18];
+  for (const d of seen) assert(legal.includes(d), "выплата " + d + " вне таблицы");
+  assert(seen.size >= 2, "кости реально кидаются");
+});
+
+test("Грех: навсегда +3% урона и −1 ТП-сброс", () => {
+  const s = rtFork(rtRun("RSIN1"));
+  s.combat.routeOptions = [{ id: "normal" }, { id: "sin" }];
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "sin" });
+  assertEq(s.run.sinDmg, 3);
+  assertEq(s.run.sinDiscards, -1);
+  assertEq(Game.discardsPerWave(s), Ranks.discardsPerWave(s) - 1, "ТП-сброс отнят");
+});
+
+test("Банкротство: всё золото сгорает, лавка бесплатна", () => {
+  const s = rtFork(rtRun("RBK1"));
+  s.combat.routeOptions = [{ id: "normal" }, { id: "bankruptcy" }];
+  s.run.gold = 50;
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "bankruptcy" });
+  assertEq(s.run.gold, 0, "золото обнулено");
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  assertEq(Game.itemCost(s, s.shop.offers[0].id), 0, "товары бесплатны");
+});
+
+test("Запрет атрибута: героя запрещённого цвета нельзя выбрать", () => {
+  const s = rtFork(rtRun("RBA1"));
+  s.combat.routeOptions = [{ id: "normal" }, { id: "ban" }];
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "ban" });
+  const banned = s.combat.wave.banAttrs[0];
+  const bannedUid = Object.values(s.cards).find((c) => Content.heroes.byId[c.heroId].attr === banned).uid;
+  const n0 = s.combat.selectedUids.length;
+  Game.dispatch(s, { type: "SELECT_CARD", uid: bannedUid });
+  assertEq(s.combat.selectedUids.length, n0, "запрещённая карта не выбирается");
+});
+
+test("Вторая жизнь: провал сохраняет последнюю казарму один раз", () => {
+  const s = rtFork(rtRun("RSL1"));
+  s.combat.routeOptions = [{ id: "normal" }, { id: "secondlife" }];
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "secondlife" });
+  s.run.barracks = 1;
+  s.combat.outcome = "failed";
+  Game.dispatch(s, { type: "RETRY_WAVE" });
+  assertEq(s.run.barracks, 1, "казарма восстановлена");
+  assert(!s.run.extraLife, "жизнь потрачена");
+  assertEq(s.run.lifePenalty, 0.75, "награды урезаны");
+  assertEq(s.phase, "wave", "забег продолжается");
 });

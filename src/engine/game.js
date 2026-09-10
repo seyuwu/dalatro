@@ -15,7 +15,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -51,7 +51,7 @@ const Game = (function () {
 
   // ТП-сбросы за волну: правила лиги + перк «Контроль» (+1 в акте 1).
   function discardsPerWave(state) {
-    const base = Ranks.discardsPerWave(state) + Upgrades.sum(state, "discardsBonus");
+    const base = Ranks.discardsPerWave(state) + Upgrades.sum(state, "discardsBonus") + (state.run.sinDiscards || 0);
     return archPerk(state) === "tp1" && (state.run.act || 1) === 1 ? base + 1 : base;
   }
 
@@ -71,6 +71,9 @@ const Game = (function () {
   // Обезоруживание: проклятие элитки режет слоты до 4 (BKB снимает).
   function maxSlots(state) {
     const wave = state.combat.wave;
+    // Маршрут «Архитектор»/«Одинокий волк»/«Заблокированная клетка».
+    if (wave && wave.maxSlotsOverride) return Math.min(wave.maxSlotsOverride, Combat.MAX_SLOTS);
+    if (wave && wave.blockedSlot) return Math.min(wave.blockedSlot - 1, Combat.MAX_SLOTS);
     if (wave && (wave.modifiers || []).some((m) => m.id === "disarm") && !state.player.items.includes("bkb")) {
       return 4;
     }
@@ -111,7 +114,8 @@ const Game = (function () {
     // Параметры маршрута (фаза E): примитивы развилки поверх базовой волны.
     const route = routeOpt ? Content.routes.byId[routeOpt.id] : null;
     const elite = !!(route && route.curse);
-    const hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (route && route.hp ? route.hp : 1));
+    let hp = Math.round(def.hp * Ranks.waveHpMult(state, waveIndex) * (route && route.hp ? route.hp : 1) * ((routeOpt && routeOpt.hpMultRoll) || 1));
+    if (route && route.hpPerItem) hp += route.hpPerItem * state.player.items.length;
     state.run.act = def.act || (Math.floor(waveIndex / 5) + 1);
     state.combat.wave = {
       towerId: def.id,
@@ -123,9 +127,31 @@ const Game = (function () {
       routeName: route ? route.name : null,
       hp,
       maxHp: hp,
-      rewardMult: route && route.reward ? route.reward : 1,
-      powerBonus: route && route.power ? route.power : 0,
+      rewardMult: (route && route.reward ? route.reward : 1) * (state.run.lifePenalty || 1),
+      powerBonus: (route && route.power ? route.power : 0)
+        + (route && route.powerPerGold ? Math.floor((state.run.gold || 0) * route.powerPerGold) : 0)
+        + ((routeOpt && routeOpt.goldPower) || 0),
       defenseMult: route && route.defense ? route.defense : 1,
+      hpPerItem: route && route.hpPerItem ? route.hpPerItem : 0,
+      defensePerItem: route && route.defensePerItem ? route.defensePerItem : 0,
+      maxSlotsOverride: route && route.maxSlots ? route.maxSlots : null,
+      handShape: route && route.handShape ? route.handShape : null,
+      twinsBonus: route && route.twinsBonus ? route.twinsBonus : 0,
+      noRepeat: !!(route && route.noRepeat),
+      wildcardCopy: !!(route && route.wildcardCopy),
+      randomCardMult: !!(route && route.randomCardMult),
+      banAttrs: (routeOpt && routeOpt.banAttrs) || null,
+      bannedHeroId: (routeOpt && routeOpt.bannedHeroId) || null,
+      goldenSlot: (routeOpt && routeOpt.goldenSlot) || null,
+      blockedSlot: (routeOpt && routeOpt.blockedSlot) || null,
+      heroAscend: !!(route && route.heroAscend),
+      burnUnused: !!(route && route.burnUnused),
+      floatingHands: !!(route && route.floatingHands),
+      mercyWave: !!(route && route.mercyWave),
+      echoFirst: !!(route && route.echoFirst),
+      minFights: route && route.minFights ? route.minFights : 0,
+      fightsTotal: 0, // заполнится ниже после fightsLeft
+      lastFightHeroes: [],
       modifiers: (def.modifiers || []).map((m) => ({ id: m.id }))
         .concat(elite && routeOpt.curse ? [{ id: routeOpt.curse }] : [])
         .concat((route && route.mods) ? route.mods.map((id) => ({ id })) : []),
@@ -159,6 +185,7 @@ const Game = (function () {
     state.run.waveHandBonus = (route && route.hand ? route.hand : 0) + (state.run.pendingHandBonus || 0);
     state.run.pendingHandBonus = 0;
     state.player.fightsLeft = Ranks.fightsPerWave(state) + (route && route.fights ? route.fights : 0);
+    state.combat.wave.fightsTotal = state.player.fightsLeft;
     state.player.discardsLeft = discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
     DeckSys.draw(state, Rng.current());
@@ -177,11 +204,16 @@ const Game = (function () {
     const item = Content.items.byId[itemId];
     let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
     if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
-    let mult = state.run.shopPriceMult || 1;
+    let mult = state.run.shopPriceMult != null ? state.run.shopPriceMult : 1;
     // Торг: помеченный оффер со скидкой.
     const offer = (state.shop.offers || []).find((o) => o.id === itemId);
     if (offer && offer.sale) mult *= 1 - offer.sale / 100;
-    cost = Math.max(1, Math.round(cost * mult));
+    cost = Math.round(cost * mult);
+    if (offer && offer.sale >= 100) return 0; // уценка хлама: бесплатно
+    if (mult === 0) return 0; // банкротство: вся лавка бесплатна
+    // Инфляция-маршрут (#27): первая покупка дешевле, остальные дорожают.
+    if (state.run.routeInflation) cost += (state.run.shopBuys || 0) - 1;
+    cost = Math.max(1, cost);
     // Налоговый вычет: первая покупка после босса акта.
     if (state.run.afterBoss && Upgrades.sum(state, "postBossDiscount")) cost = Math.max(1, cost - 1);
     // Лояльность: после трёх покупок следующий товар дешевле (раз за визит).
@@ -308,6 +340,12 @@ const Game = (function () {
           s.player.handUids.includes(uid) &&
           !(s.combat.minedUids || []).includes(uid)
         ) {
+          // Маршрутные запреты: атрибут, персона, повтор прошлой пачки.
+          const wave = s.combat.wave;
+          const heroId = s.cards[uid].heroId;
+          if (wave && wave.banAttrs && wave.banAttrs.includes(Game.heroAttr(s, heroId))) return s;
+          if (wave && wave.bannedHeroId && wave.bannedHeroId === heroId) return s;
+          if (wave && wave.noRepeat && (wave.lastFightHeroes || []).includes(heroId)) return s;
           s.combat.selectedUids.push(uid);
         }
         return s;
@@ -341,6 +379,22 @@ const Game = (function () {
           }
           const goldFlat = Upgrades.sum(s, "goldOnClear");
           if (goldFlat) clearGold += goldFlat;
+          // Долг/лихва: возврат после зачистки.
+          if (s.run.debtGold) {
+            const pay = Math.min(s.run.debtGold, clearGold);
+            clearGold -= pay;
+            s.run.debtGold -= pay;
+            log(s, `Долг выплачен: −${pay}G${s.run.debtGold ? ` (осталось ${s.run.debtGold}G)` : ""}`);
+          }
+          // Время (#94): победа слишком быстро — награда режется.
+          const waveRef = s.combat.wave;
+          if (waveRef.minFights) {
+            const used = waveRef.fightsTotal - s.player.fightsLeft;
+            if (used < waveRef.minFights) {
+              clearGold = Math.round(clearGold * 0.5);
+              log(s, `Время: победа за ${used} бой — награда вполовину`);
+            }
+          }
           const goldChance = Upgrades.sum(s, "goldChance");
           let luckyGold = 0;
           if (goldChance && Rng.current().chance(goldChance / 100)) {
@@ -377,6 +431,15 @@ const Game = (function () {
         } else if (s.player.fightsLeft <= 0) {
           s.combat.outcome = "failed";
         } else {
+          // Горящая карта (#44): волна не зачищена сразу — карта руки сгорает.
+          if (s.combat.wave.burnUnused && s.player.handUids.length) {
+            const uid = s.player.handUids[Math.floor(Rng.current().next() * s.player.handUids.length)];
+            const heroId = s.cards[uid].heroId;
+            delete s.cards[uid];
+            s.player.handUids.splice(s.player.handUids.indexOf(uid), 1);
+            s.combat.selectedUids = s.combat.selectedUids.filter((u) => u !== uid);
+            log(s, `Горящая карта: ${Content.heroes.byId[heroId].name} сгорела дотла`);
+          }
           assignMines(s); // рука добралась — свежие мины на следующий бой
         }
         return s;
@@ -414,9 +477,26 @@ const Game = (function () {
         const guaranteeRarity = s.run.pendingItemRarity || null;
         s.run.pendingItemRarity = null;
         s.run.pendingExtraRecruit = 0;
-        s.run.shopPriceMult = s.run.pendingShopPrice || 1;
+        s.run.shopPriceMult = s.run.pendingShopPrice != null ? s.run.pendingShopPrice : 1;
         s.run.pendingShopPrice = null;
-        s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], guaranteeRarity);
+        s.run.routeInflation = s.run.routeInflation || false;
+        const slots = Math.max(1, Economy.OFFER_SLOTS + (s.run.shopSlotsDelta || 0));
+        if (s.run.nextShopOffers && s.run.nextShopOffers.length) {
+          s.shop.offers = s.run.nextShopOffers;
+          s.run.nextShopOffers = null;
+        } else {
+          s.shop.offers = Economy.generateOffers(s, slots, [], guaranteeRarity);
+        }
+        // Уценка хлама (#33): до N обычных товаров бесплатно.
+        const freeCommons = s.run.pendingFreeCommons || 0;
+        if (freeCommons) {
+          let left = freeCommons;
+          for (const o of s.shop.offers) {
+            if (left <= 0) break;
+            if (Content.items.byId[o.id].rarity === "common" && !o.sale) { o.sale = 100; left -= 1; }
+          }
+        }
+        s.run.pendingFreeCommons = 0;
         s.shop.recruits = pickRecruits(s);
         s.shop.upgrades = Upgrades.generateOffers(s);
         s.run.shopRerolls = 0;
@@ -634,13 +714,14 @@ const Game = (function () {
           log(s, "Крип-лагерь зачищен без боя: +6 золота, привал (+1 казарма), бесплатное увольнение. Следующая волна будет пропущена.");
           return s;
         }
-        // Немедленные эффекты маршрута: золото и гэмбл.
+        // Немедленные эффекты маршрута.
+        const rng = Rng.current();
         if (route.gold) {
           s.run.gold = Math.max(0, s.run.gold + route.gold);
           log(s, `${route.name}: ${route.gold > 0 ? "+" : ""}${route.gold} золота`);
         }
         if (route.gamble) {
-          const won = Rng.current().chance(route.gamble.chance);
+          const won = rng.chance(route.gamble.chance);
           if (won) {
             s.run.gold += route.gamble.win;
             log(s, `${route.name}: повезло — +${route.gamble.win} золота!`);
@@ -648,9 +729,147 @@ const Game = (function () {
             log(s, `${route.name}: не повезло, пусто.`);
           }
         }
+        if (route.gambleDice) {
+          const roll = rng.int(1, 6);
+          const win = route.gambleDice[roll - 1];
+          s.run.gold += win;
+          log(s, `${route.name}: кость показала ${roll} — +${win} золота`);
+        }
+        if (route.allin) {
+          const stake = s.run.gold;
+          if (stake > 0) {
+            if (rng.chance(route.allin.chance)) {
+              s.run.gold = Math.round(stake * route.allin.mult);
+              log(s, `${route.name}: ва-банк сыграл! ${stake} → ${s.run.gold} золота`);
+            } else {
+              s.run.gold = 0;
+              log(s, `${route.name}: всё поставленное сгорело (−${stake}G)`);
+            }
+          } else log(s, `${route.name}: ставить нечего`);
+        }
+        if (route.gambleThree) {
+          const roll = rng.int(1, 3);
+          if (roll === 1) { s.run.gold += 15; log(s, `${route.name}: дверь с золотом — +15G`); }
+          else if (roll === 2) {
+            const pool = Content.items.list.filter((i) => i.rarity === "rare" && !s.player.items.includes(i.id));
+            if (pool.length && s.player.items.length < itemCapacity(s).total) {
+              const item = pool[Math.floor(rng.next() * pool.length)];
+              s.player.items.push(item.id);
+              log(s, `${route.name}: дверь с предметом — ${item.name}!`);
+            } else { s.run.gold += 15; log(s, `${route.name}: предмет не влез — компенсация +15G`); }
+          } else log(s, `${route.name}: пустая дверь`);
+        }
+        if (route.altar) {
+          const sacrifice = Math.min(10, s.run.gold);
+          s.run.gold -= sacrifice;
+          const roll = rng.int(1, 3);
+          if (roll === 1) {
+            const epics = Content.items.list.filter((i) => i.rarity === "epic" && !s.player.items.includes(i.id));
+            if (epics.length && s.player.items.length < itemCapacity(s).total) {
+              const item = epics[Math.floor(rng.next() * epics.length)];
+              s.player.items.push(item.id);
+              log(s, `${route.name}: алтарь принял ${sacrifice}G и отдал ${item.name}!`);
+            } else { s.run.gold += sacrifice; log(s, `${route.name}: алтарю нечего дать — жертва возвращена`); }
+          } else if (roll === 2) {
+            routeOpt.goldPower = (routeOpt.goldPower || 0) + 25;
+            log(s, `${route.name}: алтарь благословил отряд — +25 силы бою`);
+          } else log(s, `${route.name}: алтарь промолчал (−${sacrifice}G)`);
+        }
+        if (route.loan) {
+          s.run.gold += route.loan.gain;
+          s.run.debtGold = (s.run.debtGold || 0) + route.loan.repay;
+          log(s, `${route.name}: заём +${route.loan.gain}G — возврат ${route.loan.repay}G после следующей зачистки`);
+        }
+        if (route.powerPerGold) {
+          routeOpt.goldPower = (routeOpt.goldPower || 0) + Math.floor((s.run.gold || 0) * route.powerPerGold);
+          if (routeOpt.goldPower) log(s, `${route.name}: богатство куёт силу — +${routeOpt.goldPower} бою`);
+        }
+        if (route.goldAll) { s.run.gold = 0; log(s, `${route.name}: кошелёк опустошён до дна`); }
+        if (route.momentumBonus) {
+          s.run.momentum = Math.min(Combat.MOMENTUM_CAP, (s.run.momentum || 0) + route.momentumBonus);
+          log(s, `${route.name}: импульс разогнан до ${s.run.momentum}`);
+        }
+        if (route.exchangeItem && s.player.items.length) {
+          const giveIdx = Math.floor(rng.next() * s.player.items.length);
+          const give = s.player.items[giveIdx];
+          const sameRarity = Content.items.list.filter((i) => i.rarity === Content.items.byId[give].rarity && i.id !== give && !s.player.items.includes(i.id));
+          if (sameRarity.length) {
+            const get = sameRarity[Math.floor(rng.next() * sameRarity.length)];
+            s.player.items[giveIdx] = get.id;
+            log(s, `${route.name}: ${Content.items.byId[give].name} → ${get.name}`);
+          } else log(s, `${route.name}: обменять не на что`);
+        } else if (route.exchangeItem) log(s, `${route.name}: предметов нет — обмен отменён`);
+        if (route.pawnBonus) { s.run.pawnBonus = route.pawnBonus; log(s, `${route.name}: ломбард прибавил +${route.pawnBonus}% к следующей продаже`); }
+        if (route.dupeHero && s.player.handUids.length) {
+          const uid = s.player.handUids[Math.floor(rng.next() * s.player.handUids.length)];
+          const heroId = s.cards[uid].heroId;
+          DeckSys.addHero(s, heroId);
+          log(s, `${route.name}: ${Content.heroes.byId[heroId].name} теперь и в колоде дважды!`);
+        }
+        if (route.exileWeakestPower) {
+          const all = [...s.player.deckUids, ...s.player.discardUids];
+          if (all.length) {
+            let weakest = all[0];
+            for (const uid of all) if (Content.heroes.byId[s.cards[uid].heroId].power < Content.heroes.byId[s.cards[weakest].heroId].power) weakest = uid;
+            const heroId = s.cards[weakest].heroId;
+            delete s.cards[weakest];
+            s.player.deckUids = s.player.deckUids.filter((u) => u !== weakest);
+            s.player.discardUids = s.player.discardUids.filter((u) => u !== weakest);
+            routeOpt.goldPower = (routeOpt.goldPower || 0) + route.exileWeakestPower;
+            log(s, `${route.name}: ${Content.heroes.byId[heroId].name} ушёл — +${route.exileWeakestPower} силы бою`);
+          } else log(s, `${route.name}: жертвовать некем`);
+        }
+        if (route.returnHero && (s.run.exiledHeroes || []).length) {
+          const back = s.run.exiledHeroes.pop();
+          DeckSys.addHero(s, back);
+          log(s, `${route.name}: ${Content.heroes.byId[back].name} вернулся в колоду!`);
+        } else if (route.returnHero) log(s, `${route.name}: изгнанных героев нет`);
+        if (route.sin) {
+          s.run.sinDmg = (s.run.sinDmg || 0) + route.sin.dmg;
+          s.run.sinDiscards = (s.run.sinDiscards || 0) + route.sin.discards;
+          log(s, `${route.name}: грех принят — +${route.sin.dmg}% урона, ${route.sin.discards} ТП-сброс за волну, навсегда`);
+        }
+        if (route.routeUndo) s.run.routeUndo = true;
+        // Роллы для волны: запреты, клетки, случайный HP, охотник на героя.
+        if (route.banAttrs) {
+          const attrs = ["str", "agi", "int"].slice();
+          opt.banAttrs = [];
+          for (let i = 0; i < route.banAttrs; i++) opt.banAttrs.push(attrs.splice(Math.floor(rng.next() * attrs.length), 1)[0]);
+          log(s, `${route.name}: запрещён атрибут ${opt.banAttrs.map((a) => Content.attrNames[a]).join(" и ")}`);
+        }
+        if (route.bannedHero) {
+          const fav = Ranks.mostUsedHero(s);
+          if (fav) { opt.bannedHeroId = fav; log(s, `${route.name}: ${Content.heroes.byId[fav].name} отдыхает этот бой`); }
+        }
+        if (route.goldenSlot) opt.goldenSlot = rng.int(1, 5);
+        if (route.blockedSlot) opt.blockedSlot = rng.int(2, 5);
+        if (route.randomHp) routeOpt.hpMultRoll = route.randomHp[0] + rng.next() * (route.randomHp[1] - route.randomHp[0]);
+        if (route.handSlots) s.run.handSlots = (s.run.handSlots || 0) + route.handSlots;
+        if (route.debtGold) s.run.debtGold = (s.run.debtGold || 0) + route.debtGold;
+        if (route.secondLife) { s.run.extraLife = true; s.run.lifePenalty = 0.75; log(s, `${route.name}: вторая жизнь готова. Награды забега −25%`); }
+        if (route.scout) {
+          const ahead = [1, 2, 3].map((k) => Content.waves.byId[Content.waves.order[nextIndex + k]]).filter(Boolean);
+          log(s, `${route.name}: дальше — ${ahead.map((d) => `${d.name} (${d.hp} HP)`).join(" → ")}`);
+        }
+        if (route.scanner) {
+          const def = Content.towerDefense.byId[Content.waves.order[nextIndex]];
+          const parts = [];
+          if (def && def.armor) parts.push(`броня ${def.armor}`);
+          if (def && def.mr) parts.push(`сопротивление ${Math.round(def.mr * 100)}%`);
+          log(s, `${route.name}: ${parts.length ? parts.join(", ") : "у башни нет защиты"}`);
+        }
+        if (route.shopPeek) {
+          s.run.nextShopOffers = Economy.generateOffers(s, Economy.OFFER_SLOTS);
+          log(s, `${route.name}: товары следующей лавки подсмотрены (${s.run.nextShopOffers.map((o) => Content.items.byId[o.id].name).join(", ")})`);
+        }
+        if (route.shopInflation) s.run.routeInflation = true;
+        if (route.shopSlots) s.run.shopSlotsDelta = (s.run.shopSlotsDelta || 0) + route.shopSlots;
         // Одноразовые гарантии следующей лавки.
-        s.run.pendingShopPrice = route.shopPrice || null;
+        s.run.pendingShopPrice = route.shopPrice !== undefined ? route.shopPrice : null;
         s.run.pendingItemRarity = route.itemRarity || null;
+        s.run.pendingExtraRecruit = route.extraRecruit || 0;
+        s.run.pendingRecruitDiscount = route.recruitDiscount || null;
+        s.run.pendingFreeCommons = route.freeCommons || 0;
         s.combat.routeOptions = [];
         s.phase = "wave";
         s.run.waveIndex = nextIndex;
@@ -690,6 +909,8 @@ const Game = (function () {
           }
         }
         if (!removed) return s;
+        s.run.exiledHeroes = s.run.exiledHeroes || [];
+        s.run.exiledHeroes.push(heroId);
         s.combat.selectedUids = s.combat.selectedUids.filter((uid) => s.cards[uid]);
         if (!free) s.run.gold -= EXILE_COST;
         s.run.campBoon = false;
@@ -730,14 +951,27 @@ const Game = (function () {
 
       case "RETRY_WAVE": {
         if (s.phase !== "wave" || s.combat.outcome !== "failed") return s;
-        s.run.barracks -= 1;
+        const mercy = s.combat.wave && s.combat.wave.mercyWave;
+        if (mercy) {
+          // Последний шанс (#89): казарма цела, но золото сгорает.
+          s.run.gold = 0;
+          s.combat.wave.mercyWave = false;
+          log(s, "Последний шанс: казарма уцелела, но золото сгорело дотла");
+        }
+        if (!mercy) s.run.barracks -= 1;
         if ((s.run.momentum || 0) > 0) log(s, "Импульс сброшен: серия волн прервана.");
         s.run.momentum = 0;
-        log(s, `Казарма потеряна! Осталось: ${s.run.barracks}`);
+        if (!mercy) log(s, `Казарма потеряна! Осталось: ${s.run.barracks}`);
         if (s.run.barracks <= 0) {
-          s.phase = "gameover";
-          log(s, "Трон разрушен. Забег окончен.");
-          return s;
+          if (s.run.extraLife) {
+            s.run.extraLife = false;
+            s.run.barracks = 1;
+            log(s, "Вторая жизнь: казарма восстановлена! Награды забега уже урезаны.");
+          } else {
+            s.phase = "gameover";
+            log(s, "Трон разрушен. Забег окончен.");
+            return s;
+          }
         }
         if (s.player.items.includes("rapier")) {
           s.player.items = s.player.items.filter((id) => id !== "rapier");

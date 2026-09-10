@@ -332,6 +332,15 @@
     if (state.combat.forbiddenSlot) {
       chips.push(`<span class="rule-chip danger">${icon("target", 12)}<span>Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы герою</span></span>`);
     }
+    const wv = state.combat.wave || {};
+    if (wv.goldenSlot) chips.push(`<span class="rule-chip">${icon("sparkles", 12)}<span>Золотая клетка ${wv.goldenSlot}: +50% силы</span></span>`);
+    if (wv.blockedSlot) chips.push(`<span class="rule-chip danger">${icon("x", 12)}<span>Клетка ${wv.blockedSlot} заблокирована</span></span>`);
+    if (wv.banAttrs) chips.push(`<span class="rule-chip danger">${icon("x", 12)}<span>Запрещён атрибут: ${wv.banAttrs.map((a) => ATTR_NAMES[a]).join(", ")}</span></span>`);
+    if (wv.bannedHeroId) chips.push(`<span class="rule-chip danger">${icon("x", 12)}<span>Отдыхает: ${Content.heroes.byId[wv.bannedHeroId].name}</span></span>`);
+    if (wv.noRepeat) chips.push(`<span class="rule-chip danger">${icon("rotate", 12)}<span>Герои прошлого боя недоступны</span></span>`);
+    if (wv.minFights) chips.push(`<span class="rule-chip danger">⏱<span>Победа за 1 бой — награда вполовину</span></span>`);
+    if (wv.handShape) chips.push(`<span class="rule-chip danger">${icon("zap", 12)}<span>Форма руки: первые ${wv.handShape.firstN} ×${wv.handShape.firstMult}, остальные ×${wv.handShape.restMult}</span></span>`);
+    if (wv.maxSlotsOverride === 6) chips.push(`<span class="rule-chip">${icon("plus", 12)}<span>Архитектор: шестой слот открыт</span></span>`);
     if (state.rules === "formation") {
       const d = Content.towerDefense.byId[wave.towerId];
       if (d && (d.armor || d.mr)) {
@@ -948,6 +957,56 @@
       return lines;
     }
     if (route.hp) lines.push(`HP ×${route.hp} → ${fmt(Math.round(nextHp * route.hp))} HP`);
+    if (route.randomHp) lines.push(`HP случайно ×${route.randomHp[0]}–×${route.randomHp[1]}`);
+    if (route.hpPerItem) lines.push(`+${route.hpPerItem} HP за каждый твой предмет`);
+    if (route.defensePerItem) lines.push(`+${route.defensePerItem} брони за каждый твой предмет`);
+    if (route.modsRandom) lines.push(`Случайных правил на бой: ${route.modsRandom}`);
+    if (route.gold) lines.push(route.gold > 0 ? `Сразу +${route.gold} золота` : `Сразу ${route.gold} золота`);
+    if (route.gamble) lines.push(`${Math.round(route.gamble.chance * 100)}%: +${route.gamble.win} золота, иначе пусто`);
+    if (route.gambleDice) lines.push(`Кость 1–6: +${route.gambleDice.join(", ")} золота`);
+    if (route.allin) lines.push(`Всё золото на стол: ${Math.round(route.allin.chance * 100)}% → ×${route.allin.mult}`);
+    if (route.gambleThree) lines.push(`Три двери: +15G / редкий предмет / пусто`);
+    if (route.altar) lines.push(`Жертва до 10G → эпик, +25 силы или пусто`);
+    if (route.loan) lines.push(`Заём +${route.loan.gain}G → вернуть ${route.loan.repay}G`);
+    if (route.powerPerGold) lines.push(`Каждые 5G казны = +1 сила бою`);
+    if (route.goldAll) lines.push(`ВСЁ золото сгорает`);
+    if (route.momentumBonus) lines.push(`Импульс +${route.momentumBonus} серии`);
+    if (route.exchangeItem) lines.push(`Случайный предмет → предмет той же редкости`);
+    if (route.pawnBonus) lines.push(`Следующая продажа +${route.pawnBonus}% цены`);
+    if (route.itemGiftNow) lines.push(`${route.itemGiftNow === "epic" ? "Эпический" : "Редкий"} предмет сразу`);
+    if (route.freeCommons) lines.push(`${route.freeCommons} обычных товара — бесплатно`);
+    if (route.shopSlots) lines.push(route.shopSlots < 0 ? `Товаров в лавке ${route.shopSlots}` : `Товаров в лавке +${route.shopSlots}`);
+    if (route.shopInflation) lines.push(`Первая покупка −2G, дальше +1G`);
+    if (route.hand) lines.push(route.hand > 0 ? `+${route.hand} карты в руке на волну` : `${route.hand} карта в руке на волну`);
+    if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} тимфайт` : `−${-route.fights} тимфайт`);
+    if (route.power) lines.push(`+${route.power} силы каждому бою`);
+    if (route.itemRarity) lines.push(`В лавке ждёт ${route.itemRarity === "epic" ? "эпик" : "редкий"} товар`);
+    if (route.extraRecruit) lines.push(`Таверна: +${route.extraRecruit} герой`);
+    if (route.recruitDiscount) lines.push(`Рекруты за ${Math.round(route.recruitDiscount * 100)}% цены`);
+    if (route.maxSlots) lines.push(route.maxSlots > 5 ? `Шестой слот формации!` : `Только ${route.maxSlots} слот${route.maxSlots === 1 ? "" : "а"} отряда`);
+    if (route.handShape) lines.push(`Первые ${route.handShape.firstN} карты ×${route.handShape.firstMult}, остальные ×${route.handShape.restMult}`);
+    if (route.dupeHero) lines.push(`Копия случайного героя руки — в колоду`);
+    if (route.burnUnused) lines.push(`Не зачистил сразу — карта руки сгорает`);
+    if (route.randomCardMult) lines.push(`Случайная карта: множитель ×0.5–×2`);
+    if (route.banAttrs) lines.push(route.banAttrs === 2 ? `Два случайных атрибута под запретом` : `Случайный атрибут под запретом`);
+    if (route.bannedHero) lines.push(`Самый используемый герой отдыхает`);
+    if (route.noRepeat) lines.push(`Герои прошлого боя недоступны`);
+    if (route.wildcardCopy) lines.push(`Слабейший копирует сильнейшего (75%)`);
+    if (route.twinsBonus) lines.push(`Повтор героя в отряде: +${route.twinsBonus}% урона`);
+    if (route.goldenSlot) lines.push(`Случайная позиция: стоящему +50% силы`);
+    if (route.blockedSlot) lines.push(`Одна позиция строя недоступна`);
+    if (route.mercyWave) lines.push(`Провал не отнимет казарму — заберёт всё золото`);
+    if (route.echoFirst) lines.push(`Первый бой: способности дважды`);
+    if (route.minFights) lines.push(`Победа за 1 бой → награда вполовину`);
+    if (route.exileWeakestPower) lines.push(`Слабейший колоды уходит: +${route.exileWeakestPower} силы`);
+    if (route.returnHero) lines.push(`Последний уволенный вернётся бесплатно`);
+    if (route.secondLife) lines.push(`Раз за забег провал спасёт казарму; награды −25%`);
+    if (route.sin) lines.push(`Навсегда: +${route.sin.dmg}% урона, ${route.sin.discards} ТП-сброс`);
+    if (route.routeUndo) lines.push(`Путь можно один раз отменить`);
+    if (route.scout) lines.push(`Покажет следующие 3 башни`);
+    if (route.shopPeek) lines.push(`Покажет товары следующей лавки`);
+    if (route.scanner) lines.push(`Покажет точную защиту башни`);
+    if (route.curse) lines.push(`Проклятие на башне`);
     if (opt.curse) {
       const curse = Content.modifiers.byId[opt.curse];
       lines.push(`Проклятие: ${curse.name} — ${curse.desc}`);
