@@ -7,6 +7,9 @@ const Game = (function () {
   const WAVE_CLEAR_GOLD = 6;
   const BARRACKS_MAX = 2; // жизни забега: одна ошибка — полколоды, вторая — конец
   const EXILE_COST = 4;
+  // XP героев (спек §7.2): бой +1, добивший бой +2; каждый уровень = +1 сила.
+  const XP_PER_LEVEL = 5;
+  const XP_LEVEL_CAP = 3;
   const TRAIN_COST = 5;
   const TRAIN_RANK_MAX = 12;
   const DECK_MIN = 8;
@@ -15,7 +18,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -37,10 +40,16 @@ const Game = (function () {
     return override || Content.heroes.byId[heroId].attr;
   }
 
+  // Уровень героя по опыту (0..3), +1 сила за уровень.
+  function heroLevel(state, heroId) {
+    const xp = (state.run.heroXp && state.run.heroXp[heroId]) || 0;
+    return Math.min(XP_LEVEL_CAP, Math.floor(xp / XP_PER_LEVEL));
+  }
+
   function rankOf(state, heroId) {
     const overrides = state.run.ranks || {};
     const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
-    return Math.max(1, base - Ranks.heroPenalty(state, heroId));
+    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId));
   }
 
   // Перк стартового архетипа (run.archetype), null для «Стандарта»/старых сейвов.
@@ -320,6 +329,7 @@ const Game = (function () {
         const starter = Content.archetypes.byId[action.starterId] || Content.archetypes.byId.standard;
         fresh.run.archetype = starter.id;
         fresh.phase = "wave";
+        fresh.run.startedAt = Date.now();
         Rng.setActive(Rng.create(code));
         DeckSys.createFromHeroes(fresh, starterDeckIds(starter.id, Rng.current()));
         // Перк «Штурм»: +1G начального золота.
@@ -356,6 +366,7 @@ const Game = (function () {
         if (!s.combat.selectedUids.length || s.combat.selectedUids.length > maxSlots(s)) return s;
         const resolution = Combat.resolveFight(s);
         log(s, `Бой #${s.combat.fightIndex}: ${resolution.combo.name} → ${resolution.damage} урона${(resolution.crits || []).length ? ` · КРИТ! (${resolution.crits.join(", ")})` : ""}`);
+        for (const st of resolution.steps) if (st.icon === "🌱") log(s, st.label);
         if (resolution.killed) {
           s.combat.outcome = "cleared";
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);
@@ -886,6 +897,12 @@ const Game = (function () {
         s.run.gold -= price;
         s.shop.recruits = s.shop.recruits.filter((id) => id !== heroId);
         DeckSys.addHero(s, heroId);
+        const start_xp = Upgrades.sum(s, "xpStartBonus");
+        if (start_xp) {
+          s.run.heroXp = s.run.heroXp || {};
+          s.run.heroXp[heroId] = (s.run.heroXp[heroId] || 0) + start_xp;
+          log(s, `Тренировочный зал: ${Content.heroes.byId[heroId].name} начинает с ${start_xp} опыта`);
+        }
         log(s, `${Content.heroes.byId[heroId].name} нанят в таверне (−${price} золота)`);
         return s;
       }
@@ -951,6 +968,7 @@ const Game = (function () {
 
       case "RETRY_WAVE": {
         if (s.phase !== "wave" || s.combat.outcome !== "failed") return s;
+        s.run.deathsCount = (s.run.deathsCount || 0) + 1;
         const mercy = s.combat.wave && s.combat.wave.mercyWave;
         if (mercy) {
           // Последний шанс (#89): казарма цела, но золото сгорает.
@@ -1018,11 +1036,24 @@ const Game = (function () {
     }
   }
 
+  // Счёт забега (спек §8.1): волны + ранг + казармы + лучший удар.
+  function scoreOf(state) {
+    const waves = Math.min(state.run.waveIndex + (state.phase === "victory" ? 1 : 0), Content.waves.order.length);
+    const rank = state.run.rank || 1;
+    return Math.round(
+      waves * 100
+      + rank * 150
+      + state.run.barracks * 200
+      + Math.min(99999, state.stats.biggestHit) / 50
+    );
+  }
+
   return {
-    createInitialState, dispatch,
+    createInitialState, dispatch, scoreOf,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
-    assignMines, rankOf, heroAttr, maxSlots, recruitPrice, itemCost, rerollCost,
+    assignMines, rankOf, heroAttr, heroLevel, maxSlots, recruitPrice, itemCost, rerollCost,
+    XP_PER_LEVEL, XP_LEVEL_CAP,
     archPerk, discardsPerWave, starterDeckIds,
     itemCapacity, itemBlockedReason, rollRouteOptions,
   };

@@ -692,6 +692,23 @@ const Combat = (function () {
     for (const card of played) {
       state.run.heroUses[card.heroId] = (state.run.heroUses[card.heroId] || 0) + 1;
     }
+    // XP героев (спек §7.2): бой +1, добивший +2; Вдохновение (#30) — близкая
+    // победа (точный ласт-хит или оверкилл <10% maxHp) добавляет ещё всем.
+    if (!state.simulate) {
+      let xpGain = resolution.killed ? 2 : 1;
+      const closeWin = resolution.killed && (overkill === 0 || overkill < tower.maxHp * 0.1);
+      if (closeWin) xpGain += Upgrades.sum(state, "inspireXp");
+      for (const card of played) {
+        const hid = card.heroId;
+        const before = Game.heroLevel(state, hid);
+        state.run.heroXp = state.run.heroXp || {};
+        state.run.heroXp[hid] = (state.run.heroXp[hid] || 0) + xpGain;
+        const after = Game.heroLevel(state, hid);
+        if (after > before) {
+          Resolver.pushStep(resolution, { icon: "🌱", label: `${Content.heroes.byId[hid].name} растёт: уровень ${after} (+1 сила)`, kind: "info" });
+        }
+      }
+    }
     state.combat.lastResolution = resolution;
     state.combat.scoring = null;
     return resolution;

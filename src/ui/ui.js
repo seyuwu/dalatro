@@ -127,6 +127,10 @@
     starterDraft: "standard",
     // Фокус лаборатории колоды: train | exile | null (какую кнопку нажали в лавке).
     labFocus: null,
+    // Лидерборд (фаза H): копия записей + активный вид.
+    scores: [],
+    scoreView: "score",
+    newRecord: false,
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -268,6 +272,8 @@
       selected ? "selected" : "",
       mined ? "mined" : "",
     ].join(" ");
+    const lvl = Game.heroLevel(state, hero.id);
+    const xp = (state.run.heroXp || {})[hero.id] || 0;
     const trained = rank !== hero.power;
     const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
     const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
@@ -284,13 +290,13 @@
       </div>
       <div class="hero-card-bottom">
         <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
-        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}</span>
+        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
       <span class="hero-tooltip">
         <strong>${hero.ability ? hero.ability.name : hero.name}</strong>
         <p>${esc(heroDesc(hero))}</p>
-        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""} · ${ATTR_NAMES[hero.attr]} — 5 карт одного цвета = флеш</small>
+        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${ATTR_NAMES[effAttr]} — 5 карт одного цвета = флеш</small>
       </span>
     </button>`;
   }
@@ -1217,6 +1223,42 @@
     endScreen(state, false);
   }
 
+  // Лидерборд (фаза H): 4 вида из спека §8.1.
+  function leaderboardHtml() {
+    const list = UIState.scores || [];
+    const view = UIState.scoreView || "score";
+    const views = [
+      ["score", "Лучший счёт"],
+      ["rank", "Высший ранг"],
+      ["fastest", "Быстрейшая победа"],
+      ["nodeath", "Без смертей"],
+    ];
+    const fmtTime = (ms) => {
+      const t = Math.round(ms / 1000);
+      return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+    };
+    let rows = [];
+    if (view === "score") rows = list.slice().sort((a, b) => b.score - a.score).slice(0, 8);
+    else if (view === "rank") rows = list.slice().sort((a, b) => b.rank - a.rank || b.score - a.score).slice(0, 8);
+    else if (view === "fastest") rows = list.filter((e) => e.won).sort((a, b) => a.timeMs - b.timeMs).slice(0, 8);
+    else if (view === "nodeath") rows = list.filter((e) => e.won && !e.deaths).sort((a, b) => b.score - a.score).slice(0, 8);
+    const tabs = views.map(([key, label]) => `<button class="${view === key ? "active" : ""}" data-action="score-view" data-view="${key}">${label}</button>`).join("");
+    const body = rows.length ? rows.map((e, i) => `
+        <div class="score-row ${i === 0 ? "top" : ""}">
+          <span class="score-pos">${i + 1}</span>
+          <b class="score-num">${e.score.toLocaleString("ru")}</b>
+          <span class="score-rank">${(Content.ranks.byId[e.rank] || {}).roman || e.rank}</span>
+          <span class="score-waves">${e.waves}/15 волн${e.won ? " 🏆" : ""}</span>
+          <span class="score-time">${fmtTime(e.timeMs)}${e.deaths ? ` · ${e.deaths} ${e.deaths === 1 ? "смерть" : "смертей"}` : " · без смертей"}</span>
+          <span class="score-seed">#${esc(e.seed)}</span>
+        </div>`).join("") : `<div class="score-empty">${view === "fastest" || view === "nodeath" ? "Пока нет подходящих забегов — победи!" : "Пока пусто. Первый забег — уже рекорд."}</div>`;
+    return `<section class="score-board panel">
+      <div class="section-label"><span>${icon("crown", 13)}ЗАЛ СЛАВЫ</span></div>
+      <div class="score-tabs">${tabs}</div>
+      <div class="score-rows">${body}</div>
+    </section>`;
+  }
+
   function endScreen(state, won) {
     const rank = Ranks.rankOf(state);
     const banner = won && UIState.unlockBanner
@@ -1241,10 +1283,12 @@
               </div>
               ${banner}
               <div class="end-stats">
+                <div><strong>${Game.scoreOf(state).toLocaleString("ru")}</strong><span>Счёт${UIState.newRecord ? ' <b class="record-badge">🏆 рекорд</b>' : ""}</span></div>
                 <div><strong>${state.run.waveIndex + (won ? 1 : 0)}</strong><span>Волн пройдено</span></div>
                 <div><strong>${state.stats.totalDamage.toLocaleString("ru")}</strong><span>Всего урона</span></div>
                 <div><strong>${state.stats.biggestHit.toLocaleString("ru")}</strong><span>Лучший тимфайт</span></div>
               </div>
+              ${leaderboardHtml()}
               <button class="primary-button" data-action="open-modal" data-modal="new">${icon("rotate", 16)}Ещё один забег</button>
             </section>
           </div>
@@ -1514,7 +1558,7 @@
         return `<div class="collection-hero ${hr.attr}">
           <div class="collection-portrait">${Art.heroArt(hr)}<b>${rank}</b></div>
           <div><strong>${hr.name}${trained ? ` <span class="trained-badge">+${rank - hr.power} тренировка</span>` : ""}</strong>
-            <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}</span>
+            <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}${(state.run.heroXp || {})[hr.id] ? ` · опыт ${(state.run.heroXp || {})[hr.id]} (ур. ${Game.heroLevel(state, hr.id)})` : ""}</span>
             <p>${heroDesc(hr)}</p>
             <small class="gold">${where}</small>
             ${labMode ? `<div class="attr-change-row">${["str", "agi", "int", "uni"].map((a) => {

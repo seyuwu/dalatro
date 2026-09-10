@@ -5,6 +5,7 @@
   const PREFS_KEY = "dalatro_prefs_v3";
   const ONBOARD_KEY = "dalatro_onboard_v3";
   const RANKS_KEY = "dalatro_ranks_v1"; // прогресс лиги: максимальный открытый ранг
+  const SCORES_KEY = "dalatro_scores_v1"; // локальный лидерборд (фаза H)
 
   // Мёрж дефолтов createInitialState: новые поля стейта (архетип, флаги перков,
   // слоты) не роняют сейвы, сохранённые в более ранней точке этой же версии.
@@ -18,6 +19,31 @@
       shop: { ...fresh.shop, ...(s.shop || {}) },
       stats: { ...fresh.stats, ...(s.stats || {}) },
     };
+  }
+
+  function loadScores() {
+    try { return JSON.parse(localStorage.getItem(SCORES_KEY)) || []; } catch (e) { return []; }
+  }
+
+  // Запись забега (спек §8.1): один раз за забег, хвост 50 записей.
+  function recordRun(state) {
+    if (state.run.scoreRecorded) return;
+    state.run.scoreRecorded = true;
+    const entry = {
+      date: Date.now(),
+      seed: state.seedCode,
+      rank: state.run.rank || 1,
+      score: Game.scoreOf(state),
+      waves: Math.min(state.run.waveIndex + (state.phase === "victory" ? 1 : 0), Content.waves.order.length),
+      won: state.phase === "victory",
+      timeMs: Math.max(0, Date.now() - (state.run.startedAt || Date.now())),
+      deaths: state.run.deathsCount || 0,
+    };
+    const list = loadScores();
+    UI.UIState.newRecord = !list.length || entry.score > Math.max(...list.map((e) => e.score));
+    list.push(entry);
+    try { localStorage.setItem(SCORES_KEY, JSON.stringify(list.slice(-50))); } catch (e) { /* приватный режим */ }
+    UI.UIState.scores = loadScores();
   }
 
   function loadUnlockedRank() {
@@ -71,6 +97,8 @@
 
   loadPrefs();
   UI.UIState.unlockedRank = loadUnlockedRank();
+  UI.UIState.scores = loadScores();
+  UI.UIState.scoreView = "score";
   let state = loadState() || Game.createInitialState("");
   let fighting = false;
 
@@ -116,6 +144,9 @@
         saveUnlockedRank(next);
       }
     }
+
+    // Конец забега: запись в локальный лидерборд (фаза H).
+    if (state.phase === "victory" || state.phase === "gameover") recordRun(state);
 
     // Fight: animate the resolution stack first, then reveal the result.
     if (action.type === "CONFIRM_FIGHT" && state.combat.lastResolution) {
@@ -330,6 +361,10 @@
         UI.UIState.collectionTab = "deck";
         UI.UIState.labFocus = "exile";
         UI.UIState.search = "";
+        rerender();
+        break;
+      case "score-view":
+        UI.UIState.scoreView = el.dataset.view;
         rerender();
         break;
       case "open-training":
