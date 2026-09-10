@@ -909,7 +909,9 @@
           <span class="title-hint">${rules === "formation" ? "Собирай формации из героев Dota: порядок слотов решает" : "Собирай покерные комбинации из героев Dota и сноси башни"}</span>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${overlayHtml(state)}
+    ${toastHtml()}`;
   }
 
   // ---------- route fork: три тропы после лавки ----------
