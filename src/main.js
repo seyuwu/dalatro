@@ -256,6 +256,10 @@
         dispatchAndRender({ type: "ENTER_SHOP" });
         break;
       case "buy": Sfx.play("buy"); dispatchAndRender({ type: "BUY_ITEM", itemId: el.dataset.id }); break;
+      case "buy-upgrade":
+        Sfx.play("buy");
+        dispatchAndRender({ type: "BUY_UPGRADE", upgradeId: el.dataset.id });
+        break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });
         if (UI.UIState.modal === "detail") UI.UIState.modal = null;
@@ -448,7 +452,7 @@
           } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${cost}.`);
         }
       }
-      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Ranks.rerollCost(state)) {
+      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Game.rerollCost(state)) {
         dispatchAndRender({ type: "REROLL_SHOP" });
       }
       if (e.key === "Enter") {

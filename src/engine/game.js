@@ -15,7 +15,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [] },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -173,6 +173,14 @@ const Game = (function () {
     return Math.max(1, Math.round(cost * mult));
   }
 
+  // Цена реролла: правила лиги + улучшение «Сбережения» при 15+ золоте.
+  function rerollCost(state) {
+    let cost = Ranks.rerollCost(state);
+    const rich = Upgrades.sum(state, "rerollRich");
+    if (rich && state.run.gold > 15) cost = Math.max(1, cost - rich);
+    return cost;
+  }
+
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
   function pickRecruits(state) {
     const owned = new Set([...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids].map((uid) => state.cards[uid].heroId));
@@ -298,8 +306,17 @@ const Game = (function () {
           clearGold = Math.round(clearGold);
           const tax = Ranks.taxPerWave(s);
           if (tax) clearGold = Math.max(0, clearGold - tax);
+          // Улучшения лавки: плоское золото и шанс «Мелочи».
+          const goldFlat = Upgrades.sum(s, "goldOnClear");
+          if (goldFlat) clearGold += goldFlat;
+          const goldChance = Upgrades.sum(s, "goldChance");
+          let luckyGold = 0;
+          if (goldChance && Rng.current().chance(goldChance / 100)) {
+            clearGold += 1;
+            luckyGold = 1;
+          }
           s.run.gold += clearGold;
-          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
+          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}${goldFlat ? ` (улучшение +${goldFlat}G)` : ""}${luckyGold ? " (Мелочь +1G)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
             if (s.run.waveIndex >= Content.waves.order.length - 1) {
@@ -361,6 +378,22 @@ const Game = (function () {
         s.run.pendingShopPrice = null;
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], guaranteeRarity);
         s.shop.recruits = pickRecruits(s);
+        s.shop.upgrades = Upgrades.generateOffers(s);
+        return s;
+      }
+
+      case "BUY_UPGRADE": {
+        if (s.phase !== "shop") return s;
+        const offerIdx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
+        if (offerIdx === -1) return s;
+        const up = Content.upgrades.byId[action.upgradeId];
+        if (!up || (s.run.upgrades || []).includes(up.id)) return s;
+        if (s.run.gold < up.cost) return s;
+        s.run.gold -= up.cost;
+        s.run.upgrades = s.run.upgrades || [];
+        s.run.upgrades.push(up.id);
+        s.shop.upgrades.splice(offerIdx, 1);
+        log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${up.cost} золота)`);
         return s;
       }
 
@@ -393,7 +426,7 @@ const Game = (function () {
         const idx = s.player.items.indexOf(action.itemId);
         if (idx === -1) return s;
         const item = Content.items.byId[action.itemId];
-        const value = Economy.sellValue(action.itemId);
+        const value = Economy.sellValue(s, action.itemId);
         s.player.items.splice(idx, 1);
         s.run.gold += value;
         log(s, `Продано: ${item.name} (+${value} золота)`);
@@ -401,7 +434,7 @@ const Game = (function () {
       }
 
       case "REROLL_SHOP": {
-        let cost = Ranks.rerollCost(s);
+        let cost = rerollCost(s);
         // Перк «Магия»: первый реролл каждой лавки бесплатен.
         const freeReroll = archPerk(s) === "freeroll1" && !s.run.freeRerollUsed;
         if (freeReroll) cost = 0;
@@ -604,7 +637,7 @@ const Game = (function () {
     createInitialState, dispatch,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
-    assignMines, rankOf, maxSlots, recruitPrice, itemCost,
+    assignMines, rankOf, maxSlots, recruitPrice, itemCost, rerollCost,
     archPerk, discardsPerWave, starterDeckIds,
     itemCapacity, itemBlockedReason, rollRouteOptions,
   };

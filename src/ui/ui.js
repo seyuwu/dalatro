@@ -68,6 +68,7 @@
   };
 
   const RARITY_NAMES = { common: "Обычный", rare: "Редкий", epic: "Эпический" };
+  const UPGRADE_RARITY_NAMES = { common: "Обычное", uncommon: "Необычное", rare: "Редкое", epic: "Эпическое", mythic: "Мифическое" };
   const SLOT_CLASS_NAMES = { off: "Атака", def: "Защита", util: "Утилита" };
   const SLOT_CLASS_ICONS = { off: "⚔", def: "🛡", util: "🔧" };
 
@@ -693,7 +694,7 @@
         const item = Content.items.byId[id];
         slots.push(`<button class="build-icon ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" data-tip>
           ${Art.itemIcon(item)}
-          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
+          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
         </button>`);
       } else {
         slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 13)}
@@ -723,7 +724,7 @@
             <div class="item-art">${Art.itemIcon(item)}</div>
             <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
             <span class="item-slot-dot"></span>
-            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
+            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
           </button>`);
         } else {
           slots.push(`<button class="item-slot empty-slot" data-action="item-hint" data-tip><span>${icon("plus", 18)}</span><span>Слот предмета</span>
@@ -1064,8 +1065,27 @@
               <span class="shop-gold">${icon("coins", 24)}${state.run.gold}</span>
             </div>
             <div class="shop-section-title"><h3>Предметы торговца</h3>
-              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Ranks.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Ranks.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
+              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Game.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Game.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
+            <div class="shop-upgrades">
+              <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
+                ${Upgrades.ownedDefs(state).length ? `<span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}</span>` : ""}
+              </div>
+              <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
+                ${(state.shop.upgrades || []).map((o) => {
+    const up = Content.upgrades.byId[o.id];
+    const afford = state.run.gold >= up.cost;
+    return `<div class="upgrade-card ${up.rarity}" data-tip>
+                  <span class="upgrade-emoji">${up.emoji}</span>
+                  <div class="upgrade-info"><strong>${up.name}</strong><small>${esc(up.desc)}</small></div>
+                  <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
+                    <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
+                  </button>
+                  <span class="pop"><strong>${up.name}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · копится с другими улучшениями</small></span>
+                </div>`;
+  }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке.</span>'}
+              </div>
+            </div>
             <div class="shop-lab">
               <div class="shop-lab-head">
                 <h3>${icon("layers", 14)} Лаборатория колоды</h3>
@@ -1524,7 +1544,7 @@
     const synergies = Advisor.itemSynergy(item.id, state);
     const owned = state.player.items.includes(item.id);
     const inShop = state.phase === "shop";
-    const sellValue = Economy.sellValue(item.id);
+    const sellValue = Economy.sellValue(state, item.id);
     return `<div class="item-detail-image">${Art.itemIcon(item)}</div>
       <span class="section-label gold">${RARITY_NAMES[item.rarity]} предмет · ${item.cost} G</span>
       <h2>${item.name}</h2>

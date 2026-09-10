@@ -50,9 +50,13 @@ const Economy = (function () {
     return offers;
   }
 
-  function sellValue(itemId) {
+  // Продажа: половина цены, улучшение «Перепродажа» добавляет свой процент.
+  function sellValue(state, itemId) {
     const item = Content.items.byId[itemId];
-    return Math.floor(item.cost / 2);
+    let value = item.cost / 2;
+    let bonusPct = 0;
+    if (typeof Upgrades !== "undefined") bonusPct = Upgrades.sum(state, "sell");
+    return Math.floor(value * (1 + bonusPct / 100));
   }
 
   return { generateOffers, sellValue, REROLL_COST, OFFER_SLOTS };

@@ -119,6 +119,11 @@ const Cond = (function () {
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.isBoss);
       case "IS_MINIBOSS_WAVE":
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.miniBoss);
+      case "TOWER_HP_BELOW":
+        // Улучшение «Перелом»: башня ниже pct% текущего максимума.
+        return !!(ctx.state && ctx.state.combat.wave &&
+          ctx.state.combat.wave.hp > 0 &&
+          (ctx.state.combat.wave.hp / ctx.state.combat.wave.maxHp) * 100 < condition.pct);
       default:
         console.warn("Unknown condition type:", condition.type);
         return false;

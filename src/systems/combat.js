@@ -377,6 +377,9 @@ const Combat = (function () {
     // 5. Item triggers.
     runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["item"]);
 
+    // 5.5 Улучшения лавки (фаза F): те же триггеры, отдельный вид источника.
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["upgrade"]);
+
     // 6. Refresher: hero triggers again.
     if (state.combat.scoring.flags.refreshHeroTriggers && !silenced) {
       runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: ["hero"], refreshed: true }, ["hero"]);
@@ -473,6 +476,14 @@ const Combat = (function () {
       damage = Math.round(mitigated * towerMult);
     } else {
       damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    }
+    // Улучшения лавки (фаза F): аддитивный процент поверх итогового урона —
+    // scalar (агрегатор) + сработавшие хуки (flags.dmgPct).
+    const dmgPct = (s.flags.dmgPct || 0) + Upgrades.sum(state, "dmg");
+    if (dmgPct && damage > 0) {
+      damage = Math.round(damage * (1 + dmgPct / 100));
+      if (s.trace) s.trace.finalMult.push({ source: "Улучшения лавки", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
+      Resolver.pushStep(resolution, { icon: "🔧", label: `Улучшения лавки: +${dmgPct}% урона`, kind: "info" });
     }
     // Осада (TOWER_BURN): чистый добор поверх удара, глиф блокирует всё.
     if (!resolution.blocked && s.flags.towerBurn) {

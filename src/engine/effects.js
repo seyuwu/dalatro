@@ -48,6 +48,11 @@ const Effects = (function () {
       trace(ctx, "final_mult", effect.value);
       return { label: `${ctx.sourceName}: ×${effect.value} к итоговому урону` };
     },
+    ADD_DAMAGE_PCT(effect, ctx) {
+      // Хуковые улучшения (фаза F): аддитивный процент поверх итогового урона.
+      ctx.scoring.flags.dmgPct = (ctx.scoring.flags.dmgPct || 0) + effect.value;
+      return { label: `${ctx.sourceName}: +${effect.value}% к урону` };
+    },
     WEAKEST_POWER_DOUBLE(effect, ctx) {
       const powers = ctx.playedCards.map((c) => c.power);
       if (!powers.length) return null;

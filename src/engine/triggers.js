@@ -6,7 +6,8 @@
 //   { event, when?, chance?, effects: [...] }
 const Triggers = (function () {
   function collectSources(state, playedCards) {
-    // Heroes in slot order, then items in acquisition order, then tower/boss modifiers.
+    // Heroes in slot order, then items in acquisition order, then shop
+    // upgrades (фаза F), then tower/boss modifiers.
     const sources = [];
     playedCards.forEach((card, slotIndex) => {
       const hero = Content.heroes.byId[card.heroId];
@@ -19,6 +20,12 @@ const Triggers = (function () {
       const item = Content.items.byId[itemId];
       if (item && item.ability) {
         sources.push({ kind: "item", hero: null, slotIndex: -1, item, def: { ...item.ability, sourceId: item.id, sourceName: item.name } });
+      }
+    });
+    (state.run.upgrades || []).forEach((id) => {
+      const up = Content.upgrades.byId[id];
+      if (up && up.ability) {
+        sources.push({ kind: "upgrade", hero: null, card: null, slotIndex: -1, def: { ...up.ability, sourceId: up.id, sourceName: up.name } });
       }
     });
     const tower = state.combat.wave;
@@ -103,7 +110,8 @@ const Triggers = (function () {
       for (const effect of def.effects || []) {
         const result = Effects.apply(effect, ctxBase);
         if (result) {
-          resolution.steps.push({ icon: source.kind === "hero" ? "✦" : source.kind === "item" ? "◆" : "☠", label: result.label, kind: source.kind });
+          const iconByKind = { hero: "✦", item: "◆", upgrade: "🔧", modifier: "☠" };
+          resolution.steps.push({ icon: iconByKind[source.kind] || "☠", label: result.label, kind: source.kind });
         }
       }
     }

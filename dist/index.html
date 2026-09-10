@@ -1010,6 +1010,26 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .route-curse { margin-top: 18px; padding: 12px 16px; background: #33231d; border: 1px dashed #6b4038; border-radius: 6px; font-size: 12px; color: #c9a294; line-height: 1.8; }
 .route-curse b { color: #e0a08c; }
 
+/* ---------- фаза F: улучшения лавки ---------- */
+.shop-upgrades { margin-top: 18px; padding: 13px 15px; background: #202a1e; border: 1px solid #42503a; border-radius: 7px; }
+.upgrade-title h3 { display: flex; align-items: center; gap: 7px; font-size: 14px; color: #c8d4b8; }
+.upgrade-note { font-size: 9px; font-weight: 400; letter-spacing: .4px; color: #74866b; text-transform: none; }
+.upgrade-owned { display: flex; gap: 5px; }
+.upgrade-chip { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 13px; background: #2b3527; border: 1px solid #4d5c42; border-radius: 5px; cursor: default; }
+.upgrade-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.upgrade-card { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: #26301f; border: 1px solid #46533a; border-left-width: 3px; border-radius: 7px; transition: border-color .15s; }
+.upgrade-card:hover { border-color: #6d7f5a; }
+.upgrade-card.common { border-left-color: #8a987d; }
+.upgrade-card.uncommon { border-left-color: #7fb069; }
+.upgrade-card.rare { border-left-color: #5a9dd6; }
+.upgrade-card.epic { border-left-color: #a678e0; }
+.upgrade-card.mythic { border-left-color: #ffb03a; border-color: #6b5a2e; background: #2d2818; }
+.upgrade-emoji { font-size: 22px; filter: drop-shadow(0 2px 6px #0006); }
+.upgrade-info { flex: 1; min-width: 0; }
+.upgrade-info strong { display: block; font-size: 12.5px; color: #dfe5d2; }
+.upgrade-info small { display: block; font-size: 9.5px; line-height: 1.55; color: #93a385; margin-top: 2px; }
+.upgrade-buy { flex-shrink: 0; padding: 7px 10px; font-size: 11px; }
+
 /* ---------- v0.4: лаборатория колоды в шопе ---------- */
 .shop-lab { margin-top: 21px; padding: 15px; background: #232d1f; border: 1px solid #465338; border-radius: 7px; }
 .shop-lab-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px; }
@@ -1886,6 +1906,65 @@ const ROUTES_DATA = [
 // из общего пула. Реализовано весами; здесь только подсказка для баланса.
 const ROUTE_SPECIAL_SLOTS = 2;
 
+// --- Улучшения лавки (спек §5, фаза F). Отдельный слой прогресса: НЕ занимают
+// слоты предметов, накопительная ценность ~1–5%. Два формата:
+//   scalar — агрегируются в systems/upgrades.js (dmg/goldOnClear/goldChance/
+//            sell/hand/rerollRich), одна точка интеграции на ключ;
+//   ability — хук через СУЩЕСТВУЮЩУЮ триггерную систему (kind: "upgrade"),
+//            условия переиспользуют engine/conditions.js.
+// Редкости: common 60 / uncommon 25 / rare 10 / epic 4 / mythic 1.
+const UPGRADES_DATA = [
+  // --- scalar ---
+  { id: "ostryi_kraj", name: "Острый край", emoji: "🗡️", rarity: "common", cost: 2,
+    scalar: { dmg: 1 }, desc: "+1% к итоговому урону каждого боя." },
+  { id: "pereprodazha", name: "Перепродажа", emoji: "🏷️", rarity: "common", cost: 2,
+    scalar: { sell: 3 }, desc: "Продажа предметов +3% к цене." },
+  { id: "meloch", name: "Мелочь", emoji: "🪙", rarity: "common", cost: 2,
+    scalar: { goldChance: 5 }, desc: "5% шанс +1 золота после зачистки волны." },
+  { id: "sberezheniya", name: "Сбережения", emoji: "🐖", rarity: "common", cost: 3,
+    scalar: { rerollRich: 1 }, desc: "При 15+ золоте реролл дешевле на 1." },
+  { id: "zapasnoy_slot", name: "Запасной слот", emoji: "🎒", rarity: "epic", cost: 6,
+    scalar: { hand: 1 }, desc: "+1 к размеру руки до конца забега." },
+  { id: "zolotoe_serdtse", name: "Золотое сердце", emoji: "💛", rarity: "mythic", cost: 7,
+    scalar: { dmg: 2, goldOnClear: 1 }, desc: "+2% урона и +1 золота после каждой зачистки." },
+
+  // --- hook (триггерные) ---
+  { id: "odinokiy_volk", name: "Одинокий волк", emoji: "🐺", rarity: "uncommon", cost: 3,
+    ability: { name: "Одинокий волк", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 1 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 4 }] },
+    desc: "Соло-рейд: +4% урона, если в бою ровно один герой." },
+  { id: "ritm", name: "Ритм", emoji: "🥁", rarity: "uncommon", cost: 3,
+    ability: { name: "Ритм", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_ABOVE", value: 2 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "3+ героя в отряде: +2% урона." },
+  { id: "slazhennost", name: "Слаженность", emoji: "🤝", rarity: "uncommon", cost: 3,
+    ability: { name: "Слаженность", event: "FIGHT_SCORING",
+      when: { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 2 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "3+ героя одного атрибута: +2% урона." },
+  { id: "polnyy_sostav", name: "Полный состав", emoji: "🎖️", rarity: "uncommon", cost: 3,
+    ability: { name: "Полный состав", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 5 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "Полная пятёрка: +2% урона." },
+  { id: "perelom", name: "Перелом", emoji: "📉", rarity: "uncommon", cost: 3,
+    ability: { name: "Перелом", event: "FIGHT_SCORING",
+      when: { type: "TOWER_HP_BELOW", pct: 25 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "Башня ниже четверти HP: +3% урона." },
+  { id: "tochnyy_raschet", name: "Точный расчёт", emoji: "🎯", rarity: "rare", cost: 4,
+    ability: { name: "Точный расчёт", event: "FIGHT_SCORING",
+      effects: [{ type: "LAST_HIT_GOLD", value: 3 }] },
+    desc: "Точный ласт-хит приносит +3 золота." },
+  { id: "bossslayer", name: "Боссобой", emoji: "👑", rarity: "rare", cost: 4,
+    ability: { name: "Боссобой", event: "FIGHT_SCORING",
+      when: { type: "IS_BOSS_WAVE" },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "На волне босса: +3% урона." },
+];
+
 // --- Формации и связки: альтернативное ядро скоринга (state.rules = "formation").
 // Классика ("classic") эти таблицы не читает. Дизайн и миграция —
 // docs/REDESIGN_ANTI_BALATRO.md §12–13; правило выбора формации — максимум
@@ -2040,6 +2119,8 @@ const Content = (function () {
   const archetypes = { list: ARCHETYPES_DATA, byId: byId(ARCHETYPES_DATA) };
   // Развилки после лавки (спек §4): коревые пути + пул спецвариантов.
   const routes = { list: ROUTES_DATA, byId: byId(ROUTES_DATA) };
+  // Улучшения лавки (спек §5): scalar-агрегатор + триггерные хуки.
+  const upgrades = { list: UPGRADES_DATA, byId: byId(UPGRADES_DATA) };
   // Альтернативное ядро скоринга (state.rules = "formation").
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
@@ -2048,7 +2129,7 @@ const Content = (function () {
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();
 
 </script>
@@ -2380,6 +2461,11 @@ const Cond = (function () {
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.isBoss);
       case "IS_MINIBOSS_WAVE":
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.miniBoss);
+      case "TOWER_HP_BELOW":
+        // Улучшение «Перелом»: башня ниже pct% текущего максимума.
+        return !!(ctx.state && ctx.state.combat.wave &&
+          ctx.state.combat.wave.hp > 0 &&
+          (ctx.state.combat.wave.hp / ctx.state.combat.wave.maxHp) * 100 < condition.pct);
       default:
         console.warn("Unknown condition type:", condition.type);
         return false;
@@ -2440,6 +2526,11 @@ const Effects = (function () {
       ctx.scoring.finalMult *= effect.value;
       trace(ctx, "final_mult", effect.value);
       return { label: `${ctx.sourceName}: ×${effect.value} к итоговому урону` };
+    },
+    ADD_DAMAGE_PCT(effect, ctx) {
+      // Хуковые улучшения (фаза F): аддитивный процент поверх итогового урона.
+      ctx.scoring.flags.dmgPct = (ctx.scoring.flags.dmgPct || 0) + effect.value;
+      return { label: `${ctx.sourceName}: +${effect.value}% к урону` };
     },
     WEAKEST_POWER_DOUBLE(effect, ctx) {
       const powers = ctx.playedCards.map((c) => c.power);
@@ -2610,7 +2701,8 @@ const Effects = (function () {
 //   { event, when?, chance?, effects: [...] }
 const Triggers = (function () {
   function collectSources(state, playedCards) {
-    // Heroes in slot order, then items in acquisition order, then tower/boss modifiers.
+    // Heroes in slot order, then items in acquisition order, then shop
+    // upgrades (фаза F), then tower/boss modifiers.
     const sources = [];
     playedCards.forEach((card, slotIndex) => {
       const hero = Content.heroes.byId[card.heroId];
@@ -2623,6 +2715,12 @@ const Triggers = (function () {
       const item = Content.items.byId[itemId];
       if (item && item.ability) {
         sources.push({ kind: "item", hero: null, slotIndex: -1, item, def: { ...item.ability, sourceId: item.id, sourceName: item.name } });
+      }
+    });
+    (state.run.upgrades || []).forEach((id) => {
+      const up = Content.upgrades.byId[id];
+      if (up && up.ability) {
+        sources.push({ kind: "upgrade", hero: null, card: null, slotIndex: -1, def: { ...up.ability, sourceId: up.id, sourceName: up.name } });
       }
     });
     const tower = state.combat.wave;
@@ -2707,7 +2805,8 @@ const Triggers = (function () {
       for (const effect of def.effects || []) {
         const result = Effects.apply(effect, ctxBase);
         if (result) {
-          resolution.steps.push({ icon: source.kind === "hero" ? "✦" : source.kind === "item" ? "◆" : "☠", label: result.label, kind: source.kind });
+          const iconByKind = { hero: "✦", item: "◆", upgrade: "🔧", modifier: "☠" };
+          resolution.steps.push({ icon: iconByKind[source.kind] || "☠", label: result.label, kind: source.kind });
         }
       }
     }
@@ -2769,7 +2868,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [] },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -2927,6 +3026,14 @@ const Game = (function () {
     return Math.max(1, Math.round(cost * mult));
   }
 
+  // Цена реролла: правила лиги + улучшение «Сбережения» при 15+ золоте.
+  function rerollCost(state) {
+    let cost = Ranks.rerollCost(state);
+    const rich = Upgrades.sum(state, "rerollRich");
+    if (rich && state.run.gold > 15) cost = Math.max(1, cost - rich);
+    return cost;
+  }
+
   // Таверна: 2 рекрута из ещё не нанятых героев ростера.
   function pickRecruits(state) {
     const owned = new Set([...state.player.handUids, ...state.player.deckUids, ...state.player.discardUids].map((uid) => state.cards[uid].heroId));
@@ -3052,8 +3159,17 @@ const Game = (function () {
           clearGold = Math.round(clearGold);
           const tax = Ranks.taxPerWave(s);
           if (tax) clearGold = Math.max(0, clearGold - tax);
+          // Улучшения лавки: плоское золото и шанс «Мелочи».
+          const goldFlat = Upgrades.sum(s, "goldOnClear");
+          if (goldFlat) clearGold += goldFlat;
+          const goldChance = Upgrades.sum(s, "goldChance");
+          let luckyGold = 0;
+          if (goldChance && Rng.current().chance(goldChance / 100)) {
+            clearGold += 1;
+            luckyGold = 1;
+          }
           s.run.gold += clearGold;
-          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
+          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}${goldFlat ? ` (улучшение +${goldFlat}G)` : ""}${luckyGold ? " (Мелочь +1G)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
             if (s.run.waveIndex >= Content.waves.order.length - 1) {
@@ -3115,6 +3231,22 @@ const Game = (function () {
         s.run.pendingShopPrice = null;
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], guaranteeRarity);
         s.shop.recruits = pickRecruits(s);
+        s.shop.upgrades = Upgrades.generateOffers(s);
+        return s;
+      }
+
+      case "BUY_UPGRADE": {
+        if (s.phase !== "shop") return s;
+        const offerIdx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
+        if (offerIdx === -1) return s;
+        const up = Content.upgrades.byId[action.upgradeId];
+        if (!up || (s.run.upgrades || []).includes(up.id)) return s;
+        if (s.run.gold < up.cost) return s;
+        s.run.gold -= up.cost;
+        s.run.upgrades = s.run.upgrades || [];
+        s.run.upgrades.push(up.id);
+        s.shop.upgrades.splice(offerIdx, 1);
+        log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${up.cost} золота)`);
         return s;
       }
 
@@ -3147,7 +3279,7 @@ const Game = (function () {
         const idx = s.player.items.indexOf(action.itemId);
         if (idx === -1) return s;
         const item = Content.items.byId[action.itemId];
-        const value = Economy.sellValue(action.itemId);
+        const value = Economy.sellValue(s, action.itemId);
         s.player.items.splice(idx, 1);
         s.run.gold += value;
         log(s, `Продано: ${item.name} (+${value} золота)`);
@@ -3155,7 +3287,7 @@ const Game = (function () {
       }
 
       case "REROLL_SHOP": {
-        let cost = Ranks.rerollCost(s);
+        let cost = rerollCost(s);
         // Перк «Магия»: первый реролл каждой лавки бесплатен.
         const freeReroll = archPerk(s) === "freeroll1" && !s.run.freeRerollUsed;
         if (freeReroll) cost = 0;
@@ -3358,7 +3490,7 @@ const Game = (function () {
     createInitialState, dispatch,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
-    assignMines, rankOf, maxSlots, recruitPrice, itemCost,
+    assignMines, rankOf, maxSlots, recruitPrice, itemCost, rerollCost,
     archPerk, discardsPerWave, starterDeckIds,
     itemCapacity, itemBlockedReason, rollRouteOptions,
   };
@@ -3736,10 +3868,10 @@ const DeckSys = (function () {
   }
 
   // Draws until the hand reaches the current hand size (rank may cut it to 6/5,
-  // see Ranks.handSize; маршрут может дать ±слоты, run.waveHandBonus)
-  // or deck+discard are empty.
+  // see Ranks.handSize; маршрут даёт ±слоты на волну, улучшение «Запасной слот»
+  // — навсегда) or deck+discard are empty.
   function handSize(state) {
-    return Ranks.handSize(state) + (state.run.waveHandBonus || 0);
+    return Ranks.handSize(state) + (state.run.waveHandBonus || 0) + (typeof Upgrades !== "undefined" ? Upgrades.sum(state, "hand") : 0);
   }
 
   function draw(state, rng) {
@@ -3782,6 +3914,64 @@ const DeckSys = (function () {
   }
 
   return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, handSize, HAND_SIZE };
+})();
+
+</script>
+  <script>
+// Dalatro — улучшения лавки (фаза F, спек §5). Отдельный слой прогресса,
+// НЕ занимает слоты предметов. Два формата контента:
+//   scalar — складываются в несколько чисел (sum(state, key)); каждая точка
+//            интеграции (урон/золото/продажа/рука/реролл) читает свой ключ;
+//   ability — хуки боя через обычную триггерную систему (Triggers, kind
+//            "upgrade") — см. collectSources в engine/triggers.js.
+const Upgrades = (function () {
+  const SLOTS_PER_SHOP = 2;
+  // Редкости §5.1: common 60 / uncommon 25 / rare 10 / epic 4 / mythic 1.
+  const RARITY_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
+
+  function ownedDefs(state) {
+    return (state.run.upgrades || [])
+      .map((id) => Content.upgrades.byId[id])
+      .filter(Boolean);
+  }
+
+  // Сумма скаляра по всем купленным улучшениям.
+  function sum(state, key) {
+    let total = 0;
+    for (const u of ownedDefs(state)) {
+      if (u.scalar && u.scalar[key]) total += u.scalar[key];
+    }
+    return total;
+  }
+
+  function pickRarity(rng) {
+    const total = 100;
+    let roll = rng.next() * total;
+    for (const rarity of ["common", "uncommon", "rare", "epic", "mythic"]) {
+      roll -= RARITY_WEIGHTS[rarity];
+      if (roll < 0) return rarity;
+    }
+    return "common";
+  }
+
+  // 2 карточки улучшений на лавку: без дублей и уже купленных. Ролл по сиду.
+  function generateOffers(state, slots = SLOTS_PER_SHOP) {
+    const rng = Rng.current();
+    const owned = new Set(state.run.upgrades || []);
+    const offers = [];
+    let guard = 40;
+    while (offers.length < slots && guard-- > 0) {
+      const rarity = pickRarity(rng);
+      const pool = Content.upgrades.list
+        .filter((u) => !owned.has(u.id) && !offers.some((o) => o.id === u.id) && u.rarity === rarity);
+      if (!pool.length) continue;
+      const u = pool[Math.floor(rng.next() * pool.length)];
+      offers.push({ id: u.id, cost: u.cost });
+    }
+    return offers;
+  }
+
+  return { ownedDefs, sum, generateOffers, SLOTS_PER_SHOP };
 })();
 
 </script>
@@ -4165,6 +4355,9 @@ const Combat = (function () {
     // 5. Item triggers.
     runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["item"]);
 
+    // 5.5 Улучшения лавки (фаза F): те же триггеры, отдельный вид источника.
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["upgrade"]);
+
     // 6. Refresher: hero triggers again.
     if (state.combat.scoring.flags.refreshHeroTriggers && !silenced) {
       runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: ["hero"], refreshed: true }, ["hero"]);
@@ -4261,6 +4454,14 @@ const Combat = (function () {
       damage = Math.round(mitigated * towerMult);
     } else {
       damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
+    }
+    // Улучшения лавки (фаза F): аддитивный процент поверх итогового урона —
+    // scalar (агрегатор) + сработавшие хуки (flags.dmgPct).
+    const dmgPct = (s.flags.dmgPct || 0) + Upgrades.sum(state, "dmg");
+    if (dmgPct && damage > 0) {
+      damage = Math.round(damage * (1 + dmgPct / 100));
+      if (s.trace) s.trace.finalMult.push({ source: "Улучшения лавки", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
+      Resolver.pushStep(resolution, { icon: "🔧", label: `Улучшения лавки: +${dmgPct}% урона`, kind: "info" });
     }
     // Осада (TOWER_BURN): чистый добор поверх удара, глиф блокирует всё.
     if (!resolution.blocked && s.flags.towerBurn) {
@@ -4446,9 +4647,13 @@ const Economy = (function () {
     return offers;
   }
 
-  function sellValue(itemId) {
+  // Продажа: половина цены, улучшение «Перепродажа» добавляет свой процент.
+  function sellValue(state, itemId) {
     const item = Content.items.byId[itemId];
-    return Math.floor(item.cost / 2);
+    let value = item.cost / 2;
+    let bonusPct = 0;
+    if (typeof Upgrades !== "undefined") bonusPct = Upgrades.sum(state, "sell");
+    return Math.floor(value * (1 + bonusPct / 100));
   }
 
   return { generateOffers, sellValue, REROLL_COST, OFFER_SLOTS };
@@ -4999,6 +5204,7 @@ const Art = (function () {
   };
 
   const RARITY_NAMES = { common: "Обычный", rare: "Редкий", epic: "Эпический" };
+  const UPGRADE_RARITY_NAMES = { common: "Обычное", uncommon: "Необычное", rare: "Редкое", epic: "Эпическое", mythic: "Мифическое" };
   const SLOT_CLASS_NAMES = { off: "Атака", def: "Защита", util: "Утилита" };
   const SLOT_CLASS_ICONS = { off: "⚔", def: "🛡", util: "🔧" };
 
@@ -5624,7 +5830,7 @@ const Art = (function () {
         const item = Content.items.byId[id];
         slots.push(`<button class="build-icon ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" data-tip>
           ${Art.itemIcon(item)}
-          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
+          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
         </button>`);
       } else {
         slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 13)}
@@ -5654,7 +5860,7 @@ const Art = (function () {
             <div class="item-art">${Art.itemIcon(item)}</div>
             <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
             <span class="item-slot-dot"></span>
-            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
+            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
           </button>`);
         } else {
           slots.push(`<button class="item-slot empty-slot" data-action="item-hint" data-tip><span>${icon("plus", 18)}</span><span>Слот предмета</span>
@@ -5995,8 +6201,27 @@ const Art = (function () {
               <span class="shop-gold">${icon("coins", 24)}${state.run.gold}</span>
             </div>
             <div class="shop-section-title"><h3>Предметы торговца</h3>
-              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Ranks.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Ranks.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
+              <button class="secondary-button" data-action="reroll" ${state.run.gold >= Game.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Game.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
+            <div class="shop-upgrades">
+              <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
+                ${Upgrades.ownedDefs(state).length ? `<span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}</span>` : ""}
+              </div>
+              <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
+                ${(state.shop.upgrades || []).map((o) => {
+    const up = Content.upgrades.byId[o.id];
+    const afford = state.run.gold >= up.cost;
+    return `<div class="upgrade-card ${up.rarity}" data-tip>
+                  <span class="upgrade-emoji">${up.emoji}</span>
+                  <div class="upgrade-info"><strong>${up.name}</strong><small>${esc(up.desc)}</small></div>
+                  <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
+                    <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
+                  </button>
+                  <span class="pop"><strong>${up.name}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · копится с другими улучшениями</small></span>
+                </div>`;
+  }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке.</span>'}
+              </div>
+            </div>
             <div class="shop-lab">
               <div class="shop-lab-head">
                 <h3>${icon("layers", 14)} Лаборатория колоды</h3>
@@ -6455,7 +6680,7 @@ const Art = (function () {
     const synergies = Advisor.itemSynergy(item.id, state);
     const owned = state.player.items.includes(item.id);
     const inShop = state.phase === "shop";
-    const sellValue = Economy.sellValue(item.id);
+    const sellValue = Economy.sellValue(state, item.id);
     return `<div class="item-detail-image">${Art.itemIcon(item)}</div>
       <span class="section-label gold">${RARITY_NAMES[item.rarity]} предмет · ${item.cost} G</span>
       <h2>${item.name}</h2>
@@ -6814,6 +7039,10 @@ const Art = (function () {
         dispatchAndRender({ type: "ENTER_SHOP" });
         break;
       case "buy": Sfx.play("buy"); dispatchAndRender({ type: "BUY_ITEM", itemId: el.dataset.id }); break;
+      case "buy-upgrade":
+        Sfx.play("buy");
+        dispatchAndRender({ type: "BUY_UPGRADE", upgradeId: el.dataset.id });
+        break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });
         if (UI.UIState.modal === "detail") UI.UIState.modal = null;
@@ -7006,7 +7235,7 @@ const Art = (function () {
           } else UI.toast(state, `Не хватает золота: «${item.name}» стоит ${cost}.`);
         }
       }
-      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Ranks.rerollCost(state)) {
+      if ((e.key.toLowerCase() === "r" || e.key.toLowerCase() === "к") && state.run.gold >= Game.rerollCost(state)) {
         dispatchAndRender({ type: "REROLL_SHOP" });
       }
       if (e.key === "Enter") {

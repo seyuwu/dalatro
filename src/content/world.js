@@ -140,6 +140,65 @@ const ROUTES_DATA = [
 // из общего пула. Реализовано весами; здесь только подсказка для баланса.
 const ROUTE_SPECIAL_SLOTS = 2;
 
+// --- Улучшения лавки (спек §5, фаза F). Отдельный слой прогресса: НЕ занимают
+// слоты предметов, накопительная ценность ~1–5%. Два формата:
+//   scalar — агрегируются в systems/upgrades.js (dmg/goldOnClear/goldChance/
+//            sell/hand/rerollRich), одна точка интеграции на ключ;
+//   ability — хук через СУЩЕСТВУЮЩУЮ триггерную систему (kind: "upgrade"),
+//            условия переиспользуют engine/conditions.js.
+// Редкости: common 60 / uncommon 25 / rare 10 / epic 4 / mythic 1.
+const UPGRADES_DATA = [
+  // --- scalar ---
+  { id: "ostryi_kraj", name: "Острый край", emoji: "🗡️", rarity: "common", cost: 2,
+    scalar: { dmg: 1 }, desc: "+1% к итоговому урону каждого боя." },
+  { id: "pereprodazha", name: "Перепродажа", emoji: "🏷️", rarity: "common", cost: 2,
+    scalar: { sell: 3 }, desc: "Продажа предметов +3% к цене." },
+  { id: "meloch", name: "Мелочь", emoji: "🪙", rarity: "common", cost: 2,
+    scalar: { goldChance: 5 }, desc: "5% шанс +1 золота после зачистки волны." },
+  { id: "sberezheniya", name: "Сбережения", emoji: "🐖", rarity: "common", cost: 3,
+    scalar: { rerollRich: 1 }, desc: "При 15+ золоте реролл дешевле на 1." },
+  { id: "zapasnoy_slot", name: "Запасной слот", emoji: "🎒", rarity: "epic", cost: 6,
+    scalar: { hand: 1 }, desc: "+1 к размеру руки до конца забега." },
+  { id: "zolotoe_serdtse", name: "Золотое сердце", emoji: "💛", rarity: "mythic", cost: 7,
+    scalar: { dmg: 2, goldOnClear: 1 }, desc: "+2% урона и +1 золота после каждой зачистки." },
+
+  // --- hook (триггерные) ---
+  { id: "odinokiy_volk", name: "Одинокий волк", emoji: "🐺", rarity: "uncommon", cost: 3,
+    ability: { name: "Одинокий волк", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 1 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 4 }] },
+    desc: "Соло-рейд: +4% урона, если в бою ровно один герой." },
+  { id: "ritm", name: "Ритм", emoji: "🥁", rarity: "uncommon", cost: 3,
+    ability: { name: "Ритм", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_ABOVE", value: 2 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "3+ героя в отряде: +2% урона." },
+  { id: "slazhennost", name: "Слаженность", emoji: "🤝", rarity: "uncommon", cost: 3,
+    ability: { name: "Слаженность", event: "FIGHT_SCORING",
+      when: { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 2 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "3+ героя одного атрибута: +2% урона." },
+  { id: "polnyy_sostav", name: "Полный состав", emoji: "🎖️", rarity: "uncommon", cost: 3,
+    ability: { name: "Полный состав", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 5 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "Полная пятёрка: +2% урона." },
+  { id: "perelom", name: "Перелом", emoji: "📉", rarity: "uncommon", cost: 3,
+    ability: { name: "Перелом", event: "FIGHT_SCORING",
+      when: { type: "TOWER_HP_BELOW", pct: 25 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "Башня ниже четверти HP: +3% урона." },
+  { id: "tochnyy_raschet", name: "Точный расчёт", emoji: "🎯", rarity: "rare", cost: 4,
+    ability: { name: "Точный расчёт", event: "FIGHT_SCORING",
+      effects: [{ type: "LAST_HIT_GOLD", value: 3 }] },
+    desc: "Точный ласт-хит приносит +3 золота." },
+  { id: "bossslayer", name: "Боссобой", emoji: "👑", rarity: "rare", cost: 4,
+    ability: { name: "Боссобой", event: "FIGHT_SCORING",
+      when: { type: "IS_BOSS_WAVE" },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "На волне босса: +3% урона." },
+];
+
 // --- Формации и связки: альтернативное ядро скоринга (state.rules = "formation").
 // Классика ("classic") эти таблицы не читает. Дизайн и миграция —
 // docs/REDESIGN_ANTI_BALATRO.md §12–13; правило выбора формации — максимум
