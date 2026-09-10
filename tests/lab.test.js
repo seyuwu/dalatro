@@ -72,20 +72,22 @@ test("LEAVE_SHOP открывает развилку; лагерь реальн�
   // campTaken сброшен только что отыгранной волной — лагерь снова доступен дальше
 });
 
-test("Лагерь перед мини-боссом: пропуск приводит сразу к Рошану", () => {
+test("Боссов и мини-боссов лагерем пропускать нельзя", () => {
   const s = newRun("RT1B");
-  s.run.waveIndex = 2;
+  s.run.waveIndex = 2; // впереди волна 4 — Techies, мини-босс
   s.combat.outcome = "cleared";
   Game.dispatch(s, { type: "ENTER_SHOP" });
   Game.dispatch(s, { type: "LEAVE_SHOP" });
-  // форк для волны 4 (Techies, мини-босс) — инжектим лагерь детерминированно
+  // Ролл для мини-босса вообще не предлагает лагерь
+  assert(!s.combat.routeOptions.some((o) => o.id === "camp"), "лагеря нет в опциях мини-босса");
+  // Даже при ручной инжекции выбор лагеря игнорируется
   s.combat.routeOptions = [{ id: "normal" }, { id: "camp" }];
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "camp" });
-  assertEq(s.phase, "shop");
-  Game.dispatch(s, { type: "LEAVE_SHOP" });
-  assertEq(s.run.waveIndex, 4, "Techies (3) пропущены, стоим на Рошане (4)");
-  assertEq(s.phase, "wave", "после пропуска — сразу босс, без развилки");
-  assert(s.combat.wave.isBoss, "Рошан");
+  assertEq(s.phase, "route", "лагерь на мини-боссе — пустой клик");
+  assert(!s.run.skipNextBattle, "флаг пропуска не ставится");
+  Game.dispatch(s, { type: "TAKE_ROUTE", kind: "normal" });
+  assertEq(s.phase, "wave");
+  assert(s.combat.wave.miniBoss, "Techies на месте, бой будет");
 });
 
 test("Перед боссом развилки нет — сразу волна Рошана", () => {

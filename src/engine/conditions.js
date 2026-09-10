@@ -119,6 +119,14 @@ const Cond = (function () {
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.isBoss);
       case "IS_MINIBOSS_WAVE":
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.miniBoss);
+      case "MODE_IS":
+        return !!(ctx.state && ctx.state.rules === condition.value);
+      case "COMBO_DIFFERENT_FROM_LAST":
+        return !!(ctx.combo && ctx.state && ctx.state.combat.lastComboType && ctx.state.combat.lastComboType !== ctx.combo.type);
+      case "AFTER_FAILURE":
+        return !!(ctx.state && ctx.state.run.failedLastWave);
+      case "FIGHTS_LEFT_ABOVE":
+        return !!(ctx.state && ctx.state.player.fightsLeft > condition.value);
       case "TOWER_HP_BELOW":
         // Улучшение «Перелом»: башня ниже pct% текущего максимума.
         return !!(ctx.state && ctx.state.combat.wave &&

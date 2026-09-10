@@ -260,6 +260,9 @@
         Sfx.play("buy");
         dispatchAndRender({ type: "BUY_UPGRADE", upgradeId: el.dataset.id });
         break;
+      case "reroll-upgrades":
+        dispatchAndRender({ type: "REROLL_UPGRADES" });
+        break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });
         if (UI.UIState.modal === "detail") UI.UIState.modal = null;

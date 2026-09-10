@@ -6,11 +6,18 @@ const Economy = (function () {
   // Rarity weights per offer slot (epic stays special).
   const RARITY_WEIGHTS = { common: 62, rare: 28, epic: 10 };
 
-  function pickRarity(rng) {
-    const total = RARITY_WEIGHTS.common + RARITY_WEIGHTS.rare + RARITY_WEIGHTS.epic;
+  function pickRarity(state, rng) {
+    // Ассортимент (#61): редкие товары чаще.
+    const bias = typeof Upgrades !== "undefined" ? Upgrades.sum(state, "itemRareBias") : 0;
+    const weights = {
+      common: Math.max(20, RARITY_WEIGHTS.common - 2 * bias),
+      rare: RARITY_WEIGHTS.rare + 2 * bias,
+      epic: RARITY_WEIGHTS.epic,
+    };
+    const total = weights.common + weights.rare + weights.epic;
     let roll = rng.next() * total;
     for (const rarity of ["common", "rare", "epic"]) {
-      roll -= RARITY_WEIGHTS[rarity];
+      roll -= weights[rarity];
       if (roll < 0) return rarity;
     }
     return "common";
@@ -22,9 +29,14 @@ const Economy = (function () {
     const rng = Rng.current();
     const offers = keepLocked.slice();
     const taken = new Set(offers.map((o) => o.id).concat(state.player.items));
+    // Пыльная полка (#62): шанс гарантировать редкий товар.
+    if (!guaranteeRarity) {
+      const dust = typeof Upgrades !== "undefined" ? Upgrades.sum(state, "dustChance") : 0;
+      if (dust && rng.chance(dust / 100)) guaranteeRarity = "rare";
+    }
     let guard = 60; // pool can be exhausted — never loop forever
     while (offers.length < slots && guard-- > 0) {
-      const rarity = pickRarity(rng);
+      const rarity = pickRarity(state, rng);
       const pool = Content.items.list
         .map((i) => i.id)
         .filter((id) => !taken.has(id) && Content.items.byId[id].rarity === rarity);

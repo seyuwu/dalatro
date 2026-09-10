@@ -355,6 +355,19 @@ const Combat = (function () {
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
+    // Крепкая масть (#2): случайная карта усиливается на процент.
+    const cardBuffPct = Upgrades.sum(state, "cardBuffPct");
+    if (cardBuffPct && effective.length) {
+      const lucky = effective[Math.floor(Rng.current().next() * effective.length)];
+      const bonus = Math.max(1, Math.floor(lucky.power * cardBuffPct / 100));
+      lucky.power += bonus;
+      state.combat.scoring.trace.itemPower += 0; // не предмет: отдельный слой не нужен
+      Resolver.pushStep(resolution, {
+        icon: "🔧",
+        label: `Крепкая масть: ${Content.heroes.byId[lucky.heroId].name} +${bonus} силы`,
+        kind: "info",
+      });
+    }
     // Бонус силы маршрута (Пустая рука/Вознесение/Дуэль) — всем боям волны.
     if (state.combat.wave.powerBonus) {
       state.combat.scoring.power += state.combat.wave.powerBonus;

@@ -15,7 +15,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -44,7 +44,7 @@ const Game = (function () {
 
   // ТП-сбросы за волну: правила лиги + перк «Контроль» (+1 в акте 1).
   function discardsPerWave(state) {
-    const base = Ranks.discardsPerWave(state);
+    const base = Ranks.discardsPerWave(state) + Upgrades.sum(state, "discardsBonus");
     return archPerk(state) === "tp1" && (state.run.act || 1) === 1 ? base + 1 : base;
   }
 
@@ -149,7 +149,8 @@ const Game = (function () {
     state.run.campBoon = false;
     state.combat.route = null;
     // Примитивы на волну: рука и тимфайты с дельтой маршрута.
-    state.run.waveHandBonus = route && route.hand ? route.hand : 0;
+    state.run.waveHandBonus = (route && route.hand ? route.hand : 0) + (state.run.pendingHandBonus || 0);
+    state.run.pendingHandBonus = 0;
     state.player.fightsLeft = Ranks.fightsPerWave(state) + (route && route.fights ? route.fights : 0);
     state.player.discardsLeft = discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
@@ -169,8 +170,16 @@ const Game = (function () {
     const item = Content.items.byId[itemId];
     let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
     if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
-    const mult = state.run.shopPriceMult || 1;
-    return Math.max(1, Math.round(cost * mult));
+    let mult = state.run.shopPriceMult || 1;
+    // Торг: помеченный оффер со скидкой.
+    const offer = (state.shop.offers || []).find((o) => o.id === itemId);
+    if (offer && offer.sale) mult *= 1 - offer.sale / 100;
+    cost = Math.max(1, Math.round(cost * mult));
+    // Налоговый вычет: первая покупка после босса акта.
+    if (state.run.afterBoss && Upgrades.sum(state, "postBossDiscount")) cost = Math.max(1, cost - 1);
+    // Лояльность: после трёх покупок следующий товар дешевле (раз за визит).
+    if ((state.run.shopBuys || 0) >= 3 && !state.run.loyaltyUsed && Upgrades.sum(state, "shopLoyalty")) cost = Math.max(1, cost - 1);
+    return cost;
   }
 
   // Цена реролла: правила лиги + улучшение «Сбережения» при 15+ золоте.
@@ -178,6 +187,11 @@ const Game = (function () {
     let cost = Ranks.rerollCost(state);
     const rich = Upgrades.sum(state, "rerollRich");
     if (rich && state.run.gold > 15) cost = Math.max(1, cost - rich);
+    const rerolls = state.run.shopRerolls || 0;
+    const first = Upgrades.sum(state, "firstRerollOff");
+    if (first && rerolls === 0) cost = Math.max(1, cost - first);
+    const third = Upgrades.sum(state, "thirdRerollOff");
+    if (third && rerolls > 0 && rerolls % 3 === 2) cost = Math.max(1, cost - third);
     return cost;
   }
 
@@ -231,7 +245,9 @@ const Game = (function () {
     const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
     const act = nextDef.act || (Math.floor(nextIndex / 5) + 1);
     const options = [{ id: "normal" }];
-    if (!state.combat.campTaken) options.push({ id: "camp" });
+    // Боссов и мини-боссов («БОСС АКТА») лагерем не пропускаем — привал только
+    // перед обычными волнами.
+    if (!state.combat.campTaken && !nextDef.isBoss && !nextDef.miniBoss) options.push({ id: "camp" });
     const rng = Rng.current();
     const rank = state.run.rank || 1;
     const pool = Content.routes.list.filter((r) => r.weight > 0 && (r.minAct || 1) <= act && (r.minRank || 1) <= rank);
@@ -307,6 +323,15 @@ const Game = (function () {
           const tax = Ranks.taxPerWave(s);
           if (tax) clearGold = Math.max(0, clearGold - tax);
           // Улучшения лавки: плоское золото и шанс «Мелочи».
+          s.run.failedLastWave = false;
+          const streakGold = Upgrades.sum(s, "streakGold");
+          if (streakGold && (s.run.momentum || 0) >= 2) clearGold = Math.round(clearGold * (1 + streakGold / 100));
+          s.run.winCount = (s.run.winCount || 0) + 1;
+          const milestone = Upgrades.sum(s, "winMilestoneGold");
+          if (milestone && s.run.winCount % 5 === 0) {
+            clearGold += milestone;
+            log(s, `Боевой опыт: ${s.run.winCount}-я зачистка +${milestone} золота`);
+          }
           const goldFlat = Upgrades.sum(s, "goldOnClear");
           if (goldFlat) clearGold += goldFlat;
           const goldChance = Upgrades.sum(s, "goldChance");
@@ -316,6 +341,11 @@ const Game = (function () {
             luckyGold = 1;
           }
           s.run.gold += clearGold;
+          const drawChance = Upgrades.sum(s, "extraDrawChance");
+          if (drawChance && Rng.current().chance(drawChance / 100)) {
+            s.run.pendingHandBonus = (s.run.pendingHandBonus || 0) + 1;
+            log(s, "Быстрый добор: следующая волна с +1 картой в руке");
+          }
           log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}${goldFlat ? ` (улучшение +${goldFlat}G)` : ""}${luckyGold ? " (Мелочь +1G)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
@@ -326,7 +356,10 @@ const Game = (function () {
               // Акт пройден: премия за переход — золото и восстановление казармы.
               s.run.gold += 10;
               s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
-              log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота, +1 казарма (восстановление)`);
+              const perAct = Upgrades.sum(s, "goldPerAct");
+              if (perAct) s.run.gold += perAct;
+              s.run.afterBoss = true;
+              log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота${perAct ? ` (+${perAct} за кошелёк)` : ""}, +1 казарма (восстановление)`);
               // Лига Титанов: перед новым актом игрок выбирает проклятие забега.
               if (Ranks.has(s, "curseChoice")) {
                 s.run.pendingCurse = Ranks.rollCurseChoices();
@@ -379,6 +412,27 @@ const Game = (function () {
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], guaranteeRarity);
         s.shop.recruits = pickRecruits(s);
         s.shop.upgrades = Upgrades.generateOffers(s);
+        s.run.shopRerolls = 0;
+        s.run.shopBuys = 0;
+        s.run.loyaltyUsed = false;
+        s.run.brokeUsed = false;
+        // Маленькая удача (#100): лавка может встретить золотом.
+        const coinChance = Upgrades.sum(s, "shopCoinChance");
+        if (coinChance && Rng.current().chance(coinChance / 100)) {
+          s.run.gold += 2;
+          log(s, "Маленькая удача: лавка подкинула +2 золота");
+        }
+        // Торг (#54): случайный товар со скидкой.
+        const discountPct = Upgrades.sum(s, "itemDiscountPct");
+        if (discountPct && s.shop.offers.length) {
+          s.shop.offers[Math.floor(Rng.current().next() * s.shop.offers.length)].sale = discountPct;
+        }
+        // Тайный ящик (#65): лишний товар.
+        const secret = Upgrades.sum(s, "secretSlotChance");
+        if (secret && Rng.current().chance(secret / 100)) {
+          s.shop.offers = s.shop.offers.concat(Economy.generateOffers(s, 1, s.shop.offers));
+          log(s, "Тайный ящик: у торговца нашёлся лишний товар");
+        }
         return s;
       }
 
@@ -386,14 +440,38 @@ const Game = (function () {
         if (s.phase !== "shop") return s;
         const offerIdx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
         if (offerIdx === -1) return s;
-        const up = Content.upgrades.byId[action.upgradeId];
-        if (!up || (s.run.upgrades || []).includes(up.id)) return s;
-        if (s.run.gold < up.cost) return s;
-        s.run.gold -= up.cost;
-        s.run.upgrades = s.run.upgrades || [];
-        s.run.upgrades.push(up.id);
+        // «Запасной слот» — виртуальный повторяемый апгрейд: уровень в run.handSlots.
+        const isHandSlot = action.upgradeId === Upgrades.HAND_SLOT_ID;
+        const up = isHandSlot ? Upgrades.handSlotDef(s) : Content.upgrades.byId[action.upgradeId];
+        if (!up) return s;
+        if (!isHandSlot && (s.run.upgrades || []).includes(up.id)) return s;
+        let finalCost = up.cost;
+        s.run.upgradePurchases = (s.run.upgradePurchases || 0) + 1;
+        const amulet = Upgrades.sum(s, "upgradeLoyalty");
+        if (amulet && s.run.upgradePurchases % 5 === 0) {
+          finalCost = Math.max(1, finalCost - 1);
+          log(s, "Старый амулет: пятая покупка улучшения дешевле");
+        }
+        if (s.run.gold < finalCost) return s;
+        s.run.gold -= finalCost;
+        if (isHandSlot) {
+          s.run.handSlots = (s.run.handSlots || 0) + 1;
+          log(s, `Запасной слот ×${s.run.handSlots}: рука больше на ${s.run.handSlots} (−${finalCost} золота)`);
+        } else {
+          s.run.upgrades = s.run.upgrades || [];
+          s.run.upgrades.push(up.id);
+          log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
+        }
         s.shop.upgrades.splice(offerIdx, 1);
-        log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${up.cost} золота)`);
+        return s;
+      }
+
+      // Обновление предложений улучшений (фидбек): фиксированные 2G.
+      case "REROLL_UPGRADES": {
+        if (s.phase !== "shop") return s;
+        if (s.run.gold < Upgrades.REROLL_COST) return s;
+        s.run.gold -= Upgrades.REROLL_COST;
+        s.shop.upgrades = Upgrades.generateOffers(s);
         return s;
       }
 
@@ -409,6 +487,19 @@ const Game = (function () {
         s.player.items.push(action.itemId);
         s.shop.offers.splice(offerIdx, 1);
         if (Ranks.has(s, "inflation")) s.run.inflationBuys += 1;
+        s.run.shopBuys = (s.run.shopBuys || 0) + 1;
+        if (s.run.afterBoss && Upgrades.sum(s, "postBossDiscount")) s.run.afterBoss = false;
+        if ((s.run.shopBuys || 0) >= 3 && !s.run.loyaltyUsed && Upgrades.sum(s, "shopLoyalty")) s.run.loyaltyUsed = true;
+        const refundChance = Upgrades.sum(s, "purchaseRefundChance");
+        if (refundChance && Rng.current().chance(refundChance / 100)) {
+          s.run.gold += 1;
+          log(s, "Монетка: 1 золото вернулась после покупки");
+        }
+        if (s.run.gold === 0 && !s.run.brokeUsed && Upgrades.sum(s, "brokeBonus")) {
+          s.run.brokeUsed = true;
+          s.run.gold = 1;
+          log(s, "Резервный фонд: кошелёк пуст — вам дадут 1 золото");
+        }
         log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})${s.player.items.length >= itemCapacity(s).total ? " · слоты предметов заполнены" : ""}`);
         return s;
       }
@@ -439,6 +530,7 @@ const Game = (function () {
         const freeReroll = archPerk(s) === "freeroll1" && !s.run.freeRerollUsed;
         if (freeReroll) cost = 0;
         if (s.phase !== "shop" || s.run.gold < cost) return s;
+        s.run.shopRerolls = (s.run.shopRerolls || 0) + 1;
         if (freeReroll) {
           s.run.freeRerollUsed = true;
           log(s, "Магия: первый реролл лавки бесплатен");
@@ -471,7 +563,9 @@ const Game = (function () {
           s.run.skipNextBattle = false;
           const skipIndex = s.run.waveIndex + 1;
           const skipDef = Content.waves.byId[Content.waves.order[skipIndex]];
-          if (skipDef) {
+          if (skipDef && (skipDef.isBoss || skipDef.miniBoss)) {
+            log(s, `Лагерь не может пропустить «${skipDef.name}» — придётся бить.`);
+          } else if (skipDef) {
             log(s, `Лагерь: волна «${skipDef.name}» пропущена без боя.`);
             s.run.waveIndex = skipIndex;
             s.combat.routeOptions = [];
@@ -516,6 +610,8 @@ const Game = (function () {
         const nextIndex = s.run.waveIndex + 1;
         if (opt.id === "camp") {
           if (s.combat.campTaken) return s;
+          const campTarget = Content.waves.byId[Content.waves.order[nextIndex]];
+          if (campTarget && (campTarget.isBoss || campTarget.miniBoss)) return s;
           s.run.gold += 6;
           s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
           s.run.campBoon = true;
@@ -625,6 +721,7 @@ const Game = (function () {
         if (Ranks.has(s, "mercy") && s.combat.wave.hp < s.combat.wave.maxHp) {
           log(s, "Милосердие мира: башня восстановила только 70% HP.");
         }
+        s.run.failedLastWave = true;
         s.combat.fightIndex = 0;
         s.combat.outcome = null;
         s.player.fightsLeft = Ranks.fightsPerWave(s);

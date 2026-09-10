@@ -48,6 +48,50 @@ const Effects = (function () {
       trace(ctx, "final_mult", effect.value);
       return { label: `${ctx.sourceName}: ×${effect.value} к итоговому урону` };
     },
+    ADD_POWER_FIRST_CARD(effect, ctx) {
+      const first = ctx.playedCards && ctx.playedCards[0];
+      if (!first) return null;
+      const bonus = Math.max(1, Math.floor(first.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: первая карта +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_LAST_CARD(effect, ctx) {
+      const n = ctx.playedCards && ctx.playedCards.length;
+      if (!n) return null;
+      const last = ctx.playedCards[n - 1];
+      const bonus = Math.max(1, Math.floor(last.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: последняя карта +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_CENTER(effect, ctx) {
+      const n = ctx.playedCards && ctx.playedCards.length;
+      if (!n) return null;
+      const mid = ctx.playedCards[Math.floor((n - 1) / 2)];
+      const bonus = Math.max(1, Math.floor(mid.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: центр отряда +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_EDGES(effect, ctx) {
+      const n = ctx.playedCards && ctx.playedCards.length;
+      if (!n) return null;
+      const edgePower = ctx.playedCards[0].power + (n > 1 ? ctx.playedCards[n - 1].power : 0);
+      const bonus = Math.max(1, Math.floor(edgePower * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: края отряда +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_WEAKEST(effect, ctx) {
+      if (!ctx.playedCards || !ctx.playedCards.length) return null;
+      const weakest = ctx.playedCards.reduce((a, b) => (b.power < a.power ? b : a), ctx.playedCards[0]);
+      const bonus = Math.max(1, Math.floor(weakest.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: слабейший герой +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_RANDOM_CARD(effect, ctx) {
+      if (!ctx.playedCards || !ctx.playedCards.length) return null;
+      const card = ctx.playedCards[Math.floor(Rng.current().next() * ctx.playedCards.length)];
+      ctx.scoring.power += effect.value;
+      return { label: `${ctx.sourceName}: ${card.heroId ? Content.heroes.byId[card.heroId].name : "карта"} +${effect.value} силы` };
+    },
     ADD_DAMAGE_PCT(effect, ctx) {
       // Хуковые улучшения (фаза F): аддитивный процент поверх итогового урона.
       ctx.scoring.flags.dmgPct = (ctx.scoring.flags.dmgPct || 0) + effect.value;

@@ -1016,7 +1016,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upgrade-note { font-size: 9px; font-weight: 400; letter-spacing: .4px; color: #74866b; text-transform: none; }
 .upgrade-owned { display: flex; gap: 5px; }
 .upgrade-chip { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 13px; background: #2b3527; border: 1px solid #4d5c42; border-radius: 5px; cursor: default; }
-.upgrade-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.upgrade-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 9px; }
 .upgrade-card { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: #26301f; border: 1px solid #46533a; border-left-width: 3px; border-radius: 7px; transition: border-color .15s; }
 .upgrade-card:hover { border-color: #6d7f5a; }
 .upgrade-card.common { border-left-color: #8a987d; }
@@ -1029,6 +1029,9 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upgrade-info strong { display: block; font-size: 12.5px; color: #dfe5d2; }
 .upgrade-info small { display: block; font-size: 9.5px; line-height: 1.55; color: #93a385; margin-top: 2px; }
 .upgrade-buy { width: auto; flex-shrink: 0; display: inline-flex; justify-content: center; gap: 6px; padding: 7px 10px; font-size: 11px; }
+.luck-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #b8d48a; background: #26301f; border: 1px solid #4d5c42; border-radius: 5px; padding: 3px 8px; cursor: default; }
+.upgrade-title h3 { margin-right: auto; }
+.upgrade-reroll { padding: 5px 9px; font-size: 10.5px; }
 
 /* ---------- v0.4: лаборатория колоды в шопе ---------- */
 .shop-lab { margin-top: 21px; padding: 15px; background: #232d1f; border: 1px solid #465338; border-radius: 7px; }
@@ -1913,57 +1916,7 @@ const ROUTE_SPECIAL_SLOTS = 2;
 //   ability — хук через СУЩЕСТВУЮЩУЮ триггерную систему (kind: "upgrade"),
 //            условия переиспользуют engine/conditions.js.
 // Редкости: common 60 / uncommon 25 / rare 10 / epic 4 / mythic 1.
-const UPGRADES_DATA = [
-  // --- scalar ---
-  { id: "ostryi_kraj", name: "Острый край", emoji: "🗡️", rarity: "common", cost: 2,
-    scalar: { dmg: 1 }, desc: "+1% к итоговому урону каждого боя." },
-  { id: "pereprodazha", name: "Перепродажа", emoji: "🏷️", rarity: "common", cost: 2,
-    scalar: { sell: 3 }, desc: "Продажа предметов +3% к цене." },
-  { id: "meloch", name: "Мелочь", emoji: "🪙", rarity: "common", cost: 2,
-    scalar: { goldChance: 5 }, desc: "5% шанс +1 золота после зачистки волны." },
-  { id: "sberezheniya", name: "Сбережения", emoji: "🐖", rarity: "common", cost: 3,
-    scalar: { rerollRich: 1 }, desc: "При 15+ золоте реролл дешевле на 1." },
-  { id: "zapasnoy_slot", name: "Запасной слот", emoji: "🎒", rarity: "epic", cost: 6,
-    scalar: { hand: 1 }, desc: "+1 к размеру руки до конца забега." },
-  { id: "zolotoe_serdtse", name: "Золотое сердце", emoji: "💛", rarity: "mythic", cost: 7,
-    scalar: { dmg: 2, goldOnClear: 1 }, desc: "+2% урона и +1 золота после каждой зачистки." },
-
-  // --- hook (триггерные) ---
-  { id: "odinokiy_volk", name: "Одинокий волк", emoji: "🐺", rarity: "uncommon", cost: 3,
-    ability: { name: "Одинокий волк", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_IS", value: 1 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 4 }] },
-    desc: "Соло-рейд: +4% урона, если в бою ровно один герой." },
-  { id: "ritm", name: "Ритм", emoji: "🥁", rarity: "uncommon", cost: 3,
-    ability: { name: "Ритм", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "3+ героя в отряде: +2% урона." },
-  { id: "slazhennost", name: "Слаженность", emoji: "🤝", rarity: "uncommon", cost: 3,
-    ability: { name: "Слаженность", event: "FIGHT_SCORING",
-      when: { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "3+ героя одного атрибута: +2% урона." },
-  { id: "polnyy_sostav", name: "Полный состав", emoji: "🎖️", rarity: "uncommon", cost: 3,
-    ability: { name: "Полный состав", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_IS", value: 5 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Полная пятёрка: +2% урона." },
-  { id: "perelom", name: "Перелом", emoji: "📉", rarity: "uncommon", cost: 3,
-    ability: { name: "Перелом", event: "FIGHT_SCORING",
-      when: { type: "TOWER_HP_BELOW", pct: 25 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "Башня ниже четверти HP: +3% урона." },
-  { id: "tochnyy_raschet", name: "Точный расчёт", emoji: "🎯", rarity: "rare", cost: 4,
-    ability: { name: "Точный расчёт", event: "FIGHT_SCORING",
-      effects: [{ type: "LAST_HIT_GOLD", value: 3 }] },
-    desc: "Точный ласт-хит приносит +3 золота." },
-  { id: "bossslayer", name: "Боссобой", emoji: "👑", rarity: "rare", cost: 4,
-    ability: { name: "Боссобой", event: "FIGHT_SCORING",
-      when: { type: "IS_BOSS_WAVE" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "На волне босса: +3% урона." },
-];
+// Улучшения лавки переехали в src/content/upgrades.js (48 строк пула §5).
 
 // --- Формации и связки: альтернативное ядро скоринга (state.rules = "formation").
 // Классика ("classic") эти таблицы не читает. Дизайн и миграция —
@@ -2089,6 +2042,183 @@ const ARCHETYPES_DATA = [
       "rubick", "invoker", "lina", "skywrath", "oracle", "storm_spirit", "outworld", "snapfire"],
     perk: "freeroll1", perkDesc: "Первый реролл каждой лавки бесплатен",
   },
+];
+
+</script>
+  <script>
+// Dalatro content — улучшения лавки (спек §5, фаза F). Отдельный слой
+// прогресса: НЕ занимают слоты предметов, накопительная ценность ~1–5%.
+// Два формата:
+//   scalar — агрегируются в systems/upgrades.js (одна точка интеграции на ключ);
+//   ability — хуки через СУЩЕСТВУЮЩУЮ триггерную систему (kind: "upgrade").
+// Реализовано 48 из 100 строк спека. Отложено с причинами (см. конец файла).
+const UPGRADES_DATA = [
+  // ===== СКАЛЯРЫ =====
+  { id: "ostryi_kraj", name: "Острый край", emoji: "🗡️", rarity: "common", cost: 2,
+    scalar: { dmg: 1 }, desc: "+1% к итоговому урону каждого боя." }, // #11
+  { id: "krepkaya_mast", name: "Крепкая масть", emoji: "🃏", rarity: "common", cost: 2,
+    scalar: { cardBuffPct: 2 }, desc: "Случайная карта в бою получает +2% силы." }, // #2
+  { id: "bystryy_dabor", name: "Быстрый добор", emoji: "📥", rarity: "common", cost: 2,
+    scalar: { extraDrawChance: 5 }, desc: "5% шанс: следующая волна играется с +1 картой в руке." }, // #3
+  { id: "chistyy_dabor", name: "Чистый добор", emoji: "♻️", rarity: "common", cost: 2,
+    scalar: { discardsBonus: 1 }, desc: "+1 ТП-сброс за волну." }, // #4
+  { id: "maly_rezerv", name: "Малый резерв", emoji: "📦", rarity: "uncommon", cost: 3,
+    scalar: { discardsBonus: 1 }, desc: "+1 ТП-сброс за волну. Складывается с «Чистым добором»." }, // #9
+  { id: "koshelek", name: "Кошелёк", emoji: "👛", rarity: "common", cost: 2,
+    scalar: { goldPerAct: 5 }, desc: "+5 золота при переходе в новый акт." }, // #51
+  { id: "meloch", name: "Мелочь", emoji: "🪙", rarity: "common", cost: 2,
+    scalar: { goldChance: 5 }, desc: "5% шанс +1 золота после зачистки волны." }, // #52
+  { id: "berezhlivost", name: "Бережливость", emoji: "🧮", rarity: "common", cost: 2,
+    scalar: { thirdRerollOff: 1 }, desc: "Каждый третий реролл лавки дешевле на 1." }, // #53
+  { id: "torg", name: "Торг", emoji: "🤝", rarity: "uncommon", cost: 3,
+    scalar: { itemDiscountPct: 5 }, desc: "Случайный товар каждой лавки −5% (метка на карточке)." }, // #54
+  { id: "loyalnost", name: "Лояльность", emoji: "💗", rarity: "uncommon", cost: 3,
+    scalar: { shopLoyalty: 1 }, desc: "После трёх покупок в лавке следующий товар −1 золото." }, // #55
+  { id: "pereprodazha", name: "Перепродажа", emoji: "🏷️", rarity: "common", cost: 2,
+    scalar: { sell: 3 }, desc: "Продажа предметов +3% к цене." }, // #56
+  { id: "sberezheniya", name: "Сбережения", emoji: "🐖", rarity: "common", cost: 3,
+    scalar: { rerollRich: 1 }, desc: "При 15+ золоте реролл дешевле на 1." }, // #57
+  { id: "nalogovyy_vychet", name: "Налоговый вычет", emoji: "🧾", rarity: "common", cost: 2,
+    scalar: { postBossDiscount: 1 }, desc: "Первая покупка после босса акта −1 золото." }, // #58
+  { id: "monetka", name: "Монетка", emoji: "🪙", rarity: "common", cost: 2,
+    scalar: { purchaseRefundChance: 10 }, desc: "10% шанс вернуть 1 золото после покупки предмета." }, // #59
+  { id: "rezervnyy_fond", name: "Резервный фонд", emoji: "🏦", rarity: "common", cost: 2,
+    scalar: { brokeBonus: 1 }, desc: "Опустошили кошелёк покупкой? Вам дадут 1 золото." }, // #60
+  { id: "assortiment", name: "Хороший ассортимент", emoji: "🛍️", rarity: "rare", cost: 4,
+    scalar: { itemRareBias: 2 }, desc: "Редкие товары в лавке выпадают заметно чаще." }, // #61
+  { id: "pylnaya_polka", name: "Пыльная полка", emoji: "🕸️", rarity: "rare", cost: 4,
+    scalar: { dustChance: 15 }, desc: "15% шанс: в лавке будет редкий товар." }, // #62
+  { id: "bystryy_prodavets", name: "Быстрый продавец", emoji: "🏃", rarity: "common", cost: 2,
+    scalar: { firstRerollOff: 1 }, desc: "Первый реролл каждой лавки дешевле на 1." }, // #63
+  { id: "taynyy_yaschik", name: "Тайный ящик", emoji: "🎁", rarity: "rare", cost: 4,
+    scalar: { secretSlotChance: 15 }, desc: "15% шанс: в лавке появится лишний товар." }, // #65
+  { id: "boyevoy_opyt", name: "Боевой опыт", emoji: "📜", rarity: "uncommon", cost: 3,
+    scalar: { winMilestoneGold: 3 }, desc: "Каждая 5-я зачистка за забег: +3 золота." }, // #72
+  { id: "seriya", name: "Серия", emoji: "🔗", rarity: "uncommon", cost: 3,
+    scalar: { streakGold: 2 }, desc: "Серия 2+ зачисток подряд: награда за зачистку +2%." }, // #73
+  { id: "staryy_amulet", name: "Старый амулет", emoji: "🧿", rarity: "rare", cost: 4,
+    scalar: { upgradeLoyalty: 1 }, desc: "Каждая пятая покупка улучшения дешевле на 1." }, // #96
+  { id: "malenkaya_udacha", name: "Маленькая удача", emoji: "✨", rarity: "common", cost: 2,
+    scalar: { shopCoinChance: 10 }, desc: "10% шанс: лавка встречает вас +2 золотами." }, // #100
+  { id: "podkova", name: "Подкова", emoji: "🧲", rarity: "common", cost: 3,
+    scalar: { luck: 1 }, desc: "+1 удача: улучшения в лавках выпадают жирнее." },
+  { id: "krolichya_lapka", name: "Кроличья лапка", emoji: "🐇", rarity: "rare", cost: 5,
+    scalar: { luck: 2 }, desc: "+2 удачи: редкие и эпические улучшения заметно чаще." },
+  { id: "klever", name: "Четырёхлистный клевер", emoji: "🍀", rarity: "mythic", cost: 8,
+    scalar: { luck: 3 }, desc: "+3 удачи. Топовые улучшения почти ваши." },
+  { id: "zolotoe_serdtse", name: "Золотое сердце", emoji: "💛", rarity: "mythic", cost: 7,
+    scalar: { dmg: 2, goldOnClear: 1 }, desc: "+2% урона и +1 золота после каждой зачистки." },
+
+  // ===== ХУКИ (триггерная система, kind: "upgrade") =====
+  { id: "iskra", name: "Искра", emoji: "⚡", rarity: "common", cost: 2,
+    ability: { name: "Искра", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_RANDOM_CARD", value: 2 }] },
+    desc: "Каждый бой случайный герой получает +2 силы." }, // #92
+  { id: "posl_shtrih", name: "Последний штрих", emoji: "🖌️", rarity: "common", cost: 2,
+    ability: { name: "Последний штрих", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_LAST_CARD", pct: 3 }] },
+    desc: "Последняя карта боя даёт +3% своей силы." }, // #5
+  { id: "pervaya_karta", name: "Первая карта", emoji: "🥇", rarity: "common", cost: 2,
+    ability: { name: "Первая карта", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_FIRST_CARD", pct: 3 }] },
+    desc: "Первая карта боя даёт +3% своей силы." }, // #6
+  { id: "podderzhka", name: "Поддержка", emoji: "🤲", rarity: "uncommon", cost: 3,
+    ability: { name: "Поддержка", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_WEAKEST", pct: 3 }] },
+    desc: "Слабейший герой отряда добавляет +3% своей силы." }, // #26
+  { id: "prochnyy_centr", name: "Прочный центр", emoji: "🗿", rarity: "uncommon", cost: 3,
+    ability: { name: "Прочный центр", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_CENTER", pct: 2 }] },
+    desc: "Центральная позиция отряда даёт +2% своей силы." }, // #32
+  { id: "krepkiy_kray", name: "Крепкий край", emoji: "🧱", rarity: "uncommon", cost: 3,
+    ability: { name: "Крепкий край", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_EDGES", pct: 2 }] },
+    desc: "Крайние позиции отряда дают +2% своей силы." }, // #33
+  { id: "svobodnaya_kletka", name: "Свободная клетка", emoji: "⬜", rarity: "uncommon", cost: 3,
+    ability: { name: "Свободная клетка", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_ABOVE", value: 0 },
+      effects: [{ type: "ADD_POWER_PER_EMPTY_SLOT", value: 2 }] },
+    desc: "+2 силы за каждую пустую позицию." }, // #38
+  { id: "poslednij_udar", name: "Последний удар", emoji: "🩸", rarity: "common", cost: 2,
+    ability: { name: "Последний удар", event: "FIGHT_SCORING",
+      when: { type: "TOWER_HP_BELOW", pct: 10 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "Башня ниже 10% HP: +3% урона." }, // #13
+  { id: "vtoroe_dyhanie", name: "Второе дыхание", emoji: "💨", rarity: "uncommon", cost: 3,
+    ability: { name: "Второе дыхание", event: "FIGHT_SCORING",
+      when: { type: "TOWER_HP_BELOW", pct: 10 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "Башня ниже 10% HP: ещё +2% урона. Копится с «Последним ударом»." }, // #97
+  { id: "ritm", name: "Ритм", emoji: "🥁", rarity: "uncommon", cost: 3,
+    ability: { name: "Ритм", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_ABOVE", value: 2 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "3+ героя в отряде: +3% урона." }, // #15
+  { id: "polnyy_sostav", name: "Полный состав", emoji: "🎖️", rarity: "uncommon", cost: 3,
+    ability: { name: "Полный состав", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 5 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "Полная пятёрка: +2% урона." },
+  { id: "plotnyy_stroy", name: "Плотный строй", emoji: "🛡️", rarity: "uncommon", cost: 3,
+    ability: { name: "Плотный строй", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_ABOVE", value: 3 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 1 }] },
+    desc: "Отряд 4+ героя: +1% урона." }, // #39
+  { id: "universalnost", name: "Универсальность", emoji: "🌐", rarity: "uncommon", cost: 3,
+    ability: { name: "Универсальность", event: "FIGHT_SCORING",
+      when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "3+ разных атрибута в отряде: +2% урона." }, // #43
+  { id: "specializaciya", name: "Специализация", emoji: "🔱", rarity: "uncommon", cost: 3,
+    ability: { name: "Специализация", event: "FIGHT_SCORING",
+      when: { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 2 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "3+ героя одного атрибута: +2% урона." }, // #44
+  { id: "tochnaya_rasstanovka", name: "Точная расстановка", emoji: "🧩", rarity: "uncommon", cost: 3,
+    ability: { name: "Точная расстановка", event: "FIGHT_SCORING",
+      when: { type: "MODE_IS", value: "formation" },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "Режим формаций: +2% урона." }, // #31
+  { id: "nestandart", name: "Нестандартное мышление", emoji: "🧠", rarity: "uncommon", cost: 3,
+    ability: { name: "Нестандартное мышление", event: "FIGHT_SCORING",
+      when: { type: "COMBO_DIFFERENT_FROM_LAST" },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "Комбо отличается от предыдущего боя: +2% урона." }, // #99
+  { id: "uporstvo", name: "Упорство", emoji: "🔥", rarity: "uncommon", cost: 3,
+    ability: { name: "Упорство", event: "FIGHT_SCORING",
+      when: { type: "AFTER_FAILURE" },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
+    desc: "После проваленной волны: +2% урона до первой победы." }, // #78
+  { id: "ekonomnyy", name: "Экономный бой", emoji: "🪙", rarity: "common", cost: 2,
+    ability: { name: "Экономный бой", event: "FIGHT_SCORING", chance: 0.15,
+      when: { type: "FIGHTS_LEFT_ABOVE", value: 1 },
+      effects: [{ type: "GOLD", value: 1 }] },
+    desc: "15%: +1 золото, если победа взята малой кровью." }, // #19
+  { id: "tochnyy_raschet", name: "Точный расчёт", emoji: "🎯", rarity: "rare", cost: 4,
+    ability: { name: "Точный расчёт", event: "FIGHT_SCORING",
+      effects: [{ type: "LAST_HIT_GOLD", value: 3 }] },
+    desc: "Точный ласт-хит приносит +3 золота." }, // #18
+  { id: "bossslayer", name: "Боссобой", emoji: "👑", rarity: "rare", cost: 4,
+    ability: { name: "Боссобой", event: "FIGHT_SCORING",
+      when: { type: "IS_BOSS_WAVE" },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "На волне босса: +3% урона." },
+  { id: "odinokiy_volk", name: "Одинокий волк", emoji: "🐺", rarity: "uncommon", cost: 3,
+    ability: { name: "Одинокий волк", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_IS", value: 1 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 4 }] },
+    desc: "Соло-рейд: +4% урона, если в бою ровно один герой." },
+  { id: "perelom", name: "Перелом", emoji: "📉", rarity: "uncommon", cost: 3,
+    ability: { name: "Перелом", event: "FIGHT_SCORING",
+      when: { type: "TOWER_HP_BELOW", pct: 25 },
+      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
+    desc: "Башня ниже четверти HP: +3% урона." }, // #20
+
+  // Отложено с причинами: XP-апгрейды (#21/23/24/25/27/28/30) — ждут фазу G;
+  // Архив руки/Дубликатор/Запас/Замок/Продавец знакомых (#8/10/64/66/68) —
+  // UI-механики переноса и хранения; ослабления штрафов (#7/41/46/50/76/77) —
+  // у игрока пока нет негативных случайных эффектов; информационные
+  // (#80–90) — тип, HP и моды башни уже видны до боя в базовом UI.
 ];
 
 </script>
@@ -2461,6 +2591,14 @@ const Cond = (function () {
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.isBoss);
       case "IS_MINIBOSS_WAVE":
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.miniBoss);
+      case "MODE_IS":
+        return !!(ctx.state && ctx.state.rules === condition.value);
+      case "COMBO_DIFFERENT_FROM_LAST":
+        return !!(ctx.combo && ctx.state && ctx.state.combat.lastComboType && ctx.state.combat.lastComboType !== ctx.combo.type);
+      case "AFTER_FAILURE":
+        return !!(ctx.state && ctx.state.run.failedLastWave);
+      case "FIGHTS_LEFT_ABOVE":
+        return !!(ctx.state && ctx.state.player.fightsLeft > condition.value);
       case "TOWER_HP_BELOW":
         // Улучшение «Перелом»: башня ниже pct% текущего максимума.
         return !!(ctx.state && ctx.state.combat.wave &&
@@ -2526,6 +2664,50 @@ const Effects = (function () {
       ctx.scoring.finalMult *= effect.value;
       trace(ctx, "final_mult", effect.value);
       return { label: `${ctx.sourceName}: ×${effect.value} к итоговому урону` };
+    },
+    ADD_POWER_FIRST_CARD(effect, ctx) {
+      const first = ctx.playedCards && ctx.playedCards[0];
+      if (!first) return null;
+      const bonus = Math.max(1, Math.floor(first.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: первая карта +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_LAST_CARD(effect, ctx) {
+      const n = ctx.playedCards && ctx.playedCards.length;
+      if (!n) return null;
+      const last = ctx.playedCards[n - 1];
+      const bonus = Math.max(1, Math.floor(last.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: последняя карта +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_CENTER(effect, ctx) {
+      const n = ctx.playedCards && ctx.playedCards.length;
+      if (!n) return null;
+      const mid = ctx.playedCards[Math.floor((n - 1) / 2)];
+      const bonus = Math.max(1, Math.floor(mid.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: центр отряда +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_EDGES(effect, ctx) {
+      const n = ctx.playedCards && ctx.playedCards.length;
+      if (!n) return null;
+      const edgePower = ctx.playedCards[0].power + (n > 1 ? ctx.playedCards[n - 1].power : 0);
+      const bonus = Math.max(1, Math.floor(edgePower * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: края отряда +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_WEAKEST(effect, ctx) {
+      if (!ctx.playedCards || !ctx.playedCards.length) return null;
+      const weakest = ctx.playedCards.reduce((a, b) => (b.power < a.power ? b : a), ctx.playedCards[0]);
+      const bonus = Math.max(1, Math.floor(weakest.power * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: слабейший герой +${bonus} силы (+${effect.pct}%)` };
+    },
+    ADD_POWER_RANDOM_CARD(effect, ctx) {
+      if (!ctx.playedCards || !ctx.playedCards.length) return null;
+      const card = ctx.playedCards[Math.floor(Rng.current().next() * ctx.playedCards.length)];
+      ctx.scoring.power += effect.value;
+      return { label: `${ctx.sourceName}: ${card.heroId ? Content.heroes.byId[card.heroId].name : "карта"} +${effect.value} силы` };
     },
     ADD_DAMAGE_PCT(effect, ctx) {
       // Хуковые улучшения (фаза F): аддитивный процент поверх итогового урона.
@@ -2868,7 +3050,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -2897,7 +3079,7 @@ const Game = (function () {
 
   // ТП-сбросы за волну: правила лиги + перк «Контроль» (+1 в акте 1).
   function discardsPerWave(state) {
-    const base = Ranks.discardsPerWave(state);
+    const base = Ranks.discardsPerWave(state) + Upgrades.sum(state, "discardsBonus");
     return archPerk(state) === "tp1" && (state.run.act || 1) === 1 ? base + 1 : base;
   }
 
@@ -3002,7 +3184,8 @@ const Game = (function () {
     state.run.campBoon = false;
     state.combat.route = null;
     // Примитивы на волну: рука и тимфайты с дельтой маршрута.
-    state.run.waveHandBonus = route && route.hand ? route.hand : 0;
+    state.run.waveHandBonus = (route && route.hand ? route.hand : 0) + (state.run.pendingHandBonus || 0);
+    state.run.pendingHandBonus = 0;
     state.player.fightsLeft = Ranks.fightsPerWave(state) + (route && route.fights ? route.fights : 0);
     state.player.discardsLeft = discardsPerWave(state);
     DeckSys.resetAll(state, Rng.current());
@@ -3022,8 +3205,16 @@ const Game = (function () {
     const item = Content.items.byId[itemId];
     let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
     if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
-    const mult = state.run.shopPriceMult || 1;
-    return Math.max(1, Math.round(cost * mult));
+    let mult = state.run.shopPriceMult || 1;
+    // Торг: помеченный оффер со скидкой.
+    const offer = (state.shop.offers || []).find((o) => o.id === itemId);
+    if (offer && offer.sale) mult *= 1 - offer.sale / 100;
+    cost = Math.max(1, Math.round(cost * mult));
+    // Налоговый вычет: первая покупка после босса акта.
+    if (state.run.afterBoss && Upgrades.sum(state, "postBossDiscount")) cost = Math.max(1, cost - 1);
+    // Лояльность: после трёх покупок следующий товар дешевле (раз за визит).
+    if ((state.run.shopBuys || 0) >= 3 && !state.run.loyaltyUsed && Upgrades.sum(state, "shopLoyalty")) cost = Math.max(1, cost - 1);
+    return cost;
   }
 
   // Цена реролла: правила лиги + улучшение «Сбережения» при 15+ золоте.
@@ -3031,6 +3222,11 @@ const Game = (function () {
     let cost = Ranks.rerollCost(state);
     const rich = Upgrades.sum(state, "rerollRich");
     if (rich && state.run.gold > 15) cost = Math.max(1, cost - rich);
+    const rerolls = state.run.shopRerolls || 0;
+    const first = Upgrades.sum(state, "firstRerollOff");
+    if (first && rerolls === 0) cost = Math.max(1, cost - first);
+    const third = Upgrades.sum(state, "thirdRerollOff");
+    if (third && rerolls > 0 && rerolls % 3 === 2) cost = Math.max(1, cost - third);
     return cost;
   }
 
@@ -3084,7 +3280,9 @@ const Game = (function () {
     const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
     const act = nextDef.act || (Math.floor(nextIndex / 5) + 1);
     const options = [{ id: "normal" }];
-    if (!state.combat.campTaken) options.push({ id: "camp" });
+    // Боссов и мини-боссов («БОСС АКТА») лагерем не пропускаем — привал только
+    // перед обычными волнами.
+    if (!state.combat.campTaken && !nextDef.isBoss && !nextDef.miniBoss) options.push({ id: "camp" });
     const rng = Rng.current();
     const rank = state.run.rank || 1;
     const pool = Content.routes.list.filter((r) => r.weight > 0 && (r.minAct || 1) <= act && (r.minRank || 1) <= rank);
@@ -3160,6 +3358,15 @@ const Game = (function () {
           const tax = Ranks.taxPerWave(s);
           if (tax) clearGold = Math.max(0, clearGold - tax);
           // Улучшения лавки: плоское золото и шанс «Мелочи».
+          s.run.failedLastWave = false;
+          const streakGold = Upgrades.sum(s, "streakGold");
+          if (streakGold && (s.run.momentum || 0) >= 2) clearGold = Math.round(clearGold * (1 + streakGold / 100));
+          s.run.winCount = (s.run.winCount || 0) + 1;
+          const milestone = Upgrades.sum(s, "winMilestoneGold");
+          if (milestone && s.run.winCount % 5 === 0) {
+            clearGold += milestone;
+            log(s, `Боевой опыт: ${s.run.winCount}-я зачистка +${milestone} золота`);
+          }
           const goldFlat = Upgrades.sum(s, "goldOnClear");
           if (goldFlat) clearGold += goldFlat;
           const goldChance = Upgrades.sum(s, "goldChance");
@@ -3169,6 +3376,11 @@ const Game = (function () {
             luckyGold = 1;
           }
           s.run.gold += clearGold;
+          const drawChance = Upgrades.sum(s, "extraDrawChance");
+          if (drawChance && Rng.current().chance(drawChance / 100)) {
+            s.run.pendingHandBonus = (s.run.pendingHandBonus || 0) + 1;
+            log(s, "Быстрый добор: следующая волна с +1 картой в руке");
+          }
           log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}${goldFlat ? ` (улучшение +${goldFlat}G)` : ""}${luckyGold ? " (Мелочь +1G)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
@@ -3179,7 +3391,10 @@ const Game = (function () {
               // Акт пройден: премия за переход — золото и восстановление казармы.
               s.run.gold += 10;
               s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
-              log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота, +1 казарма (восстановление)`);
+              const perAct = Upgrades.sum(s, "goldPerAct");
+              if (perAct) s.run.gold += perAct;
+              s.run.afterBoss = true;
+              log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота${perAct ? ` (+${perAct} за кошелёк)` : ""}, +1 казарма (восстановление)`);
               // Лига Титанов: перед новым актом игрок выбирает проклятие забега.
               if (Ranks.has(s, "curseChoice")) {
                 s.run.pendingCurse = Ranks.rollCurseChoices();
@@ -3232,6 +3447,27 @@ const Game = (function () {
         s.shop.offers = Economy.generateOffers(s, Economy.OFFER_SLOTS, [], guaranteeRarity);
         s.shop.recruits = pickRecruits(s);
         s.shop.upgrades = Upgrades.generateOffers(s);
+        s.run.shopRerolls = 0;
+        s.run.shopBuys = 0;
+        s.run.loyaltyUsed = false;
+        s.run.brokeUsed = false;
+        // Маленькая удача (#100): лавка может встретить золотом.
+        const coinChance = Upgrades.sum(s, "shopCoinChance");
+        if (coinChance && Rng.current().chance(coinChance / 100)) {
+          s.run.gold += 2;
+          log(s, "Маленькая удача: лавка подкинула +2 золота");
+        }
+        // Торг (#54): случайный товар со скидкой.
+        const discountPct = Upgrades.sum(s, "itemDiscountPct");
+        if (discountPct && s.shop.offers.length) {
+          s.shop.offers[Math.floor(Rng.current().next() * s.shop.offers.length)].sale = discountPct;
+        }
+        // Тайный ящик (#65): лишний товар.
+        const secret = Upgrades.sum(s, "secretSlotChance");
+        if (secret && Rng.current().chance(secret / 100)) {
+          s.shop.offers = s.shop.offers.concat(Economy.generateOffers(s, 1, s.shop.offers));
+          log(s, "Тайный ящик: у торговца нашёлся лишний товар");
+        }
         return s;
       }
 
@@ -3239,14 +3475,38 @@ const Game = (function () {
         if (s.phase !== "shop") return s;
         const offerIdx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
         if (offerIdx === -1) return s;
-        const up = Content.upgrades.byId[action.upgradeId];
-        if (!up || (s.run.upgrades || []).includes(up.id)) return s;
-        if (s.run.gold < up.cost) return s;
-        s.run.gold -= up.cost;
-        s.run.upgrades = s.run.upgrades || [];
-        s.run.upgrades.push(up.id);
+        // «Запасной слот» — виртуальный повторяемый апгрейд: уровень в run.handSlots.
+        const isHandSlot = action.upgradeId === Upgrades.HAND_SLOT_ID;
+        const up = isHandSlot ? Upgrades.handSlotDef(s) : Content.upgrades.byId[action.upgradeId];
+        if (!up) return s;
+        if (!isHandSlot && (s.run.upgrades || []).includes(up.id)) return s;
+        let finalCost = up.cost;
+        s.run.upgradePurchases = (s.run.upgradePurchases || 0) + 1;
+        const amulet = Upgrades.sum(s, "upgradeLoyalty");
+        if (amulet && s.run.upgradePurchases % 5 === 0) {
+          finalCost = Math.max(1, finalCost - 1);
+          log(s, "Старый амулет: пятая покупка улучшения дешевле");
+        }
+        if (s.run.gold < finalCost) return s;
+        s.run.gold -= finalCost;
+        if (isHandSlot) {
+          s.run.handSlots = (s.run.handSlots || 0) + 1;
+          log(s, `Запасной слот ×${s.run.handSlots}: рука больше на ${s.run.handSlots} (−${finalCost} золота)`);
+        } else {
+          s.run.upgrades = s.run.upgrades || [];
+          s.run.upgrades.push(up.id);
+          log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
+        }
         s.shop.upgrades.splice(offerIdx, 1);
-        log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${up.cost} золота)`);
+        return s;
+      }
+
+      // Обновление предложений улучшений (фидбек): фиксированные 2G.
+      case "REROLL_UPGRADES": {
+        if (s.phase !== "shop") return s;
+        if (s.run.gold < Upgrades.REROLL_COST) return s;
+        s.run.gold -= Upgrades.REROLL_COST;
+        s.shop.upgrades = Upgrades.generateOffers(s);
         return s;
       }
 
@@ -3262,6 +3522,19 @@ const Game = (function () {
         s.player.items.push(action.itemId);
         s.shop.offers.splice(offerIdx, 1);
         if (Ranks.has(s, "inflation")) s.run.inflationBuys += 1;
+        s.run.shopBuys = (s.run.shopBuys || 0) + 1;
+        if (s.run.afterBoss && Upgrades.sum(s, "postBossDiscount")) s.run.afterBoss = false;
+        if ((s.run.shopBuys || 0) >= 3 && !s.run.loyaltyUsed && Upgrades.sum(s, "shopLoyalty")) s.run.loyaltyUsed = true;
+        const refundChance = Upgrades.sum(s, "purchaseRefundChance");
+        if (refundChance && Rng.current().chance(refundChance / 100)) {
+          s.run.gold += 1;
+          log(s, "Монетка: 1 золото вернулась после покупки");
+        }
+        if (s.run.gold === 0 && !s.run.brokeUsed && Upgrades.sum(s, "brokeBonus")) {
+          s.run.brokeUsed = true;
+          s.run.gold = 1;
+          log(s, "Резервный фонд: кошелёк пуст — вам дадут 1 золото");
+        }
         log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})${s.player.items.length >= itemCapacity(s).total ? " · слоты предметов заполнены" : ""}`);
         return s;
       }
@@ -3292,6 +3565,7 @@ const Game = (function () {
         const freeReroll = archPerk(s) === "freeroll1" && !s.run.freeRerollUsed;
         if (freeReroll) cost = 0;
         if (s.phase !== "shop" || s.run.gold < cost) return s;
+        s.run.shopRerolls = (s.run.shopRerolls || 0) + 1;
         if (freeReroll) {
           s.run.freeRerollUsed = true;
           log(s, "Магия: первый реролл лавки бесплатен");
@@ -3324,7 +3598,9 @@ const Game = (function () {
           s.run.skipNextBattle = false;
           const skipIndex = s.run.waveIndex + 1;
           const skipDef = Content.waves.byId[Content.waves.order[skipIndex]];
-          if (skipDef) {
+          if (skipDef && (skipDef.isBoss || skipDef.miniBoss)) {
+            log(s, `Лагерь не может пропустить «${skipDef.name}» — придётся бить.`);
+          } else if (skipDef) {
             log(s, `Лагерь: волна «${skipDef.name}» пропущена без боя.`);
             s.run.waveIndex = skipIndex;
             s.combat.routeOptions = [];
@@ -3369,6 +3645,8 @@ const Game = (function () {
         const nextIndex = s.run.waveIndex + 1;
         if (opt.id === "camp") {
           if (s.combat.campTaken) return s;
+          const campTarget = Content.waves.byId[Content.waves.order[nextIndex]];
+          if (campTarget && (campTarget.isBoss || campTarget.miniBoss)) return s;
           s.run.gold += 6;
           s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
           s.run.campBoon = true;
@@ -3478,6 +3756,7 @@ const Game = (function () {
         if (Ranks.has(s, "mercy") && s.combat.wave.hp < s.combat.wave.maxHp) {
           log(s, "Милосердие мира: башня восстановила только 70% HP.");
         }
+        s.run.failedLastWave = true;
         s.combat.fightIndex = 0;
         s.combat.outcome = null;
         s.player.fightsLeft = Ranks.fightsPerWave(s);
@@ -3895,10 +4174,13 @@ const DeckSys = (function () {
   }
 
   // Draws until the hand reaches the current hand size (rank may cut it to 6/5,
-  // see Ranks.handSize; маршрут даёт ±слоты на волну, улучшение «Запасной слот»
-  // — навсегда) or deck+discard are empty.
+  // see Ranks.handSize; маршрут даёт ±слоты на волну, «Запасные слоты» —
+  // бесконечно, по уровню run.handSlots) or deck+discard are empty.
   function handSize(state) {
-    return Ranks.handSize(state) + (state.run.waveHandBonus || 0) + (typeof Upgrades !== "undefined" ? Upgrades.sum(state, "hand") : 0);
+    return Ranks.handSize(state)
+      + (state.run.waveHandBonus || 0)
+      + (state.run.handSlots || 0)
+      + (typeof Upgrades !== "undefined" ? Upgrades.sum(state, "hand") : 0);
   }
 
   function draw(state, rng) {
@@ -3951,10 +4233,19 @@ const DeckSys = (function () {
 //            интеграции (урон/золото/продажа/рука/реролл) читает свой ключ;
 //   ability — хуки боя через обычную триггерную систему (Triggers, kind
 //            "upgrade") — см. collectSources в engine/triggers.js.
+//
+// УДАЧА (luck): скаляр, который дают сами улучшения (Подкова/Лапка/Клевер).
+// Сдвигает веса редкостей предложений к топу и добавляет слоты:
+//   удача ≥3 → 3-я карточка, ≥6 → 4-я.
+//
+// ЗАПАСНОЙ СЛОТ — бесконечный повторяемый апгрейд (виртуальный id "hand_slot"):
+// +1 карта в руке за уровень, цена ×1.8 за уровень, редкость растёт
+// (эпик → мифик с 3-го уровня). Баланс: экспонента ограничивает сама,
+// естественный потолок — размер колоды; на высоких рангах лига режет руку.
 const Upgrades = (function () {
-  const SLOTS_PER_SHOP = 2;
-  // Редкости §5.1: common 60 / uncommon 25 / rare 10 / epic 4 / mythic 1.
-  const RARITY_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
+  const REROLL_COST = 2;
+  const HAND_SLOT_ID = "hand_slot";
+  const BASE_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
 
   function ownedDefs(state) {
     return (state.run.upgrades || [])
@@ -3971,34 +4262,80 @@ const Upgrades = (function () {
     return total;
   }
 
-  function pickRarity(rng) {
-    const total = 100;
+  function luck(state) {
+    return sum(state, "luck");
+  }
+
+  // Веса редкостей с удачей: common выгорает, топ подрастает.
+  function rarityWeights(l) {
+    return {
+      common: Math.max(15, BASE_WEIGHTS.common - 2.5 * l),
+      uncommon: BASE_WEIGHTS.uncommon + 0.5 * l,
+      rare: BASE_WEIGHTS.rare + 0.8 * l,
+      epic: BASE_WEIGHTS.epic + 0.7 * l,
+      mythic: BASE_WEIGHTS.mythic + 0.5 * l,
+    };
+  }
+
+  // Виртуальный «Запасной слот»: уровень живёт в run.handSlots.
+  function handSlotDef(state) {
+    const lvl = state.run.handSlots || 0;
+    return {
+      id: HAND_SLOT_ID,
+      name: "Запасной слот",
+      emoji: "🎒",
+      repeatable: true,
+      rarity: lvl >= 2 ? "mythic" : "epic",
+      cost: Math.round(6 * Math.pow(1.8, lvl)),
+      level: lvl,
+      desc: `+1 к размеру руки (сейчас +${lvl}). Следующий уровень дороже.`,
+    };
+  }
+
+  // Число карточек улучшений в лавке: 2 + бонус за удачу (макс 4).
+  function slotsFor(state) {
+    return 2 + Math.min(2, Math.floor(luck(state) / 3));
+  }
+
+  function pickRarity(rng, weights) {
+    let total = 0;
+    for (const k in weights) total += weights[k];
     let roll = rng.next() * total;
     for (const rarity of ["common", "uncommon", "rare", "epic", "mythic"]) {
-      roll -= RARITY_WEIGHTS[rarity];
+      roll -= weights[rarity];
       if (roll < 0) return rarity;
     }
     return "common";
   }
 
-  // 2 карточки улучшений на лавку: без дублей и уже купленных. Ролл по сиду.
-  function generateOffers(state, slots = SLOTS_PER_SHOP) {
+  // Карточки улучшений: без дублей; обычные — по одному разу за забег,
+  // «Запасной слот» — повторяемый (максимум одна карточка в лавке).
+  function generateOffers(state, slots) {
+    const l = luck(state);
+    const count = slots || slotsFor(state);
+    const weights = rarityWeights(l);
     const rng = Rng.current();
     const owned = new Set(state.run.upgrades || []);
     const offers = [];
-    let guard = 40;
-    while (offers.length < slots && guard-- > 0) {
-      const rarity = pickRarity(rng);
+    let handSlotOffered = false;
+    let guard = 60;
+    while (offers.length < count && guard-- > 0) {
+      const rarity = pickRarity(rng, weights);
+      if (rarity === handSlotDef(state).rarity && !handSlotOffered && rng.next() < 0.35) {
+        offers.push({ id: HAND_SLOT_ID });
+        handSlotOffered = true;
+        continue;
+      }
       const pool = Content.upgrades.list
-        .filter((u) => !owned.has(u.id) && !offers.some((o) => o.id === u.id) && u.rarity === rarity);
+        .filter((u) => u.rarity === rarity && !owned.has(u.id) && !offers.some((o) => o.id === u.id));
       if (!pool.length) continue;
       const u = pool[Math.floor(rng.next() * pool.length)];
-      offers.push({ id: u.id, cost: u.cost });
+      offers.push({ id: u.id });
     }
     return offers;
   }
 
-  return { ownedDefs, sum, generateOffers, SLOTS_PER_SHOP };
+  return { ownedDefs, sum, luck, rarityWeights, handSlotDef, generateOffers, slotsFor, REROLL_COST, HAND_SLOT_ID };
 })();
 
 </script>
@@ -4360,6 +4697,19 @@ const Combat = (function () {
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
+    // Крепкая масть (#2): случайная карта усиливается на процент.
+    const cardBuffPct = Upgrades.sum(state, "cardBuffPct");
+    if (cardBuffPct && effective.length) {
+      const lucky = effective[Math.floor(Rng.current().next() * effective.length)];
+      const bonus = Math.max(1, Math.floor(lucky.power * cardBuffPct / 100));
+      lucky.power += bonus;
+      state.combat.scoring.trace.itemPower += 0; // не предмет: отдельный слой не нужен
+      Resolver.pushStep(resolution, {
+        icon: "🔧",
+        label: `Крепкая масть: ${Content.heroes.byId[lucky.heroId].name} +${bonus} силы`,
+        kind: "info",
+      });
+    }
     // Бонус силы маршрута (Пустая рука/Вознесение/Дуэль) — всем боям волны.
     if (state.combat.wave.powerBonus) {
       state.combat.scoring.power += state.combat.wave.powerBonus;
@@ -4630,11 +4980,18 @@ const Economy = (function () {
   // Rarity weights per offer slot (epic stays special).
   const RARITY_WEIGHTS = { common: 62, rare: 28, epic: 10 };
 
-  function pickRarity(rng) {
-    const total = RARITY_WEIGHTS.common + RARITY_WEIGHTS.rare + RARITY_WEIGHTS.epic;
+  function pickRarity(state, rng) {
+    // Ассортимент (#61): редкие товары чаще.
+    const bias = typeof Upgrades !== "undefined" ? Upgrades.sum(state, "itemRareBias") : 0;
+    const weights = {
+      common: Math.max(20, RARITY_WEIGHTS.common - 2 * bias),
+      rare: RARITY_WEIGHTS.rare + 2 * bias,
+      epic: RARITY_WEIGHTS.epic,
+    };
+    const total = weights.common + weights.rare + weights.epic;
     let roll = rng.next() * total;
     for (const rarity of ["common", "rare", "epic"]) {
-      roll -= RARITY_WEIGHTS[rarity];
+      roll -= weights[rarity];
       if (roll < 0) return rarity;
     }
     return "common";
@@ -4646,9 +5003,14 @@ const Economy = (function () {
     const rng = Rng.current();
     const offers = keepLocked.slice();
     const taken = new Set(offers.map((o) => o.id).concat(state.player.items));
+    // Пыльная полка (#62): шанс гарантировать редкий товар.
+    if (!guaranteeRarity) {
+      const dust = typeof Upgrades !== "undefined" ? Upgrades.sum(state, "dustChance") : 0;
+      if (dust && rng.chance(dust / 100)) guaranteeRarity = "rare";
+    }
     let guard = 60; // pool can be exhausted — never loop forever
     while (offers.length < slots && guard-- > 0) {
-      const rarity = pickRarity(rng);
+      const rarity = pickRarity(state, rng);
       const pool = Content.items.list
         .map((i) => i.id)
         .filter((id) => !taken.has(id) && Content.items.byId[id].rarity === rarity);
@@ -6232,21 +6594,25 @@ const Art = (function () {
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
             <div class="shop-upgrades">
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
-                ${Upgrades.ownedDefs(state).length ? `<span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}</span>` : ""}
+                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
+                <span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}
+                  ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}</span>
+                <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
                 ${(state.shop.upgrades || []).map((o) => {
-    const up = Content.upgrades.byId[o.id];
+    const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state) : Content.upgrades.byId[o.id];
     const afford = state.run.gold >= up.cost;
+    const lvl = up.repeatable ? ` ×${(state.run.handSlots || 0) + 1}` : "";
     return `<div class="upgrade-card ${up.rarity}" data-tip>
                   <span class="upgrade-emoji">${up.emoji}</span>
-                  <div class="upgrade-info"><strong>${up.name}</strong><small>${esc(up.desc)}</small></div>
+                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small></div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
                     <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
                   </button>
-                  <span class="pop"><strong>${up.name}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · копится с другими улучшениями</small></span>
+                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]}${up.repeatable ? " · повторяемое: дороже с каждым уровнем" : " · копится с другими улучшениями"}</small></span>
                 </div>`;
-  }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке.</span>'}
+  }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке или обнови.</span>'}
               </div>
             </div>
             <div class="shop-lab">
@@ -7069,6 +7435,9 @@ const Art = (function () {
       case "buy-upgrade":
         Sfx.play("buy");
         dispatchAndRender({ type: "BUY_UPGRADE", upgradeId: el.dataset.id });
+        break;
+      case "reroll-upgrades":
+        dispatchAndRender({ type: "REROLL_UPGRADES" });
         break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });

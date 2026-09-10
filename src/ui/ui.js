@@ -1069,21 +1069,25 @@
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
             <div class="shop-upgrades">
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
-                ${Upgrades.ownedDefs(state).length ? `<span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}</span>` : ""}
+                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
+                <span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}
+                  ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}</span>
+                <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
                 ${(state.shop.upgrades || []).map((o) => {
-    const up = Content.upgrades.byId[o.id];
+    const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state) : Content.upgrades.byId[o.id];
     const afford = state.run.gold >= up.cost;
+    const lvl = up.repeatable ? ` ×${(state.run.handSlots || 0) + 1}` : "";
     return `<div class="upgrade-card ${up.rarity}" data-tip>
                   <span class="upgrade-emoji">${up.emoji}</span>
-                  <div class="upgrade-info"><strong>${up.name}</strong><small>${esc(up.desc)}</small></div>
+                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small></div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
                     <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
                   </button>
-                  <span class="pop"><strong>${up.name}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · копится с другими улучшениями</small></span>
+                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]}${up.repeatable ? " · повторяемое: дороже с каждым уровнем" : " · копится с другими улучшениями"}</small></span>
                 </div>`;
-  }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке.</span>'}
+  }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке или обнови.</span>'}
               </div>
             </div>
             <div class="shop-lab">

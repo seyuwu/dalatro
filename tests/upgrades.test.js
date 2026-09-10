@@ -59,11 +59,45 @@ test("Hook «Перелом»: башня ниже 25% HP даёт +3% урон�
   assertEq(s.combat.lastResolution.damage, 534, "518 × 1.03");
 });
 
-test("Scalar рука: «Запасной слот» +1 к размеру руки", () => {
+test("«Запасной слот»: бесконечный, цена ×1.8 за уровень (6 → 11 → 20)", () => {
   const s = upRun("UPG15");
   const base = DeckSys.handSize(s);
-  s.run.upgrades = ["zapasnoy_slot"];
-  assertEq(DeckSys.handSize(s), base + 1);
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  s.run.gold = 100;
+  s.shop.upgrades = [{ id: "hand_slot" }];
+  Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "hand_slot" });
+  assertEq(s.run.handSlots, 1, "уровень 1");
+  assertEq(DeckSys.handSize(s), base + 1, "рука +1");
+  s.shop.upgrades = [{ id: "hand_slot" }];
+  Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "hand_slot" });
+  assertEq(s.run.handSlots, 2, "уровень 2");
+  assertEq(DeckSys.handSize(s), base + 2, "рука +2");
+  // Цена каждого следующего уровня растёт: 6, 11, 20...
+  assertEq(Upgrades.handSlotDef(s).cost, Math.round(6 * Math.pow(1.8, 2)), "цена уровня 3 = 20");
+  assertEq(Upgrades.handSlotDef(s).rarity, "mythic", "с 3-го уровня — мифик");
+  assertEq(s.player.items.length, 0, "слоты предметов не тронуты");
+});
+
+test("Удача: сдвигает веса редкостей и добавляет слоты предложений", () => {
+  const s = upRun("UPG15B");
+  s.run.upgrades = ["podkova", "krolichya_lapka", "klever"]; // удача 6
+  assertEq(Upgrades.luck(s), 6);
+  assertEq(Upgrades.slotsFor(s), 4, "с удачи 6 — четыре карточки");
+  const w = Upgrades.rarityWeights(6);
+  assert(w.common < 60 && w.epic > 4 && w.mythic > 1, "веса сдвинуты к топу");
+  assert(w.common >= 15, "общие не выжигаются в ноль");
+});
+
+test("Реролл улучшений: 2G, новые предложения", () => {
+  const s = upRun("UPG15C");
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  const first = JSON.stringify(s.shop.upgrades);
+  s.run.gold = 10;
+  Game.dispatch(s, { type: "REROLL_UPGRADES" });
+  assertEq(s.run.gold, 8, "2G списано");
+  assert((s.shop.upgrades || []).length >= 2, "предложения обновлены");
 });
 
 test("Scalar реролл: «Сбережения» дешевеют только при 15+ золоте", () => {
