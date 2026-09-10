@@ -161,9 +161,10 @@ const ITEMS_DATA = [
   },
   {
     id: "bloodthorn", name: "Bloodthorn", cost: 13, emoji: "🌹", rarity: "epic", category: "mult", slotClass: "off",
-    desc: "35%: ×2.2 к множителю и +10 золота — крит отдаётся монетой.",
+    desc: "Кровавая охота: 50%: ×2.2 к множителю и +10 золота. Охотится только на крупную дичь — боссы и мини-боссы.",
     ability: {
-      name: "Blood Hunt", event: "FIGHT_SCORING", chance: 0.35,
+      name: "Blood Hunt", event: "FIGHT_SCORING", chance: 0.5,
+      when: { any: [{ type: "IS_BOSS_WAVE" }, { type: "IS_MINIBOSS_WAVE" }] },
       effects: [{ type: "MULT_MULT", value: 2.2 }, { type: "GOLD", value: 10 }],
     },
   },

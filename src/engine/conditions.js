@@ -117,6 +117,8 @@ const Cond = (function () {
           ctx.playedCards.every((c) => c.power <= ctx.card.power));
       case "IS_BOSS_WAVE":
         return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.isBoss);
+      case "IS_MINIBOSS_WAVE":
+        return !!(ctx.state && ctx.state.combat.wave && ctx.state.combat.wave.miniBoss);
       default:
         console.warn("Unknown condition type:", condition.type);
         return false;

@@ -214,6 +214,7 @@ const Combat = (function () {
   function towerDamageMult(state, resolution, playedCount) {
     const tower = state.combat.wave;
     if (state.combat.scoring.flags.bkbBlocksMods) return 1;
+    const trace = state.combat.scoring.trace;
     let mult = 1;
     for (const mod of tower.modifiers || []) {
       if (mod.id === "armor" && state.combat.fightIndex === 0) {
@@ -224,20 +225,24 @@ const Combat = (function () {
         } else {
           Resolver.pushStep(resolution, { icon: "☠", label: "Armor T2: первый бой волны — урон ×0.5", kind: "modifier" });
           mult *= 0.5;
+          if (trace) trace.towerMult.push({ source: "Armor", value: 0.5 });
         }
       }
       if (mod.id === "glyph" && state.combat.fightIndex % 3 === 2) {
         // every 3rd fight: #3, #6, ...
         Resolver.pushStep(resolution, { icon: "☠", label: "Glyph T3: бой заблокирован полностью!", kind: "modifier" });
+        if (trace) trace.towerMult.push({ source: "Glyph", value: 0 });
         return 0;
       }
       // Мутации башен (ранги Божество+).
       if (mod.id === "reflection" && state.combat.fightIndex % 2 === 1) {
         mult *= 0.75;
+        if (trace) trace.towerMult.push({ source: "Отражение", value: 0.75 });
         Resolver.pushStep(resolution, { icon: "☠", label: "Отражение: чётный бой — урон ×0.75", kind: "modifier" });
       }
       if (mod.id === "thorns" && playedCount >= 4) {
         mult *= 0.85;
+        if (trace) trace.towerMult.push({ source: "Шипы", value: 0.85 });
         Resolver.pushStep(resolution, { icon: "☠", label: "Шипы: большой отряд — урон ×0.85", kind: "modifier" });
       }
     }
@@ -269,6 +274,26 @@ const Combat = (function () {
     played.forEach((c, i) => (c.slotIndex = i));
 
     state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb"), lastHitGold: 0 } };
+    // Аудит силы (фаза D): слои урона для tests/audit.mjs.
+    state.combat.scoring.trace = {
+      played: played.length,
+      act: state.run.act || 1,
+      waveIndex: state.run.waveIndex,
+      rules: state.rules,
+      comboId: null,
+      comboBase: 0,
+      cardsPower: 0,
+      comboMult: 1,
+      heroPower: 0,
+      itemPower: 0,
+      heroMult: 0,
+      itemMult: 0,
+      multMult: [],
+      finalMult: [],
+      towerMult: [],
+      damage: 0,
+      gold: 0,
+    };
 
     // Проклятия элитной башни: BKB выключает их все.
     const curses = state.combat.scoring.flags.bkbBlocksMods ? [] : waveCurses(state);
@@ -327,6 +352,11 @@ const Combat = (function () {
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
+    // База для аудита: комбо + сыгранные карты до триггеров.
+    state.combat.scoring.trace.comboId = combo.type;
+    state.combat.scoring.trace.comboBase = combo.basePower;
+    state.combat.scoring.trace.cardsPower = cardPowerSum;
+    state.combat.scoring.trace.comboMult = combo.baseMult;
 
     // 4. Hero triggers.
     runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, silenced ? [] : ["hero"]);
@@ -343,6 +373,7 @@ const Combat = (function () {
     const commit = COMMIT_TIERS[played.length];
     if (commit && commit.finalMult !== 1) {
       state.combat.scoring.finalMult *= commit.finalMult;
+      state.combat.scoring.trace.finalMult.push({ source: `Ставка (${played.length} героев)`, value: commit.finalMult });
       Resolver.pushStep(resolution, {
         icon: "🎖",
         label: `Ставка «${commit.name}» (${played.length} героев): ×${commit.finalMult} к урону`,
@@ -355,6 +386,7 @@ const Combat = (function () {
     if (momentumStacks > 0) {
       const momentumMult = 1 + momentumStacks * MOMENTUM_STEP;
       state.combat.scoring.finalMult *= momentumMult;
+      state.combat.scoring.trace.finalMult.push({ source: "Импульс", value: Math.round(momentumMult * 100) / 100 });
       Resolver.pushStep(resolution, {
         icon: "🔥",
         label: `Импульс ${momentumStacks} волн подряд: ×${round2(momentumMult)} к урону`,
@@ -365,22 +397,28 @@ const Combat = (function () {
     // 6.7 Проклятие забега «Кровоток»: весь урон ×1.15.
     if (Ranks.hasCurse(state, "blood")) {
       state.combat.scoring.finalMult *= 1.15;
+      state.combat.scoring.trace.finalMult.push({ source: "Кровоток", value: 1.15 });
       Resolver.pushStep(resolution, { icon: "🩸", label: "Кровоток: урон ×1.15", kind: "modifier" });
     }
 
     // 7. Tower modifiers + проклятия элиты + правила ранга.
     let curseMultiplier = 1;
+    const towerTrace = state.combat.scoring.trace;
+    const traceCurse = (source, value) => towerTrace.towerMult.push({ source, value });
     if (curses.includes("adaptation") && state.combat.lastComboType === combo.type) {
       curseMultiplier *= 0.5;
+      traceCurse("Адаптация", 0.5);
       Resolver.pushStep(resolution, { icon: "☠", label: "Адаптация: повтор комбинации ×0.5", kind: "modifier" });
     }
     if (curses.includes("bastion") && (state.rules === "formation" ? combo.tier <= 1 : Content.combos.byId[combo.type].rank <= 2)) {
       curseMultiplier *= 0.5;
+      traceCurse("Фортификация", 0.5);
       Resolver.pushStep(resolution, { icon: "☠", label: "Фортификация: малое комбо ×0.5", kind: "modifier" });
     }
     // Память башен (Рыцарь): тот же тип удара, что в прошлом бою волны, — ×0.9.
     if (Ranks.has(state, "memory") && state.combat.lastComboType === combo.type) {
       curseMultiplier *= 0.9;
+      traceCurse("Память башен", 0.9);
       Resolver.pushStep(resolution, { icon: "☠", label: "Память башен: тот же тип удара — ×0.9", kind: "modifier" });
     }
     // Адаптация мира (Титан): самое частое комбо забега — ×0.85. BKB не снимает:
@@ -389,10 +427,12 @@ const Combat = (function () {
       const hunted = Ranks.mostUsedCombo(state);
       if (hunted && hunted.id === combo.type) {
         curseMultiplier *= 0.85;
+        traceCurse("Адаптация мира", 0.85);
         Resolver.pushStep(resolution, { icon: "☠", label: "Адаптация мира: изученное комбо — ×0.85", kind: "modifier" });
       }
     }
     const towerMult = towerDamageMult(state, resolution, played.length) * enemyShieldMult(state) * curseMultiplier;
+    if (enemyShieldMult(state) !== 1) traceCurse("Рапира у врага", enemyShieldMult(state));
     resolution.blocked = towerMult === 0;
 
     // 8. Damage.
@@ -514,6 +554,11 @@ const Combat = (function () {
 
     state.stats.totalDamage += damage;
     if (damage > state.stats.biggestHit) state.stats.biggestHit = damage;
+
+    // Аудит силы: итоги боя в структурный след (tests/audit.mjs).
+    state.combat.scoring.trace.damage = damage;
+    state.combat.scoring.trace.gold = gold;
+    resolution.trace = state.combat.scoring.trace;
 
     // Cycle: played cards go to discard (illusions vanish), draw back to hand size.
     DeckSys.moveToDiscard(state, state.combat.selectedUids);

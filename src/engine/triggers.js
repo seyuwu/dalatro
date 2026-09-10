@@ -61,6 +61,7 @@ const Triggers = (function () {
         hero: source.hero,
         power: payload.power,
         sourceName: def.sourceName,
+        sourceKind: source.kind,
         scoring: payload.scoring,
         discardCtx: payload.discardCtx || null,
         note: null,

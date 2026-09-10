@@ -13,23 +13,39 @@ const Effects = (function () {
     return v > 0 ? "+" + v : String(v);
   }
 
+  // Аудит силы (фаза D): каждое применение эффектов пишет структурный след в
+  // scoring.trace — слои power/mult с разделением hero/item и списки
+  // мультипликаторов. Читается тестами и tests/audit.mjs; на бой не влияет.
+  function trace(ctx, kind, value) {
+    const t = ctx.scoring && ctx.scoring.trace;
+    if (!t) return;
+    if (kind === "power") t[(ctx.sourceKind === "item" ? "itemPower" : "heroPower")] += value;
+    else if (kind === "mult") t[(ctx.sourceKind === "item" ? "itemMult" : "heroMult")] += value;
+    else if (kind === "mult_mult") t.multMult.push({ source: ctx.sourceName, value });
+    else if (kind === "final_mult") t.finalMult.push({ source: ctx.sourceName, value });
+  }
+
   const applicators = {
     ADD_POWER(effect, ctx) {
       ctx.scoring.power += effect.value;
+      trace(ctx, "power", effect.value);
       return { label: `${ctx.sourceName}: +${effect.value} силы` };
     },
     ADD_MULT(effect, ctx) {
       ctx.scoring.mult += effect.value;
+      trace(ctx, "mult", effect.value);
       return { label: `${ctx.sourceName}: +${effect.value} к множителю` };
     },
     MULT_MULT(effect, ctx) {
       ctx.scoring.mult *= effect.value;
+      trace(ctx, "mult_mult", effect.value);
       return {
         label: `${ctx.sourceName}: ×${effect.value} множитель${ctx.note ? " (" + ctx.note + ")" : ""}`,
       };
     },
     FINAL_MULT(effect, ctx) {
       ctx.scoring.finalMult *= effect.value;
+      trace(ctx, "final_mult", effect.value);
       return { label: `${ctx.sourceName}: ×${effect.value} к итоговому урону` };
     },
     WEAKEST_POWER_DOUBLE(effect, ctx) {
