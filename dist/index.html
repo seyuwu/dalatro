@@ -1033,6 +1033,18 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upgrade-title h3 { margin-right: auto; }
 .upgrade-reroll { padding: 5px 9px; font-size: 10.5px; }
 
+/* ---------- смена атрибута (зелье) ---------- */
+.attr-change-row { display: flex; align-items: center; gap: 4px; margin-bottom: 7px; }
+.attr-change { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; border: 1px solid #46533a; border-radius: 5px; background: #222b1f; color: #a8b58f; cursor: pointer; transition: border-color .12s, transform .12s; }
+.attr-change:hover:not(:disabled) { border-color: #ac9054; transform: translateY(-1px); }
+.attr-change.current { border-style: dashed; opacity: .45; cursor: default; }
+.attr-change.str { color: #d99281; }
+.attr-change.agi { color: #a9d29d; }
+.attr-change.int { color: #86afc7; }
+.attr-change.uni { color: #d8b24f; }
+.attr-hint { font-size: 8.5px; color: #74866b; margin-left: 5px; }
+.hero-attribute .attr-changed { font-style: normal; color: #e9c98f; cursor: help; }
+
 /* ---------- отдельные кнопки тренировки и увольнения ---------- */
 .lab-shop-actions { display: flex; gap: 7px; }
 .train-button { border-color: #6b5a2e; background: #3c331d; color: #e9c98f; }
@@ -3062,7 +3074,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -3077,6 +3089,13 @@ const Game = (function () {
 
   // Ранг героя с учётом тренировки в лаборатории колоды, усталости и охоты
   // на героя (ранги Легенда/Титан). Это ЭФФЕКТИВНАЯ сила — она и в бою, и на карте.
+  // Эффективный атрибут героя: «Зелье атрибута» меняет его навсегда в рамках
+  // забега (флеши, связки формаций и условия способностей читают через это).
+  function heroAttr(state, heroId) {
+    const override = state.run.heroAttrs && state.run.heroAttrs[heroId];
+    return override || Content.heroes.byId[heroId].attr;
+  }
+
   function rankOf(state, heroId) {
     const overrides = state.run.ranks || {};
     const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
@@ -3489,9 +3508,10 @@ const Game = (function () {
         if (offerIdx === -1) return s;
         // «Запасной слот» — виртуальный повторяемый апгрейд: уровень в run.handSlots.
         const isHandSlot = action.upgradeId === Upgrades.HAND_SLOT_ID;
-        const up = isHandSlot ? Upgrades.handSlotDef(s) : Content.upgrades.byId[action.upgradeId];
+        const isAttrPotion = action.upgradeId === Upgrades.ATTR_POTION_ID;
+        const up = isHandSlot ? Upgrades.handSlotDef(s) : isAttrPotion ? Upgrades.attrPotionDef(s) : Content.upgrades.byId[action.upgradeId];
         if (!up) return s;
-        if (!isHandSlot && (s.run.upgrades || []).includes(up.id)) return s;
+        if (!isHandSlot && !isAttrPotion && (s.run.upgrades || []).includes(up.id)) return s;
         let finalCost = up.cost;
         s.run.upgradePurchases = (s.run.upgradePurchases || 0) + 1;
         const amulet = Upgrades.sum(s, "upgradeLoyalty");
@@ -3504,6 +3524,9 @@ const Game = (function () {
         if (isHandSlot) {
           s.run.handSlots = (s.run.handSlots || 0) + 1;
           log(s, `Запасной слот ×${s.run.handSlots}: рука больше на ${s.run.handSlots} (−${finalCost} золота)`);
+        } else if (isAttrPotion) {
+          s.run.attrCharges = (s.run.attrCharges || 0) + 1;
+          log(s, `Зелье атрибута: +1 заряд смены атрибута (−${finalCost} золота). Потрать в лаборатории колоды.`);
         } else {
           s.run.upgrades = s.run.upgrades || [];
           s.run.upgrades.push(up.id);
@@ -3748,6 +3771,22 @@ const Game = (function () {
         return s;
       }
 
+      // Зелье атрибута: трата заряда на смену атрибута героя.
+      case "CHANGE_ATTR": {
+        if (!s.run.attrCharges) return s;
+        const heroId = action.heroId;
+        const attr = action.attr;
+        if (!["str", "agi", "int", "uni"].includes(attr)) return s;
+        const owned = [...s.player.handUids, ...s.player.deckUids, ...s.player.discardUids]
+          .some((uid) => s.cards[uid].heroId === heroId);
+        if (!owned || Game.heroAttr(s, heroId) === attr) return s;
+        s.run.attrCharges -= 1;
+        s.run.heroAttrs = s.run.heroAttrs || {};
+        s.run.heroAttrs[heroId] = attr;
+        log(s, `${Content.heroes.byId[heroId].name} меняет атрибут: ${Content.attrNames[attr]}`);
+        return s;
+      }
+
       case "RETRY_WAVE": {
         if (s.phase !== "wave" || s.combat.outcome !== "failed") return s;
         s.run.barracks -= 1;
@@ -3808,7 +3847,7 @@ const Game = (function () {
     createInitialState, dispatch,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
-    assignMines, rankOf, maxSlots, recruitPrice, itemCost, rerollCost,
+    assignMines, rankOf, heroAttr, maxSlots, recruitPrice, itemCost, rerollCost,
     archPerk, discardsPerWave, starterDeckIds,
     itemCapacity, itemBlockedReason, rollRouteOptions,
   };
@@ -4257,6 +4296,7 @@ const DeckSys = (function () {
 const Upgrades = (function () {
   const REROLL_COST = 2;
   const HAND_SLOT_ID = "hand_slot";
+  const ATTR_POTION_ID = "attr_potion";
   const BASE_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
 
   function ownedDefs(state) {
@@ -4286,6 +4326,20 @@ const Upgrades = (function () {
       rare: BASE_WEIGHTS.rare + 0.8 * l,
       epic: BASE_WEIGHTS.epic + 0.7 * l,
       mythic: BASE_WEIGHTS.mythic + 0.5 * l,
+    };
+  }
+
+  // Виртуальное «Зелье атрибута»: +1 заряд смены атрибута (трата в лаборатории).
+  function attrPotionDef(state) {
+    return {
+      id: ATTR_POTION_ID,
+      name: "Зелье атрибута",
+      emoji: "🧪",
+      repeatable: true,
+      rarity: "rare",
+      cost: 5,
+      level: state.run.attrCharges || 0,
+      desc: `+1 заряд смены атрибута героя (сейчас зарядов: ${state.run.attrCharges || 0}). Потратить в лаборатории колоды.`,
     };
   }
 
@@ -4338,6 +4392,10 @@ const Upgrades = (function () {
         handSlotOffered = true;
         continue;
       }
+      if (rarity === "rare" && !offers.some((o) => o.id === ATTR_POTION_ID) && rng.next() < 0.3) {
+        offers.push({ id: ATTR_POTION_ID });
+        continue;
+      }
       const pool = Content.upgrades.list
         .filter((u) => u.rarity === rarity && !owned.has(u.id) && !offers.some((o) => o.id === u.id));
       if (!pool.length) continue;
@@ -4347,7 +4405,7 @@ const Upgrades = (function () {
     return offers;
   }
 
-  return { ownedDefs, sum, luck, rarityWeights, handSlotDef, generateOffers, slotsFor, REROLL_COST, HAND_SLOT_ID };
+  return { ownedDefs, sum, luck, rarityWeights, handSlotDef, attrPotionDef, generateOffers, slotsFor, REROLL_COST, HAND_SLOT_ID, ATTR_POTION_ID };
 })();
 
 </script>
@@ -4391,7 +4449,7 @@ const Combat = (function () {
 
   // Ранг с учётом тренировки (state.run.ranks) и проклятие-список волны.
   function heroAttr(state, heroId) {
-    return Content.heroes.byId[heroId].attr;
+    return Game.heroAttr(state, heroId);
   }
 
   function waveCurses(state) {
@@ -5697,7 +5755,7 @@ const Art = (function () {
   }
 
   function attrOf(state, uid) {
-    return Content.heroes.byId[state.cards[uid].heroId].attr;
+    return Game.heroAttr(state, Content.heroes.byId[state.cards[uid].heroId].id);
   }
 
   function rankOf(state, uid) {
@@ -5794,13 +5852,14 @@ const Art = (function () {
 
   function heroCardHtml(state, uid, index) {
     const hero = Content.heroes.byId[state.cards[uid].heroId];
+    const effAttr = Game.heroAttr(state, hero.id);
     const rank = heroRank(state, hero.id);
     const selectedIdx = state.combat.selectedUids.indexOf(uid);
     const selected = selectedIdx !== -1;
     const mined = (state.combat.minedUids || []).includes(uid);
     const cls = [
       "hero-card",
-      hero.attr,
+      effAttr,
       selected ? "selected" : "",
       mined ? "mined" : "",
     ].join(" ");
@@ -5815,11 +5874,11 @@ const Art = (function () {
       ${penaltyNote ? `<span class="fatigue-mark" data-tip>−${fatigue}<span class="pop"><strong>Усталость</strong><p>Каждые 5 боёв героя — −1 к силе (до −3). Дай герою отдых или уволь его.</p><small>${penaltyNote}</small></span></span>` : ""}
       <div class="hero-art">${Art.heroArt(hero)}<span class="hero-vignette"></span>
         <span class="hero-rank ${fatigue || fav ? "weakened" : ""}">${rank}</span>
-        <span class="attribute-icon">${ATTR_SYMBOLS[hero.attr]}</span>
+        <span class="attribute-icon">${ATTR_SYMBOLS[effAttr]}</span>
         <span class="hero-name">${hero.name}</span>
       </div>
       <div class="hero-card-bottom">
-        <span class="hero-attribute">${ATTR_SYMBOLS[hero.attr]} ${ATTR_NAMES[hero.attr]}</span>
+        <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
         <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}</span>
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
@@ -6610,7 +6669,8 @@ const Art = (function () {
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
                 <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
                 <span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}
-                  ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}</span>
+                  ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}
+                  ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}</span>
                 <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
@@ -6990,9 +7050,15 @@ const Art = (function () {
         return `<div class="collection-hero ${hr.attr}">
           <div class="collection-portrait">${Art.heroArt(hr)}<b>${rank}</b></div>
           <div><strong>${hr.name}${trained ? ` <span class="trained-badge">+${rank - hr.power} тренировка</span>` : ""}</strong>
-            <span class="hero-attribute">${ATTR_SYMBOLS[hr.attr]} ${ATTR_NAMES[hr.attr]} · сила ${rank}</span>
+            <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}</span>
             <p>${heroDesc(hr)}</p>
             <small class="gold">${where}</small>
+            ${labMode ? `<div class="attr-change-row">${["str", "agi", "int", "uni"].map((a) => {
+      const cur = Game.heroAttr(state, hr.id);
+      const has = (state.run.attrCharges || 0) > 0;
+      return `<button class="attr-change ${a} ${cur === a ? "current" : ""}" data-action="change-attr" data-id="${hr.id}" data-attr="${a}"
+                ${!has || cur === a ? "disabled" : ""} title="Сменить атрибут на ${ATTR_NAMES[a]} (1 заряд зелья)">${ATTR_SYMBOLS[a]}</button>`;
+    }).join("")}${(state.run.attrCharges || 0) === 0 ? '<small class="attr-hint">нет зарядов — купи «Зелье атрибута» в лавке</small>' : ""}</div>` : ""}
             ${labMode ? `<div class="lab-actions">
               <button class="lab-button danger" data-action="exile" data-id="${hr.id}" ${canExile ? "" : "disabled"}
                 title="${ownedUids.length <= Game.DECK_MIN ? "В колоде минимум 8 карт" : "Безвозвратное удаление из колоды"}">
@@ -7491,6 +7557,10 @@ const Art = (function () {
       case "train":
         Sfx.play("buy");
         dispatchAndRender({ type: "TRAIN_HERO", heroId: el.dataset.id });
+        break;
+      case "change-attr":
+        dispatchAndRender({ type: "CHANGE_ATTR", heroId: el.dataset.id, attr: el.dataset.attr });
+        UI.toast(state, `${Content.heroes.byId[el.dataset.id].name}: атрибут — ${Content.attrNames[el.dataset.attr]}`);
         break;
       case "retry": dispatchAndRender({ type: "RETRY_WAVE" }); break;
       case "restart": {

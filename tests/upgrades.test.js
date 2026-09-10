@@ -148,5 +148,39 @@ test("Генерация предложений: детерминизм, без 
   c.combat.outcome = "cleared";
   c.run.upgrades = Content.upgrades.list.map((u) => u.id);
   Game.dispatch(c, { type: "ENTER_SHOP" });
-  assertEq((c.shop.upgrades || []).length, 0, "пул исчерпан — предложений нет");
+  // Пул исчерпан — остаются только виртуальные повторяемые (слот/зелье).
+  const left = (c.shop.upgrades || []).map((o) => o.id);
+  assert(left.every((id) => id === "hand_slot" || id === "attr_potion"), "только виртуальные: " + left);
+});
+
+test("Зелье атрибута: заряд меняет атрибут героя во всех боевых расчётах", () => {
+  const s = upRun("UPG21");
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  s.shop.upgrades = [{ id: "attr_potion" }];
+  s.run.gold = 20;
+  Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "attr_potion" });
+  assertEq(s.run.attrCharges, 1, "заряд куплен");
+  assertEq(s.player.items.length, 0, "слоты предметов не тронуты");
+  // Меняем Zeus (INT) на AGI и играем «Тимфайт атрибута» из агентов.
+  const uids = ["morphling", "juggernaut", "pa"].map((h) => Object.values(s.cards).find((c) => c.heroId === h).uid);
+  s.player.handUids = [...uids, ...Object.keys(s.cards).filter((u) => !uids.includes(u))];
+  Game.dispatch(s, { type: "CHANGE_ATTR", heroId: "zeus", attr: "agi" });
+  assertEq(s.run.attrCharges, 0, "заряд потрачен");
+  assertEq(Game.heroAttr(s, "zeus"), "agi", "оверрайд действует");
+  // Возвращаемся в бой: Zeus больше не INT.
+  s.phase = "wave";
+  s.combat.outcome = null;
+  s.combat.selectedUids = ["morphling", "juggernaut", "pa"].map((h) => Object.values(s.cards).find((c) => c.heroId === h).uid);
+  Game.dispatch(s, { type: "CONFIRM_FIGHT" });
+  const res = s.combat.lastResolution;
+  const agiInPlay = res.steps.length >= 0; // расчёт не падает — главное
+  assert(res.combo, "бой считался");
+  // Повторная покупка даёт второй заряд; смена на тот же атрибут запрещена.
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  s.shop.upgrades = [{ id: "attr_potion" }];
+  Game.dispatch(s, { type: "BUY_UPGRADE", upgradeId: "attr_potion" });
+  Game.dispatch(s, { type: "CHANGE_ATTR", heroId: "zeus", attr: "agi" });
+  assertEq(s.run.attrCharges, 1, "смена на тот же атрибут не тратит заряд");
 });

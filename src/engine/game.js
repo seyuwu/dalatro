@@ -15,7 +15,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, shopRerolls: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0 },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -30,6 +30,13 @@ const Game = (function () {
 
   // Ранг героя с учётом тренировки в лаборатории колоды, усталости и охоты
   // на героя (ранги Легенда/Титан). Это ЭФФЕКТИВНАЯ сила — она и в бою, и на карте.
+  // Эффективный атрибут героя: «Зелье атрибута» меняет его навсегда в рамках
+  // забега (флеши, связки формаций и условия способностей читают через это).
+  function heroAttr(state, heroId) {
+    const override = state.run.heroAttrs && state.run.heroAttrs[heroId];
+    return override || Content.heroes.byId[heroId].attr;
+  }
+
   function rankOf(state, heroId) {
     const overrides = state.run.ranks || {};
     const base = overrides[heroId] != null ? overrides[heroId] : Content.heroes.byId[heroId].power;
@@ -442,9 +449,10 @@ const Game = (function () {
         if (offerIdx === -1) return s;
         // «Запасной слот» — виртуальный повторяемый апгрейд: уровень в run.handSlots.
         const isHandSlot = action.upgradeId === Upgrades.HAND_SLOT_ID;
-        const up = isHandSlot ? Upgrades.handSlotDef(s) : Content.upgrades.byId[action.upgradeId];
+        const isAttrPotion = action.upgradeId === Upgrades.ATTR_POTION_ID;
+        const up = isHandSlot ? Upgrades.handSlotDef(s) : isAttrPotion ? Upgrades.attrPotionDef(s) : Content.upgrades.byId[action.upgradeId];
         if (!up) return s;
-        if (!isHandSlot && (s.run.upgrades || []).includes(up.id)) return s;
+        if (!isHandSlot && !isAttrPotion && (s.run.upgrades || []).includes(up.id)) return s;
         let finalCost = up.cost;
         s.run.upgradePurchases = (s.run.upgradePurchases || 0) + 1;
         const amulet = Upgrades.sum(s, "upgradeLoyalty");
@@ -457,6 +465,9 @@ const Game = (function () {
         if (isHandSlot) {
           s.run.handSlots = (s.run.handSlots || 0) + 1;
           log(s, `Запасной слот ×${s.run.handSlots}: рука больше на ${s.run.handSlots} (−${finalCost} золота)`);
+        } else if (isAttrPotion) {
+          s.run.attrCharges = (s.run.attrCharges || 0) + 1;
+          log(s, `Зелье атрибута: +1 заряд смены атрибута (−${finalCost} золота). Потрать в лаборатории колоды.`);
         } else {
           s.run.upgrades = s.run.upgrades || [];
           s.run.upgrades.push(up.id);
@@ -701,6 +712,22 @@ const Game = (function () {
         return s;
       }
 
+      // Зелье атрибута: трата заряда на смену атрибута героя.
+      case "CHANGE_ATTR": {
+        if (!s.run.attrCharges) return s;
+        const heroId = action.heroId;
+        const attr = action.attr;
+        if (!["str", "agi", "int", "uni"].includes(attr)) return s;
+        const owned = [...s.player.handUids, ...s.player.deckUids, ...s.player.discardUids]
+          .some((uid) => s.cards[uid].heroId === heroId);
+        if (!owned || Game.heroAttr(s, heroId) === attr) return s;
+        s.run.attrCharges -= 1;
+        s.run.heroAttrs = s.run.heroAttrs || {};
+        s.run.heroAttrs[heroId] = attr;
+        log(s, `${Content.heroes.byId[heroId].name} меняет атрибут: ${Content.attrNames[attr]}`);
+        return s;
+      }
+
       case "RETRY_WAVE": {
         if (s.phase !== "wave" || s.combat.outcome !== "failed") return s;
         s.run.barracks -= 1;
@@ -761,7 +788,7 @@ const Game = (function () {
     createInitialState, dispatch,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
-    assignMines, rankOf, maxSlots, recruitPrice, itemCost, rerollCost,
+    assignMines, rankOf, heroAttr, maxSlots, recruitPrice, itemCost, rerollCost,
     archPerk, discardsPerWave, starterDeckIds,
     itemCapacity, itemBlockedReason, rollRouteOptions,
   };

@@ -296,6 +296,10 @@
         Sfx.play("buy");
         dispatchAndRender({ type: "TRAIN_HERO", heroId: el.dataset.id });
         break;
+      case "change-attr":
+        dispatchAndRender({ type: "CHANGE_ATTR", heroId: el.dataset.id, attr: el.dataset.attr });
+        UI.toast(state, `${Content.heroes.byId[el.dataset.id].name}: атрибут — ${Content.attrNames[el.dataset.attr]}`);
+        break;
       case "retry": dispatchAndRender({ type: "RETRY_WAVE" }); break;
       case "restart": {
         const input = document.getElementById("seed-input-modal");

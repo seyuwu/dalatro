@@ -37,7 +37,7 @@ const Combat = (function () {
 
   // Ранг с учётом тренировки (state.run.ranks) и проклятие-список волны.
   function heroAttr(state, heroId) {
-    return Content.heroes.byId[heroId].attr;
+    return Game.heroAttr(state, heroId);
   }
 
   function waveCurses(state) {

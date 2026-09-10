@@ -16,6 +16,7 @@
 const Upgrades = (function () {
   const REROLL_COST = 2;
   const HAND_SLOT_ID = "hand_slot";
+  const ATTR_POTION_ID = "attr_potion";
   const BASE_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
 
   function ownedDefs(state) {
@@ -45,6 +46,20 @@ const Upgrades = (function () {
       rare: BASE_WEIGHTS.rare + 0.8 * l,
       epic: BASE_WEIGHTS.epic + 0.7 * l,
       mythic: BASE_WEIGHTS.mythic + 0.5 * l,
+    };
+  }
+
+  // Виртуальное «Зелье атрибута»: +1 заряд смены атрибута (трата в лаборатории).
+  function attrPotionDef(state) {
+    return {
+      id: ATTR_POTION_ID,
+      name: "Зелье атрибута",
+      emoji: "🧪",
+      repeatable: true,
+      rarity: "rare",
+      cost: 5,
+      level: state.run.attrCharges || 0,
+      desc: `+1 заряд смены атрибута героя (сейчас зарядов: ${state.run.attrCharges || 0}). Потратить в лаборатории колоды.`,
     };
   }
 
@@ -97,6 +112,10 @@ const Upgrades = (function () {
         handSlotOffered = true;
         continue;
       }
+      if (rarity === "rare" && !offers.some((o) => o.id === ATTR_POTION_ID) && rng.next() < 0.3) {
+        offers.push({ id: ATTR_POTION_ID });
+        continue;
+      }
       const pool = Content.upgrades.list
         .filter((u) => u.rarity === rarity && !owned.has(u.id) && !offers.some((o) => o.id === u.id));
       if (!pool.length) continue;
@@ -106,5 +125,5 @@ const Upgrades = (function () {
     return offers;
   }
 
-  return { ownedDefs, sum, luck, rarityWeights, handSlotDef, generateOffers, slotsFor, REROLL_COST, HAND_SLOT_ID };
+  return { ownedDefs, sum, luck, rarityWeights, handSlotDef, attrPotionDef, generateOffers, slotsFor, REROLL_COST, HAND_SLOT_ID, ATTR_POTION_ID };
 })();

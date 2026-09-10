@@ -160,7 +160,7 @@
   }
 
   function attrOf(state, uid) {
-    return Content.heroes.byId[state.cards[uid].heroId].attr;
+    return Game.heroAttr(state, Content.heroes.byId[state.cards[uid].heroId].id);
   }
 
   function rankOf(state, uid) {
@@ -257,13 +257,14 @@
 
   function heroCardHtml(state, uid, index) {
     const hero = Content.heroes.byId[state.cards[uid].heroId];
+    const effAttr = Game.heroAttr(state, hero.id);
     const rank = heroRank(state, hero.id);
     const selectedIdx = state.combat.selectedUids.indexOf(uid);
     const selected = selectedIdx !== -1;
     const mined = (state.combat.minedUids || []).includes(uid);
     const cls = [
       "hero-card",
-      hero.attr,
+      effAttr,
       selected ? "selected" : "",
       mined ? "mined" : "",
     ].join(" ");
@@ -278,11 +279,11 @@
       ${penaltyNote ? `<span class="fatigue-mark" data-tip>−${fatigue}<span class="pop"><strong>Усталость</strong><p>Каждые 5 боёв героя — −1 к силе (до −3). Дай герою отдых или уволь его.</p><small>${penaltyNote}</small></span></span>` : ""}
       <div class="hero-art">${Art.heroArt(hero)}<span class="hero-vignette"></span>
         <span class="hero-rank ${fatigue || fav ? "weakened" : ""}">${rank}</span>
-        <span class="attribute-icon">${ATTR_SYMBOLS[hero.attr]}</span>
+        <span class="attribute-icon">${ATTR_SYMBOLS[effAttr]}</span>
         <span class="hero-name">${hero.name}</span>
       </div>
       <div class="hero-card-bottom">
-        <span class="hero-attribute">${ATTR_SYMBOLS[hero.attr]} ${ATTR_NAMES[hero.attr]}</span>
+        <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
         <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}</span>
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
@@ -1073,7 +1074,8 @@
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
                 <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
                 <span class="upgrade-owned">${Upgrades.ownedDefs(state).map((u) => `<span class="upgrade-chip" data-tip>${u.emoji}<span class="pop"><strong>${u.name}</strong><p>${esc(u.desc)}</p></span></span>`).join("")}
-                  ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}</span>
+                  ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}
+                  ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}</span>
                 <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
@@ -1453,9 +1455,15 @@
         return `<div class="collection-hero ${hr.attr}">
           <div class="collection-portrait">${Art.heroArt(hr)}<b>${rank}</b></div>
           <div><strong>${hr.name}${trained ? ` <span class="trained-badge">+${rank - hr.power} тренировка</span>` : ""}</strong>
-            <span class="hero-attribute">${ATTR_SYMBOLS[hr.attr]} ${ATTR_NAMES[hr.attr]} · сила ${rank}</span>
+            <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}</span>
             <p>${heroDesc(hr)}</p>
             <small class="gold">${where}</small>
+            ${labMode ? `<div class="attr-change-row">${["str", "agi", "int", "uni"].map((a) => {
+      const cur = Game.heroAttr(state, hr.id);
+      const has = (state.run.attrCharges || 0) > 0;
+      return `<button class="attr-change ${a} ${cur === a ? "current" : ""}" data-action="change-attr" data-id="${hr.id}" data-attr="${a}"
+                ${!has || cur === a ? "disabled" : ""} title="Сменить атрибут на ${ATTR_NAMES[a]} (1 заряд зелья)">${ATTR_SYMBOLS[a]}</button>`;
+    }).join("")}${(state.run.attrCharges || 0) === 0 ? '<small class="attr-hint">нет зарядов — купи «Зелье атрибута» в лавке</small>' : ""}</div>` : ""}
             ${labMode ? `<div class="lab-actions">
               <button class="lab-button danger" data-action="exile" data-id="${hr.id}" ${canExile ? "" : "disabled"}
                 title="${ownedUids.length <= Game.DECK_MIN ? "В колоде минимум 8 карт" : "Безвозвратное удаление из колоды"}">
