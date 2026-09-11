@@ -138,7 +138,7 @@ const Art = (function () {
     const key = UPGRADE_IMG[up.id];
     if (!key) return `<span class="upg-fallback">${up.emoji}</span>`;
     return `<span class="upg-art"><span class="upg-fallback">${up.emoji}</span>
-      <img src="${ITEM_CDN}/${key}.png" alt="${up.name}" loading="lazy" onerror="this.remove()"></span>`;
+      <img src="${ITEM_CDN}/${key}.png" alt="${up.name}" loading="lazy" onload="const f=this.previousElementSibling; if (f) f.style.display='none';" onerror="this.remove()"></span>`;
   }
 
   // Item art: CDN icon over the emoji fallback (same pattern as heroArt).
@@ -147,7 +147,7 @@ const Art = (function () {
     if (!key) return `<span class="item-gem rar-${item.rarity}">${item.emoji}</span>`;
     return `<span class="item-gem rar-${item.rarity}">
       <span class="item-fallback">${item.emoji}</span>
-      <img src="${ITEM_CDN}/${key}.png" alt="${item.name}" loading="lazy" onerror="this.remove()">
+      <img src="${ITEM_CDN}/${key}.png" alt="${item.name}" loading="lazy" onload="const f=this.previousElementSibling; if (f) f.style.display='none';" onerror="this.remove()">
     </span>`;
   }
 

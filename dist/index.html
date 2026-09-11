@@ -1037,6 +1037,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upg-art { display: block; position: relative; width: 30px; height: 30px; }
 .upg-fallback { font-size: 22px; line-height: 30px; display: block; text-align: center; }
 .upg-art img { position: absolute; inset: 0; }
+
+/* фолбэк-эмодзи живёт ЦЕНТРОМ под иконкой и прячется при успешной загрузке
+   (onload в art.js); при недоступности CDN иконка удаляется — эмодзи остаётся */
+.item-gem { position: relative; display: flex; align-items: center; justify-content: center; }
+.item-gem img { position: absolute; inset: 0; }
 .upgrade-info { flex: 1; min-width: 0; }
 .upgrade-info strong { display: block; font-size: 12.5px; color: #dfe5d2; }
 .upgrade-info small { display: block; font-size: 9.5px; line-height: 1.55; color: #93a385; margin-top: 2px; }
@@ -1307,7 +1312,93 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .abil-dot.off { background: #59644f; }
 .abil-hint { display: block; font-size: 8px; line-height: 1.5; color: #93a186; margin-top: 6px; padding-top: 5px; border-top: 1px solid #3a4738; }
 
+/* dotora — tutorial: слой интерактивного онбординга. Живёт вне #app,
+   z-стек: под тостами (100), над модалками (50). Отдельный файл — чтобы
+   не конфликтовать с параллельными правками styles.css. // TUTORIAL */
+
+#tut-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif; }
+
+/* Затемнение целиком (реплика «вот твой враг») и мягкая полумера (реплики-итоги). */
+.tut-veil { position: fixed; inset: 0; animation: tutFade .25s ease-out; }
+.tut-veil.dark { background: linear-gradient(160deg, #070c08e8, #0a120bee); backdrop-filter: blur(5px) saturate(.85); }
+.tut-veil.soft { background: #070c08a8; backdrop-filter: blur(2px); }
+
+/* Спотлайт: «дырка» над целью, всё вокруг гасится тенью. */
+.tut-hole {
+  position: fixed; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 1.5px #a2c7a36e, 0 0 26px #a2c7a32e inset, 0 0 0 200vmax rgba(6, 10, 7, .74);
+  transition: left .3s ease, top .3s ease, width .3s ease, height .3s ease;
+}
+/* Пульс на карте звезды (Dawnbreaker) — заметно, но не мешает кликам. */
+.tut-pulse {
+  position: fixed; border-radius: 10px; pointer-events: none;
+  animation: tutPulse 1.5s ease-out infinite;
+}
+
+/* Блокирующий слой для реплик, где игра ждёт прочтения. */
+.tut-blocker { position: fixed; inset: 0; pointer-events: auto; }
+
+/* Карточка: мягкое стекло в оливковой палитре игры. */
+.tut-card {
+  position: fixed; width: 330px; max-width: calc(100vw - 24px); padding: 14px 16px 13px;
+  background: linear-gradient(152deg, #25301f, #1a231b 78%);
+  border: 1px solid #5b6b52; border-radius: 13px;
+  box-shadow: 0 24px 70px #000c, 0 2px 10px #0008, inset 0 1px 0 #ffffff10;
+  color: #c9d2bd; font-size: 13.5px; line-height: 1.5;
+  pointer-events: auto; animation: tutPop .28s cubic-bezier(.2, .9, .3, 1.2);
+}
+.tut-card h3 { font-family: 'Oswald', sans-serif; font-size: 17.5px; font-weight: 600; letter-spacing: .4px; color: #eceada; margin: 3px 0 7px; }
+.tut-card p { margin: 0; }
+.tut-card p b { color: #e9e6d4; }
+.tut-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tut-kicker { font-size: 8.5px; font-weight: 800; letter-spacing: 1.6px; color: #8fb492; }
+.tut-x {
+  width: 22px; height: 22px; border-radius: 6px; color: #869187; font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.tut-x:hover { background: #ffffff12; color: #dfe3d6; }
+.tut-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.tut-skip { font-size: 10.5px; color: #75816f; border-bottom: 1px dotted #5a665a; padding: 2px 0; }
+.tut-skip:hover { color: #b9c2ac; }
+.tut-go {
+  font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .6px;
+  color: #16190f; background: linear-gradient(150deg, #d9b47c, #c1955c);
+  border: 1px solid #e8c893; border-radius: 8px; padding: 7px 15px;
+  box-shadow: 0 4px 14px #0006;
+  display: flex; align-items: center; gap: 6px;
+}
+.tut-go:hover { filter: brightness(1.08); }
+.tut-go span { font-family: 'Manrope', sans-serif; font-weight: 800; }
+.tut-wait { font-size: 11px; color: #869187; font-style: italic; }
+
+/* Мини-карты в реплике «цифра и цвет». */
+.tut-chips { display: flex; align-items: center; gap: 7px; margin: 4px 0 9px; }
+.tut-mini {
+  position: relative; width: 40px; height: 54px; border-radius: 5px;
+  border: 1px solid var(--mc, #888); border-bottom-width: 3px; background: #1c241d;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Oswald', sans-serif; box-shadow: 0 4px 10px #0006;
+}
+.tut-mini b { font-size: 18px; color: #f0e9d8; line-height: 1.05; }
+.tut-mini i { font-style: normal; font-size: 11px; color: var(--mc, #aaa); }
+.tut-mini em { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 6.5px; color: #7d8b72; white-space: nowrap; font-family: 'Manrope', sans-serif; }
+.tut-plus { color: #8fb492; font-weight: 800; font-size: 14px; }
+.tut-sum { font-size: 10px; line-height: 1.35; color: #a8b399; text-align: left; }
+.tut-chips { margin-bottom: 18px; }
+
+@keyframes tutPop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes tutFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tutPulse {
+  0% { box-shadow: 0 0 0 0 #ddb17a00, 0 0 0 2px #ddb17a; }
+  60% { box-shadow: 0 0 0 9px #ddb17a00, 0 0 0 2px #ddb17a; }
+  100% { box-shadow: 0 0 0 0 #ddb17a00, 0 0 0 2px #ddb17a; }
+}
+
+.reduced-motion .tut-card, .reduced-motion .tut-veil { animation: none; }
+.reduced-motion .tut-pulse { animation: none; box-shadow: 0 0 0 2px #ddb17a; }
+
 </style>
+  
 </head>
 <body>
   <div id="app"></div>
@@ -8212,7 +8303,7 @@ const Art = (function () {
     const key = UPGRADE_IMG[up.id];
     if (!key) return `<span class="upg-fallback">${up.emoji}</span>`;
     return `<span class="upg-art"><span class="upg-fallback">${up.emoji}</span>
-      <img src="${ITEM_CDN}/${key}.png" alt="${up.name}" loading="lazy" onerror="this.remove()"></span>`;
+      <img src="${ITEM_CDN}/${key}.png" alt="${up.name}" loading="lazy" onload="const f=this.previousElementSibling; if (f) f.style.display='none';" onerror="this.remove()"></span>`;
   }
 
   // Item art: CDN icon over the emoji fallback (same pattern as heroArt).
@@ -8221,7 +8312,7 @@ const Art = (function () {
     if (!key) return `<span class="item-gem rar-${item.rarity}">${item.emoji}</span>`;
     return `<span class="item-gem rar-${item.rarity}">
       <span class="item-fallback">${item.emoji}</span>
-      <img src="${ITEM_CDN}/${key}.png" alt="${item.name}" loading="lazy" onerror="this.remove()">
+      <img src="${ITEM_CDN}/${key}.png" alt="${item.name}" loading="lazy" onload="const f=this.previousElementSibling; if (f) f.style.display='none';" onerror="this.remove()">
     </span>`;
   }
 
@@ -10270,9 +10361,529 @@ const Art = (function () {
     if (shop && shopScroll) shop.scrollTop = shopScroll;
     const modal = document.querySelector(".modal");
     if (modal && modalScroll) modal.scrollTop = modalScroll;
+    if (window.Tutorial) Tutorial.observe(state); // TUTORIAL: интерактивный онбординг
   }
 
   return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
+})();
+
+</script>
+  <script>
+// dotora — tutorial: интерактивный сценарий первого запуска вместо простыни
+// текста. Живёт в собственном слое вне #app (полные ререндеры его не стирают),
+// факты прохождения — в localStorage "dotora_tut_v1". Точка входа одна:
+// ui.js в конце render() зовёт Tutorial.observe(state). // TUTORIAL
+//
+// Сценарий (каждый шаг ненавязчив, игра не блокируется кроме реплик-всплывов):
+//   build       — титул: «выбери начальный билд», спотлайт на стартеры
+//   enemy       — затемнение экрана, карточка «вот твой враг» о башне
+//   hand        — рука: клик = герой в строй, порядок = позиции
+//   starHint    — если в руке Dawnbreaker: пульс на её карте «возьми и её»
+//   move        — зажми и перетащи: поставь звезду на 3-е место
+//   ability     — карточка способности звезды (для DB: +1 множ. за Универсала)
+//   powercolor  — цифра = сила, цвет = атрибут: как они влияют
+//   fight       — «В бой»: сила × множитель = урон, приговор уже виден
+//   postwait    — бой сыгран: ждём конца анимации/модалки исхода (без карточки)
+//   fights      — тимфайты: 4 попытки на волну, урон башни остаётся
+//   tp          — ТП-сброс: замена героев без траты тимфайта, 3 на волну
+//   done        — «дальше сам»: лавка, таверна, развилки, «Как играть»
+(function () {
+  "use strict";
+
+  const KEY = "dotora_tut_v1";
+  const ANIM_WAIT_MS = 2600; // дольше самой долгой боевой анимации
+
+  const ATTR = {
+    str: { sym: "◆", name: "Сила", color: "#d58b76" },
+    agi: { sym: "✦", name: "Ловкость", color: "#acc778" },
+    int: { sym: "✺", name: "Интеллект", color: "#85b6d7" },
+    uni: { sym: "◈", name: "Универсал", color: "#b5a1cf" },
+  };
+
+  // Человекочитаемые описания эффектов/условий для карточки способности звезды,
+  // если это не Dawnbreaker (у той — авторский текст). Незнакомое → имя абилки.
+  const EFFECT_COPY = {
+    ADD_POWER: (v) => `+${v} силы`,
+    ADD_MULT: (v) => `+${v} к множителю`,
+    MULT_MULT: (v) => `×${v} к множителю`,
+    FINAL_MULT: (v) => `×${v} к финальному урону`,
+    GOLD: (v) => `+${v} золота`,
+    WEAKEST_POWER_DOUBLE: () => "слабейший в отряде бьёт ×2",
+    REFRESH_HERO_TRIGGERS: () => "способности отряда срабатывают дважды",
+  };
+  const COMBO_NAMES = { high_card: "Харас", pair: "Дуо на линии", two_pair: "Ротация", three: "Ганг", straight: "Смок на Рошана", flush: "Тимфайт атрибута", full_house: "4 Protect 1" };
+  const WHEN_COPY = {
+    COMBO_IS: (v) => `комбо «${COMBO_NAMES[v] || v}»`,
+    COMBO_MIN: (v) => `комбо ранга ${v}+`,
+    SLOT_IS: (v) => `слот ${v}`,
+    PLAYED_COUNT_IS: (v) => `отряд ровно из ${v}`,
+    PLAYED_COUNT_ABOVE: (v) => `в отряде больше ${v}`,
+    POWER_ABOVE: (v) => `сила выше ${v}`,
+    EXISTS_ATTRIBUTE: (v) => `рядом есть ${ATTR[v] ? ATTR[v].name : v}`,
+    NEIGHBOR_ATTR_IS: (v) => `сосед — ${ATTR[v] ? ATTR[v].name : v}`,
+    TAG_IS: (v) => `свойство «${v}»`,
+    HAS_ITEM: (v) => `предмет «${v}»`,
+  };
+
+  const FIGHT_BEATS = ["hand", "starHint", "move", "ability", "powercolor", "fight"];
+  const TOTAL_STEPS = 9;
+
+  let armed = false;       // первый observe прошёл: решено, показывать ли
+  let active = false;
+  let step = "build";
+  let layer = null;
+  let paintedKey = null;   // что уже отрисовано (шаг + звезда) — без этого не перерисовываем
+  let prev = null;         // сигналы прошлого observe
+  let lastState = null;
+  let pendingPost = null;  // { wave, at } — бой сыгран, ждём конца анимации
+  let postTimer = null;
+
+  // ---------- storage ----------
+
+  function seen() {
+    try { return localStorage.getItem(KEY); } catch (e) { return "skip"; }
+  }
+  function mark(v) {
+    try { localStorage.setItem(KEY, v); } catch (e) { /* приватный режим */ }
+  }
+
+  // ---------- каркас слоя ----------
+
+  function ensureLayer() {
+    if (layer) return layer;
+    layer = document.createElement("div");
+    layer.id = "tut-layer";
+    document.body.appendChild(layer);
+    window.addEventListener("resize", paint);
+    window.addEventListener("scroll", paint, true);
+    return layer;
+  }
+
+  function dropLayer() {
+    if (layer) { layer.remove(); layer = null; }
+    paintedKey = null;
+  }
+
+  // ---------- сигналы состояния ----------
+
+  function heroOf(state, uid) {
+    const c = state.cards && state.cards[uid];
+    return c ? Content.heroes.byId[c.heroId] : null;
+  }
+  function handHas(state, heroId) {
+    return state.player.handUids.some((uid) => {
+      const h = heroOf(state, uid);
+      return !!h && h.id === heroId;
+    });
+  }
+  function handUidOf(state, heroId) {
+    return state.player.handUids.find((uid) => {
+      const h = heroOf(state, uid);
+      return !!h && h.id === heroId;
+    }) || null;
+  }
+
+  function signals(state) {
+    return {
+      phase: state.phase,
+      wave: state.run ? state.run.waveIndex : 0,
+      sel: (state.combat.selectedUids || []).slice(),
+      fights: state.player ? state.player.fightsLeft : 0,
+      outcome: state.combat.outcome || null,
+      dbInHand: handHas(state, "dawnbreaker"),
+      fightOverlay: !!document.querySelector(".fight-overlay"),
+    };
+  }
+
+  function sameSet(a, b) {
+    if (a.length !== b.length) return false;
+    const x = a.slice().sort();
+    const y = b.slice().sort();
+    return x.every((v, i) => v === y[i]);
+  }
+
+  // Звезда сценария: Dawnbreaker, если взята; иначе первый выбранный с абилкой.
+  function starOf(state) {
+    const sel = state.combat.selectedUids || [];
+    const db = sel.find((uid) => {
+      const h = heroOf(state, uid);
+      return !!h && h.id === "dawnbreaker";
+    });
+    if (db) return db;
+    return sel.find((uid) => {
+      const h = heroOf(state, uid);
+      return !!h && !!h.ability;
+    }) || sel[0] || null;
+  }
+
+  // ---------- контент шагов ----------
+
+  function abilityCopy(state, uid) {
+    const hero = heroOf(state, uid);
+    if (!hero || !hero.ability) return null;
+    if (hero.id === "dawnbreaker") {
+      return { name: "Solar Guardian", body: "Каждый Универсал <b style='color:#b5a1cf'>◈</b> в отряде даёт <b>+1 к множителю</b> — она усиливает и себя, и соседей. Два Универсала в строю = уже ×2 к множителю от неё одной." };
+    }
+    const a = hero.ability;
+    const eff = (a.effects || []).map((e) => {
+      const fn = EFFECT_COPY[e.type];
+      return fn ? fn(e.value) : "";
+    }).filter(Boolean).join(", ");
+    const when = a.when ? condCopy(a.when) : "";
+    const parts = [when, eff].filter(Boolean).join(" → ");
+    return { name: a.name, body: parts ? `Сработает в бою сама: ${parts}. Ничего кликать не надо — наведи на карту, чтобы перечитать.` : "Сработает в бою сама. Наведи на карту, чтобы перечитать детали." };
+  }
+
+  function condCopy(when) {
+    if (!when) return "";
+    if (when.all) return when.all.map(condCopy).filter(Boolean).join(" и ");
+    if (when.any) return "один из: " + when.any.map(condCopy).filter(Boolean).join(" / ");
+    if (when.not) {
+      const inner = condCopy(when.not);
+      return inner ? "не " + inner : "";
+    }
+    const fn = WHEN_COPY[when.type];
+    return fn ? fn(when.value) : "";
+  }
+
+  function miniCard(hero) {
+    const a = ATTR[hero.attr] || ATTR.uni;
+    return `<span class="tut-mini" style="--mc:${a.color}"><b>${hero.power}</b><i>${a.sym}</i><em>${hero.name}</em></span>`;
+  }
+
+  function stepDef(state) {
+    const star = starOf(state);
+    const starHero = star ? heroOf(state, star) : null;
+    const wave = state.combat.wave || {};
+    const fights = (typeof Ranks !== "undefined" && Ranks.fightsPerWave ? Ranks.fightsPerWave(state) : 4);
+    const tps = (typeof Game !== "undefined" && Game.discardsPerWave ? Game.discardsPerWave(state) : 3);
+
+    switch (step) {
+      case "build":
+        return {
+          target: () => document.querySelector(".starter-picker"),
+          place: "right", mode: "spot", block: false, btn: "Дальше", next: "prestart",
+          title: "Выбери начальный билд",
+          body: "Трио героев задаёт стартовую колоду и перк забега. Кликни на стиль — а дальше жми «Начать забег».",
+        };
+      case "enemy":
+        return {
+          target: () => document.querySelector(".scene-target"),
+          place: "center", mode: "dark", block: true, btn: "К героям", next: "hand",
+          title: "Вот твой враг",
+          body: `<b>${esc(wave.name || "Башня Света")}</b> — ${fmt(wave.hp)} HP. Волна = до <b>${fights} тимфайтов</b> по этой башне. Снесёшь — золото, лавка и шаг к Рошану.`,
+        };
+      case "hand":
+        return {
+          target: () => document.querySelector(".hero-hand"),
+          place: "top", mode: "spot", block: false, btn: "Ясно", next: "move",
+          title: "Собери тимфайт из руки",
+          body: "Клик по карте — герой выходит в строй (до 5). <b>Порядок клика = позиции в бою</b>: первый — слот 1, второй — слот 2…",
+        };
+      case "starHint": {
+        const uid = handUidOf(state, "dawnbreaker");
+        return {
+          target: () => uid ? document.querySelector(`.hero-hand .hero-card[data-uid="${uid}"]`) : null,
+          place: "top", mode: "pulse", block: false, btn: "Уже беру", next: "move",
+          title: "У Dawnbreaker есть способность",
+          body: "Возьми и её — сейчас покажу один трюк со способностями.",
+        };
+      }
+      case "move": {
+        const nm = starHero ? starHero.name : "героя";
+        return {
+          target: () => document.querySelector(".formation-cards"),
+          place: "right", mode: "spot", block: false, btn: "Дальше", next: "ability",
+          title: "Поставь «" + nm + "» на 3-е место",
+          body: "<b>Зажми карту в строю и перетащи</b> — порядок слотов = позиции в бою, способности читают позиции и соседей.",
+        };
+      }
+      case "ability": {
+        const copy = star ? abilityCopy(state, star) : null;
+        const idx = star ? (state.combat.selectedUids || []).indexOf(star) : -1;
+        return {
+          target: () => idx >= 0 ? document.querySelector(`.formation-cards .formation-slot:nth-child(${idx + 1})`) : null,
+          place: "right", mode: "spot", block: false, btn: "Понял", next: "powercolor",
+          title: copy ? copy.name : "Способность героя",
+          body: copy ? copy.body : "Способности срабатывают в бою сами — наведи на карту, чтобы перечитать.",
+        };
+      }
+      case "powercolor":
+        return {
+          target: () => null,
+          place: "center", mode: "soft", block: true, btn: "В бой!", next: "fight",
+          title: "Цифра и цвет решают",
+          mini: true,
+          body: "<b>Цифра — сила</b>: база урона и ранги комбо (пара, тройка, смок).<br><b>Цвет — атрибут</b>: 4–5 одного цвета собирают «Тимфайт атрибута», способности читают цвета соседей.",
+        };
+      case "fight":
+        return {
+          target: () => document.querySelector(".attack-button"),
+          place: "left", mode: "spot", block: false, btn: null, next: null,
+          title: "Сила × Множитель = урон",
+          body: "Приговор справа уже говорит, упадёт ли башня этим ударом. Жми <b>«В бой»</b> — остальное покажет расчёт.",
+        };
+      case "postwait":
+        return null; // пауза: бой анимируется или открыт исход волны
+      case "fights":
+        return {
+          target: () => rowByText(/Тимфайты/),
+          fallback: () => document.querySelector(".run-panel"),
+          place: "right", mode: "spot", block: false, btn: "Дальше", next: "tp",
+          title: `Волна = ${fights} тимфайтов`,
+          body: "Каждый бой тратит попытку, но урон башни <b>остаётся</b>. Потратишь все попытки, а башня стоит, — минус казарма.",
+        };
+      case "tp":
+        return {
+          target: () => document.querySelector(".discard-button"),
+          fallback: () => rowByText(/ТП-сброс/),
+          place: "top", mode: "spot", block: false, btn: "Понял", next: "done",
+          title: "ТП-сброс — бесплатно",
+          body: `Не нравится рука? Выбери других героев и жми <b>ТП-сброс (R)</b> — замена без траты тимфайта. На волну даётся <b>${tps}</b>.`,
+        };
+      case "done":
+        return {
+          target: () => null,
+          place: "center", mode: "soft", block: true, btn: "Погнали", next: null,
+          title: "Дальше — сам",
+          body: "После волны: <b>лавка</b> с предметами, <b>таверна</b>, <b>развилки</b> маршрутов. Все правила — «Как играть» в сайдбаре. Удачи на линии!",
+        };
+      default:
+        return null;
+    }
+  }
+
+  function rowByText(re) {
+    const rows = document.querySelectorAll(".run-panel .run-row");
+    for (const r of rows) if (re.test(r.textContent || "")) return r;
+    return null;
+  }
+  function esc(s) { return String(s).replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+  function fmt(n) { return Number(n || 0).toLocaleString("ru"); }
+
+  // ---------- отрисовка ----------
+
+  function paint() {
+    if (!active || !layer) return;
+    const state = lastState;
+    if (!state) return;
+    const def = stepDef(state);
+    if (!def) { hideCard(); return; }
+
+    const target = def.target ? def.target() : null;
+    const rect = target && target.getBoundingClientRect ? target.getBoundingClientRect() : null;
+    const visible = rect && rect.width > 0 && rect.height > 0;
+    const key = [step, def.title, visible ? "t" : "n", state.combat.selectedUids.length].join("|");
+
+    if (key !== paintedKey) {
+      paintedKey = key;
+      layer.innerHTML = cardHtml(def, visible);
+      bindCard(def);
+    }
+    place(rect, visible, def);
+  }
+
+  function hideCard() {
+    if (layer) layer.innerHTML = "";
+    paintedKey = null;
+  }
+
+  function cardHtml(def, hasTarget) {
+    const n = stepNo();
+    const dim = def.mode === "dark"
+      ? `<div class="tut-veil dark"></div>`
+      : def.mode === "soft"
+        ? `<div class="tut-veil soft"></div>`
+        : "";
+    const block = def.block ? `<div class="tut-blocker"></div>` : "";
+    const hole = def.mode === "spot" && hasTarget ? `<div class="tut-hole"></div>` : "";
+    const pulse = def.mode === "pulse" && hasTarget ? `<div class="tut-pulse"></div>` : "";
+    const mini = def.mini
+      ? `<div class="tut-chips">${miniRow()}</div>`
+      : "";
+    const btn = def.btn
+      ? `<button class="tut-go">${def.btn} <span>→</span></button>`
+      : `<span class="tut-wait">ждёт «В бой»…</span>`;
+    return `${dim}${hole}${pulse}${block}
+      <aside class="tut-card">
+        <header class="tut-head">
+          <span class="tut-kicker">ОБУЧЕНИЕ · ${n}/${TOTAL_STEPS}</span>
+          <button class="tut-x" title="Завершить обучение">×</button>
+        </header>
+        <h3>${def.title}</h3>
+        ${mini}
+        <p>${def.body}</p>
+        <footer class="tut-foot">
+          <button class="tut-skip">Пропустить обучение</button>
+          ${btn}
+        </footer>
+      </aside>`;
+  }
+
+  function miniRow() {
+    const pick = (id) => Content.heroes.byId[id];
+    const a = pick("juggernaut");
+    const z = pick("zeus");
+    if (!a || !z) return "";
+    return `${miniCard(a)}<span class="tut-plus">+</span>${miniCard(z)}<span class="tut-plus">→</span><span class="tut-sum">больше силы<br>= жирнее удар</span>`;
+  }
+
+  const STEP_NOS = { build: 1, enemy: 2, hand: 3, starHint: 3, move: 4, ability: 5, powercolor: 6, fight: 7, postwait: 7, fights: 8, tp: 9, done: 9 };
+
+  function stepNo() {
+    return STEP_NOS[step] || 1;
+  }
+
+  function bindCard(def) {
+    const go = layer.querySelector(".tut-go");
+    if (go) go.addEventListener("click", () => advance(def.next));
+    const skip = layer.querySelector(".tut-skip");
+    if (skip) skip.addEventListener("click", () => finish("skip"));
+    const x = layer.querySelector(".tut-x");
+    if (x) x.addEventListener("click", () => finish("skip"));
+  }
+
+  function place(rect, visible, def) {
+    const card = layer.querySelector(".tut-card");
+    if (!card) return;
+    const w = 330;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left;
+    let top;
+    if (def.place === "center" || !visible) {
+      left = (vw - w) / 2;
+      top = vh * 0.42 - 60;
+    } else {
+      const pad = 14;
+      if (def.place === "right") { left = rect.right + pad; top = rect.top + rect.height / 2 - 70; }
+      else if (def.place === "left") { left = rect.left - w - pad; top = rect.top + rect.height / 2 - 70; }
+      else if (def.place === "top") { left = rect.left + rect.width / 2 - w / 2; top = rect.top - pad - 150; }
+      else { left = rect.left + rect.width / 2 - w / 2; top = rect.bottom + pad; }
+    }
+    left = Math.max(12, Math.min(left, vw - w - 12));
+    top = Math.max(12, Math.min(top, vh - 190));
+    card.style.left = Math.round(left) + "px";
+    card.style.top = Math.round(top) + "px";
+
+    const hole = layer.querySelector(".tut-hole");
+    if (hole && visible) {
+      const g = 7;
+      hole.style.left = (rect.left - g) + "px";
+      hole.style.top = (rect.top - g) + "px";
+      hole.style.width = (rect.width + g * 2) + "px";
+      hole.style.height = (rect.height + g * 2) + "px";
+    }
+    const pulse = layer.querySelector(".tut-pulse");
+    if (pulse && visible) {
+      pulse.style.left = (rect.left - 4) + "px";
+      pulse.style.top = (rect.top - 4) + "px";
+      pulse.style.width = (rect.width + 8) + "px";
+      pulse.style.height = (rect.height + 8) + "px";
+    }
+  }
+
+  // ---------- машина шагов ----------
+
+  function advance(next) {
+    if (next === null) { finish("done"); return; }
+    step = next;
+    paintedKey = null;
+    if (step === "prestart") hideCard();
+    paint();
+  }
+
+  function finish(kind) {
+    if (postTimer) { clearTimeout(postTimer); postTimer = null; }
+    active = false;
+    step = "done";
+    pendingPost = null;
+    dropLayer();
+    mark(kind === "done" ? "done" : "skip");
+  }
+
+  function arm() {
+    armed = true;
+    const s = seen();
+    if (s) return;
+    // Туториал — только для первого запуска: восстановленный сейв значит,
+    // что игрок уже в деле. Молча помечаем, чтобы не выскакивал среди забега.
+    if (lastState.phase !== "title") { mark("skip"); return; }
+    active = true;
+    ensureLayer();
+    step = "build";
+  }
+
+  function observe(state) {
+    lastState = state;
+    if (!armed) arm();
+    if (!active) return;
+    const sig = signals(state);
+    const p = prev;
+    prev = sig;
+
+    // Старт забега с титула (или из «prestart» после «Дальше»).
+    if ((step === "build" || step === "prestart") && sig.phase !== "title") enter("enemy");
+
+    // Бой сыгран из любого боевого шага — все подсказки гаснут, ждём конца анимации.
+    if (p && sig.fights < p.fights && FIGHT_BEATS.includes(step)) {
+      pendingPost = { wave: sig.wave, at: Date.now() };
+      enter("postwait");
+      if (postTimer) clearTimeout(postTimer);
+      postTimer = setTimeout(wakePost, ANIM_WAIT_MS);
+    }
+
+    if (step === "hand" && p && sig.sel.length > p.sel.length) {
+      enter(sig.dbInHand && !sig.sel.some((uid) => {
+        const h = heroOf(state, uid);
+        return !!h && h.id === "dawnbreaker";
+      }) ? "starHint" : "move");
+    }
+    if (step === "starHint") {
+      const dbPicked = sig.sel.some((uid) => {
+        const h = heroOf(state, uid);
+        return !!h && h.id === "dawnbreaker";
+      });
+      if (dbPicked || !sig.dbInHand || sig.sel.length >= 5) enter("move");
+    }
+    if (step === "move" && p) {
+      const reordered = sig.sel.length > 0 && sig.sel.length === p.sel.length
+        && sig.sel.join("|") !== p.sel.join("|") && sameSet(sig.sel, p.sel);
+      if (reordered) enter("ability");
+      else if (sig.sel.length === 0 && p.sel.length > 0) enter("hand");
+    }
+    if (step === "ability" && p && sig.sel.length === 0 && p.sel.length > 0) enter("hand");
+    if (step === "fight" && p && sig.sel.length === 0 && p.sel.length > 0) enter("hand");
+
+    // Пост-бой: та же волна после анимации или первая волна с полным запасом.
+    if (step === "postwait" && pendingPost && sig.phase === "wave" && !sig.outcome && !sig.fightOverlay) {
+      const newWave = sig.wave !== pendingPost.wave;
+      if (newWave || Date.now() - pendingPost.at > ANIM_WAIT_MS - 400) enter("fights");
+    }
+
+    if (sig.phase === "victory" || sig.phase === "gameover") { finish("skip"); return; }
+
+    paint();
+  }
+
+  function enter(next) {
+    step = next;
+    paintedKey = null;
+  }
+
+  function wakePost() {
+    postTimer = null;
+    if (!active || step !== "postwait" || !lastState) return;
+    const sig = signals(lastState);
+    if (sig.phase === "wave" && !sig.outcome && !sig.fightOverlay) enter("fights");
+    paint();
+  }
+
+  // Для отладки в консоли: Tutorial.reset() — показать обучение заново.
+  window.Tutorial = {
+    observe,
+    reset() { mark(""); armed = false; active = false; dropLayer(); },
+  };
 })();
 
 </script>
@@ -10524,10 +11135,9 @@ const Art = (function () {
     state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: "formation", rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
     UI.UIState.unlockBanner = null;
     saveState();
-    if (!localStorage.getItem(ONBOARD_KEY)) {
-      UI.UIState.onboarding = true;
-      UI.UIState.onboardingStep = 0;
-    }
+    // Онбординг: вместо модалки-простыни — интерактивный сценарий (tutorial.js),
+    // он сам вооружается на титульном экране. «Как играть — 5 шагов» остаётся
+    // кнопкой на титуле для тех, кто хочет полный текст.
     rerender();
   }
 

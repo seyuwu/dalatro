@@ -1026,6 +1026,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upg-art { display: block; position: relative; width: 30px; height: 30px; }
 .upg-fallback { font-size: 22px; line-height: 30px; display: block; text-align: center; }
 .upg-art img { position: absolute; inset: 0; }
+
+/* фолбэк-эмодзи живёт ЦЕНТРОМ под иконкой и прячется при успешной загрузке
+   (onload в art.js); при недоступности CDN иконка удаляется — эмодзи остаётся */
+.item-gem { position: relative; display: flex; align-items: center; justify-content: center; }
+.item-gem img { position: absolute; inset: 0; }
 .upgrade-info { flex: 1; min-width: 0; }
 .upgrade-info strong { display: block; font-size: 12.5px; color: #dfe5d2; }
 .upgrade-info small { display: block; font-size: 9.5px; line-height: 1.55; color: #93a385; margin-top: 2px; }
