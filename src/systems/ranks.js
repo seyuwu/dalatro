@@ -66,7 +66,9 @@ const Ranks = (function () {
     if (has(state, "fights3")) n -= 1;
     if (has(state, "fights2")) n -= 1;
     if (hasCurse(state, "hunger")) n -= 1;
-    return Math.max(2, n);
+    // «Аскеза»: компенсация за узкую руку.
+    n += Upgrades.sum(state, "fightsBonus");
+    return Math.max(2, Math.min(8, n));
   }
 
   function discardsPerWave(state) {

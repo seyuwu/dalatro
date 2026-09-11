@@ -1284,3 +1284,9 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .collection-hero .hero-attribute, .recruit-info .hero-attribute { display: inline-block; background: #1b2317; border: 1px solid #333f2a; border-radius: 5px; padding: 2px 8px; }
 .collection-hero small:not(.augh-lab) { display: inline-block; background: #1b2317; border: 1px solid #333f2a; border-radius: 5px; padding: 2px 8px; }
 .end-note { display: block; text-align: center; font-size: 10.5px; color: #8fa085; margin-top: 2px; }
+
+/* ненавязчивые подсказки способностей: точка срабатывания на карте + строка-совет в тултипе */
+.abil-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; margin-left: 4px; vertical-align: 1px; }
+.abil-dot.on { background: #a8d99b; box-shadow: 0 0 4px rgba(168, 217, 155, .7); }
+.abil-dot.off { background: #59644f; }
+.abil-hint { display: block; font-size: 8px; line-height: 1.5; color: #93a186; margin-top: 6px; padding-top: 5px; border-top: 1px solid #3a4738; }

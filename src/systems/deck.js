@@ -24,7 +24,9 @@ const DeckSys = (function () {
   function handSize(state) {
     return Ranks.handSize(state)
       + (state.run.waveHandBonus || 0)
-      + (state.run.handSlots || 0);
+      + (state.run.handSlots || 0)
+      // «Широкая ладонь» / «Аскеза»: постоянные слоты руки от улучшений лавки.
+      + Upgrades.sum(state, "handSizeBonus");
   }
 
   function draw(state, rng) {

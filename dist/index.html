@@ -1296,6 +1296,12 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .collection-hero small:not(.augh-lab) { display: inline-block; background: #1b2317; border: 1px solid #333f2a; border-radius: 5px; padding: 2px 8px; }
 .end-note { display: block; text-align: center; font-size: 10.5px; color: #8fa085; margin-top: 2px; }
 
+/* ненавязчивые подсказки способностей: точка срабатывания на карте + строка-совет в тултипе */
+.abil-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; margin-left: 4px; vertical-align: 1px; }
+.abil-dot.on { background: #a8d99b; box-shadow: 0 0 4px rgba(168, 217, 155, .7); }
+.abil-dot.off { background: #59644f; }
+.abil-hint { display: block; font-size: 8px; line-height: 1.5; color: #93a186; margin-top: 6px; padding-top: 5px; border-top: 1px solid #3a4738; }
+
 </style>
 </head>
 <body>
@@ -1918,6 +1924,16 @@ const ITEMS_DATA = [
     desc: "Скупость вознаграждается: каждый бой приносит +1 золото за каждый неиспользованный ТП-сброс волны.",
     ability: { name: "Hoard", event: "FIGHT_SCORING", effects: [{ type: "ADD_GOLD_PER_UNUSED_DISCARD", value: 1 }] },
   },
+  {
+    id: "assault", name: "Assault Cuirass", cost: 12, emoji: "🛡️", rarity: "epic", category: "power", slotClass: "off",
+    desc: "Осада: +5 силы за каждого героя в строю (пятёрка = +25).",
+    ability: { name: "Assault", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_PLAYED", value: 5 }] },
+  },
+  {
+    id: "blink", name: "Blink Dagger", cost: 8, emoji: "💫", rarity: "rare", category: "power", slotClass: "util",
+    desc: "Прыжок в прорыв: +12 силы в каждом бою.",
+    ability: { name: "Blink", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 12 }] },
+  },
 ];
 
 </script>
@@ -2300,6 +2316,25 @@ const UPGRADES_DATA = [
   { id: "pakt_fortunes", name: "Пакт с Фортуны", emoji: "🎰", rarity: "mythic", cost: 9,
     react: [{ event: "WAVE_FAILED", effects: [{ type: "FORTUNE" }] }],
     desc: "Каждый провал: +1 удача (копится с Подковой). На 5-й удаче в лавке ждёт мифическое улучшение." },
+
+  // ===== ДОЛГАЯ ИГРА: скейлинг собранного билда =====
+  { id: "sakvoyazh", name: "Саквояж", emoji: "🎒", rarity: "epic", cost: 7,
+    scalar: { itemSlotBonus: 1 },
+    levels: [{ desc: "+1 слот предмета (всего до 8)." }, { desc: "+2 слота предметов (эффект ×2, всего до 8)." }],
+    desc: "+1 слот предмета (всего до 8)." },
+  { id: "ladon", name: "Широкая ладонь", emoji: "🖐️", rarity: "uncommon", cost: 4,
+    scalar: { handSizeBonus: 1 },
+    levels: [{ desc: "+1 слот руки." }, { desc: "+2 слота руки (эффект ×2, цена ×2)." }],
+    desc: "+1 слот руки." },
+  { id: "askesis", name: "Аскеза", emoji: "🪶", rarity: "rare", cost: 4,
+    scalar: { handSizeBonus: -1, fightsBonus: 1 },
+    desc: "−1 слот руки, зато +1 тимфайт за волну. Маленькая рука — формации точнее." },
+  { id: "talisman", name: "Талисман отряда", emoji: "🧿", rarity: "epic", cost: 8,
+    scalar: { heroRankBonus: 1 },
+    desc: "Все герои: +1 к рангу. Разовая инвестиция в весь ростер." },
+  { id: "nastavnik", name: "Наставник", emoji: "📖", rarity: "uncommon", cost: 4,
+    scalar: { xpGainBonus: 1 },
+    desc: "Герои в бою получают +1 опыта за бой." },
 ];
 
 </script>
@@ -3476,7 +3511,9 @@ const Ranks = (function () {
     if (has(state, "fights3")) n -= 1;
     if (has(state, "fights2")) n -= 1;
     if (hasCurse(state, "hunger")) n -= 1;
-    return Math.max(2, n);
+    // «Аскеза»: компенсация за узкую руку.
+    n += Upgrades.sum(state, "fightsBonus");
+    return Math.max(2, Math.min(8, n));
   }
 
   function discardsPerWave(state) {
@@ -4642,7 +4679,9 @@ const Game = (function () {
     // Скипетр «Avalanche» (Tiny): ранг растёт от использованных ТП-сбросов.
     const charge = state.run.heroCharges && state.run.heroCharges[heroId];
     const rankCharge = charge && charge.rank ? charge.rank : 0;
-    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId) + rankCharge);
+    // «Талисман отряда»: плоский бонус ранга всему ростеру.
+    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId) + rankCharge
+      + Upgrades.sum(state, "heroRankBonus"));
   }
 
   // Перк стартового архетипа (run.archetype), null для «Стандарта»/старых сейвов.
@@ -4687,8 +4726,10 @@ const Game = (function () {
   const ITEM_CAPACITY = { total: 6, perClass: { off: 2, def: 2, util: 2 } };
 
   function itemCapacity(state) {
-    if (!Ranks.has(state, "capClass")) return { total: ITEM_CAPACITY.total, perClass: null };
-    return { total: ITEM_CAPACITY.total, perClass: { ...ITEM_CAPACITY.perClass } };
+    // «Саквояж»: +1 слот предмета за уровень, всего до 8.
+    const total = Math.min(8, ITEM_CAPACITY.total + Upgrades.sum(state, "itemSlotBonus"));
+    if (!Ranks.has(state, "capClass")) return { total, perClass: null };
+    return { total, perClass: { ...ITEM_CAPACITY.perClass } };
   }
 
   function classFull(state, cap, slotClass) {
@@ -5971,7 +6012,7 @@ const Game = (function () {
     createInitialState, dispatch, scoreOf,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN, hasItemRule,
-    assignMines, rankOf, heroAttr, heroLevel, maxSlots, recruitPrice, itemCost, rerollCost,
+    assignMines, rankOf, heroAttr, heroLevel, maxSlots, itemCapacity, recruitPrice, itemCost, rerollCost,
     XP_PER_LEVEL, XP_LEVEL_CAP,
     archPerk, discardsPerWave, starterDeckIds,
     itemCapacity, itemBlockedReason, rollRouteOptions, aghanimOffers,
@@ -6370,7 +6411,9 @@ const DeckSys = (function () {
   function handSize(state) {
     return Ranks.handSize(state)
       + (state.run.waveHandBonus || 0)
-      + (state.run.handSlots || 0);
+      + (state.run.handSlots || 0)
+      // «Широкая ладонь» / «Аскеза»: постоянные слоты руки от улучшений лавки.
+      + Upgrades.sum(state, "handSizeBonus");
   }
 
   function draw(state, rng) {
@@ -7567,6 +7610,8 @@ const Combat = (function () {
     // победа (точный ласт-хит или оверкилл <10% maxHp) добавляет ещё всем.
     if (!state.simulate) {
       let xpGain = resolution.killed ? 2 : 1;
+      // «Наставник»: каждый бой даёт героям на +1 опыта больше.
+      xpGain += Upgrades.sum(state, "xpGainBonus");
       const closeWin = resolution.killed && (overkill === 0 || overkill < tower.maxHp * 0.1);
       if (closeWin) xpGain += Upgrades.sum(state, "inspireXp");
       // Скипетр «Burn the Racks» (Huskar): зачистка с потерянной казармой — +XP.
@@ -8258,6 +8303,7 @@ const Art = (function () {
 
   const UIState = {
     modal: null, // help | collection | settings | history | new | score | detail | null
+    lastResolution: null, // steps последнего превью боя — точки срабатывания на картах руки
     detail: null,
     collectionTab: "heroes",
     search: "",
@@ -8431,6 +8477,48 @@ const Art = (function () {
     return Game.rankOf(state, heroId);
   }
 
+  // Статичная подсказка «когда сработает» по условию способности — для
+  // ненавязчивой строки в тултипе карты (условие → человеческий текст).
+  function abilityHintText(hero) {
+    const w = hero.ability && hero.ability.when;
+    if (!w) return "";
+    const attrName = (a) => ATTR_NAMES[a] || a;
+    const comboName = (v) => (Content.combos.byId[v] || {}).name || v;
+    const one = (c) => {
+      switch (c.type) {
+        case "SLOT_IS": return `в слот ${c.value + 1}`;
+        case "SLOT_IS_LAST": return "последним в строю";
+        case "IS_MIDDLE_SLOT": return "в центр строя";
+        case "NEIGHBOR_ATTR_IS": return `рядом ${attrName(c.value)}-герой`;
+        case "NEIGHBOR_ATTR_DIFFERS": return "рядом герой другого атрибута";
+        case "BOTH_NEIGHBORS_SAME": return "оба соседа моего атрибута";
+        case "BOTH_NEIGHBORS_DIFFER": return "оба соседа другого атрибута";
+        case "IS_HIGHEST_RANK": return "быть сильнейшим в строю";
+        case "IS_LOWEST_RANK": return "быть слабейшим в строю";
+        case "PLAYED_COUNT_IS": return `строем ровно из ${c.value}`;
+        case "PLAYED_COUNT_ABOVE": return `строем из ${c.value + 1}+ героев`;
+        case "PLAYED_COUNT_BELOW": return `строем до ${c.value} героев`;
+        case "ALL_ATTRIBUTES": return `весь строй — ${attrName(c.value)}`;
+        case "DISTINCT_ATTRIBUTES_ABOVE": return `${c.value + 1}+ разных атрибутов в строю`;
+        case "EXISTS_ATTRIBUTE": return `в строю есть ${attrName(c.value)}`;
+        case "IS_BOSS_WAVE": return "на волне босса";
+        case "IS_MINIBOSS_WAVE": return "на элитной башне";
+        case "COMBO_MIN": return `комбо «${comboName(c.value)}» и выше`;
+        case "COMBO_IS": return `комбо «${comboName(c.value)}»`;
+        case "AFTER_FAILURE": return "после провала прошлой волны";
+        default: return "";
+      }
+    };
+    const walk = (c) => {
+      if (!c) return "";
+      if (c.all) return c.all.map(walk).filter(Boolean).join("; ");
+      if (c.any) return c.any.map(walk).filter(Boolean).join(" или ");
+      if (c.not) { const inner = walk(c.not); return inner ? `не (${inner})` : ""; }
+      return one(c);
+    };
+    return walk(w);
+  }
+
   function heroCardHtml(state, uid, index) {
     const hero = Content.heroes.byId[state.cards[uid].heroId];
     const effAttr = Game.heroAttr(state, hero.id);
@@ -8460,6 +8548,12 @@ const Art = (function () {
       const label = k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
       return `<div class="augh-tip ${owned ? "owned" : ""}">${a.emoji} <b>${label} · ${a.name}</b><span class="augh-desc">${esc(a.desc)}</span></div>`;
     }).join("");
+    // Ненавязчивая подсказка: условие срабатывания + точка «в этом строе».
+    const hint = abilityHintText(hero);
+    const fired = UIState.lastResolution && selected
+      ? UIState.lastResolution.steps.some((st) => st.label.startsWith(hero.name + ":"))
+      : null;
+    const dot = fired != null ? `<i class="abil-dot ${fired ? "on" : "off"}"></i>` : "";
     const trained = rank !== hero.power;
     const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
     const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
@@ -8476,12 +8570,13 @@ const Art = (function () {
       </div>
       <div class="hero-card-bottom">
         <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
-        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${augBadges}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
+        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${dot}${augBadges}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
       <span class="hero-tooltip">
         <strong>${hero.ability ? hero.ability.name : hero.name}</strong>
         <p>${esc(heroDesc(hero))}</p>
+        ${hint ? `<span class="abil-hint">🎯 ${hint}${fired === false ? " · сейчас молчит" : ""}</span>` : ""}
         ${augTipLines}
         <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${effAttr === "uni"
           ? `Универсал — четвёртый цвет: связки и «4+ одного атрибута» считают его только Универсалом${uniWildcardOn(state) ? " · Starbreaker: Универсал — джокер условий" : ""}`
@@ -9014,7 +9109,7 @@ const Art = (function () {
           <span class="hand-instruction">Клик по предмету — разбор и продажа за половину цены</span>
           <span class="spacer"></span>
         </div>
-        <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>
+        <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}"${cap.total !== 6 ? ` style="grid-template-columns:repeat(${cap.total},minmax(0,1fr))"` : ""}>${slots.join("")}</div>
       </section>`;
     }
     if (state.phase !== "wave") return "";
@@ -9334,6 +9429,7 @@ const Art = (function () {
 
   function renderWave(state) {
     const preview = computePreview(state);
+    UIState.lastResolution = preview;
     const harass = preview ? computeHarass(state) : 0;
     app().innerHTML = `
       ${topbarHtml(state)}
@@ -9919,7 +10015,11 @@ const Art = (function () {
                 title="${ownedUids.length <= Game.DECK_MIN ? "В колоде минимум 8 карт" : "Безвозвратное удаление из колоды"}">
                 ${state.run.campBoon ? "Уволить бесплатно" : `Уволить · ${Game.EXILE_COST} G`}</button>
               <button class="lab-button" data-action="train" data-id="${hr.id}" ${canTrain ? "" : "disabled"}
-                title="Постоянно +1 к рангу героя">Тренировать +1 · ${Game.TRAIN_COST} G</button>
+                title="${rank >= Game.TRAIN_RANK_MAX
+                  ? `Кап тренировок: ранг ${Game.TRAIN_RANK_MAX}. Дальше герой растёт только боевым опытом`
+                  : state.run.gold < Game.TRAIN_COST
+                    ? `Не хватает золота: нужно ${Game.TRAIN_COST}G, есть ${state.run.gold}G`
+                    : "Постоянно +1 к рангу героя"}">Тренировать +1 · ${Game.TRAIN_COST} G</button>
             </div>` : ""}
           </div></div>`;
       }).join("");

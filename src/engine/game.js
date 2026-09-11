@@ -52,7 +52,9 @@ const Game = (function () {
     // Скипетр «Avalanche» (Tiny): ранг растёт от использованных ТП-сбросов.
     const charge = state.run.heroCharges && state.run.heroCharges[heroId];
     const rankCharge = charge && charge.rank ? charge.rank : 0;
-    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId) + rankCharge);
+    // «Талисман отряда»: плоский бонус ранга всему ростеру.
+    return Math.max(1, base - Ranks.heroPenalty(state, heroId) + heroLevel(state, heroId) + rankCharge
+      + Upgrades.sum(state, "heroRankBonus"));
   }
 
   // Перк стартового архетипа (run.archetype), null для «Стандарта»/старых сейвов.
@@ -97,8 +99,10 @@ const Game = (function () {
   const ITEM_CAPACITY = { total: 6, perClass: { off: 2, def: 2, util: 2 } };
 
   function itemCapacity(state) {
-    if (!Ranks.has(state, "capClass")) return { total: ITEM_CAPACITY.total, perClass: null };
-    return { total: ITEM_CAPACITY.total, perClass: { ...ITEM_CAPACITY.perClass } };
+    // «Саквояж»: +1 слот предмета за уровень, всего до 8.
+    const total = Math.min(8, ITEM_CAPACITY.total + Upgrades.sum(state, "itemSlotBonus"));
+    if (!Ranks.has(state, "capClass")) return { total, perClass: null };
+    return { total, perClass: { ...ITEM_CAPACITY.perClass } };
   }
 
   function classFull(state, cap, slotClass) {
@@ -1381,7 +1385,7 @@ const Game = (function () {
     createInitialState, dispatch, scoreOf,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
     EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN, hasItemRule,
-    assignMines, rankOf, heroAttr, heroLevel, maxSlots, recruitPrice, itemCost, rerollCost,
+    assignMines, rankOf, heroAttr, heroLevel, maxSlots, itemCapacity, recruitPrice, itemCost, rerollCost,
     XP_PER_LEVEL, XP_LEVEL_CAP,
     archPerk, discardsPerWave, starterDeckIds,
     itemCapacity, itemBlockedReason, rollRouteOptions, aghanimOffers,

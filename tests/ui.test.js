@@ -94,3 +94,11 @@ test("Формула урона: подпись атрибута по домин
   const html = renderHtml(s);
   assert(html.includes(">Универсал</span>"), "универсалы в строю — подпись «Универсал», а не «СИЛА»");
 });
+
+test("Подсказка способности в тултипе карты руки (ненавязчивая строка)", () => {
+  const s = uiRun("UIT8");
+  s.phase = "wave";
+  const html = renderHtml(s);
+  assert(html.includes("abil-hint"), "строка-совет в тултипах руки");
+  assert(html.includes("🎯"), "иконка совета");
+});

@@ -194,4 +194,14 @@ const ITEMS_DATA = [
     desc: "Скупость вознаграждается: каждый бой приносит +1 золото за каждый неиспользованный ТП-сброс волны.",
     ability: { name: "Hoard", event: "FIGHT_SCORING", effects: [{ type: "ADD_GOLD_PER_UNUSED_DISCARD", value: 1 }] },
   },
+  {
+    id: "assault", name: "Assault Cuirass", cost: 12, emoji: "🛡️", rarity: "epic", category: "power", slotClass: "off",
+    desc: "Осада: +5 силы за каждого героя в строю (пятёрка = +25).",
+    ability: { name: "Assault", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_PLAYED", value: 5 }] },
+  },
+  {
+    id: "blink", name: "Blink Dagger", cost: 8, emoji: "💫", rarity: "rare", category: "power", slotClass: "util",
+    desc: "Прыжок в прорыв: +12 силы в каждом бою.",
+    ability: { name: "Blink", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER", value: 12 }] },
+  },
 ];

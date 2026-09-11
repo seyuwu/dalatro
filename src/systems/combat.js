@@ -862,6 +862,8 @@ const Combat = (function () {
     // победа (точный ласт-хит или оверкилл <10% maxHp) добавляет ещё всем.
     if (!state.simulate) {
       let xpGain = resolution.killed ? 2 : 1;
+      // «Наставник»: каждый бой даёт героям на +1 опыта больше.
+      xpGain += Upgrades.sum(state, "xpGainBonus");
       const closeWin = resolution.killed && (overkill === 0 || overkill < tower.maxHp * 0.1);
       if (closeWin) xpGain += Upgrades.sum(state, "inspireXp");
       // Скипетр «Burn the Racks» (Huskar): зачистка с потерянной казармой — +XP.

@@ -579,3 +579,55 @@ test("Неиспользованные заряды «Второго дыхан�
   s.run.upgradeState = Object.assign({}, s.run.upgradeState, { vozvrat: { level: 1, charges: 2, actUses: 0 } });
   assertEq(Game.scoreOf(s) - base, 200, "2 заряда = +200 очков");
 });
+
+suite("Скейлинг билда: рука, тимфайты, ранги, XP, новые предметы");
+
+function grantUp(s, id) {
+  s.run.upgrades = [...(s.run.upgrades || []), id];
+  s.run.upgradeState = Object.assign({}, s.run.upgradeState, { [id]: { level: 1, charges: 0, actUses: 0 } });
+}
+
+test("Широкая ладонь и Аскеза: слоты руки и тимфайты", () => {
+  const s = bfRun("BFS1", "formation");
+  const baseHand = DeckSys.handSize(s);
+  const baseFights = Ranks.fightsPerWave(s);
+  grantUp(s, "ladon");
+  assertEq(DeckSys.handSize(s), baseHand + 1, "+1 слот руки");
+  grantUp(s, "askesis"); // ладонь +1, аскеза −1 → рука на месте
+  assertEq(DeckSys.handSize(s), baseHand, "аскеза съедает слот руки");
+  assertEq(Ranks.fightsPerWave(s), baseFights + 1, "аскеза: +1 тимфайт");
+});
+
+test("Наставник: XP за бой +1", () => {
+  const s = bfRun("BFS2");
+  grantUp(s, "nastavnik");
+  bfPlay(s, ["axe", "cm"]);
+  assertEq((s.run.heroXp || {}).axe || 0, 2, "башня не убита: 1 база + 1 наставник");
+});
+
+test("Талисман отряда: +1 ранг всему ростеру", () => {
+  const s = bfRun("BFS3");
+  const heroes = ["axe", "cm", "sven"];
+  const before = heroes.map((h) => Game.rankOf(s, h));
+  grantUp(s, "talisman");
+  heroes.forEach((h, i) => assertEq(Game.rankOf(s, h), before[i] + 1, h + ": +1"));
+});
+
+test("Саквояж: +1 слот предметов", () => {
+  const s = bfRun("BFS4");
+  assertEq(Game.itemCapacity(s).total, 6, "база 6");
+  grantUp(s, "sakvoyazh");
+  assertEq(Game.itemCapacity(s).total, 7, "+1 слот");
+});
+
+test("Assault Cuirass и Blink Dagger усиливают бой", () => {
+  const bare = bfRun("BFS5", "formation");
+  bfPlay(bare, ["axe", "juggernaut"]);
+  const withItems = bfRun("BFS5", "formation");
+  withItems.player.items = ["assault", "blink"];
+  const res = bfPlay(withItems, ["axe", "juggernaut"]);
+  const bareRes = bare.combat.lastResolution;
+  assert(res.damage > bareRes.damage, "предметы добавили урон");
+  assert(bfStep(res, "Assault Cuirass:"), "шаг Assault Cuirass в стеке");
+  assert(bfStep(res, "Blink Dagger:"), "шаг Blink Dagger в стеке");
+});

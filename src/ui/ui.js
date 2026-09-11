@@ -108,6 +108,7 @@
 
   const UIState = {
     modal: null, // help | collection | settings | history | new | score | detail | null
+    lastResolution: null, // steps последнего превью боя — точки срабатывания на картах руки
     detail: null,
     collectionTab: "heroes",
     search: "",
@@ -281,6 +282,48 @@
     return Game.rankOf(state, heroId);
   }
 
+  // Статичная подсказка «когда сработает» по условию способности — для
+  // ненавязчивой строки в тултипе карты (условие → человеческий текст).
+  function abilityHintText(hero) {
+    const w = hero.ability && hero.ability.when;
+    if (!w) return "";
+    const attrName = (a) => ATTR_NAMES[a] || a;
+    const comboName = (v) => (Content.combos.byId[v] || {}).name || v;
+    const one = (c) => {
+      switch (c.type) {
+        case "SLOT_IS": return `в слот ${c.value + 1}`;
+        case "SLOT_IS_LAST": return "последним в строю";
+        case "IS_MIDDLE_SLOT": return "в центр строя";
+        case "NEIGHBOR_ATTR_IS": return `рядом ${attrName(c.value)}-герой`;
+        case "NEIGHBOR_ATTR_DIFFERS": return "рядом герой другого атрибута";
+        case "BOTH_NEIGHBORS_SAME": return "оба соседа моего атрибута";
+        case "BOTH_NEIGHBORS_DIFFER": return "оба соседа другого атрибута";
+        case "IS_HIGHEST_RANK": return "быть сильнейшим в строю";
+        case "IS_LOWEST_RANK": return "быть слабейшим в строю";
+        case "PLAYED_COUNT_IS": return `строем ровно из ${c.value}`;
+        case "PLAYED_COUNT_ABOVE": return `строем из ${c.value + 1}+ героев`;
+        case "PLAYED_COUNT_BELOW": return `строем до ${c.value} героев`;
+        case "ALL_ATTRIBUTES": return `весь строй — ${attrName(c.value)}`;
+        case "DISTINCT_ATTRIBUTES_ABOVE": return `${c.value + 1}+ разных атрибутов в строю`;
+        case "EXISTS_ATTRIBUTE": return `в строю есть ${attrName(c.value)}`;
+        case "IS_BOSS_WAVE": return "на волне босса";
+        case "IS_MINIBOSS_WAVE": return "на элитной башне";
+        case "COMBO_MIN": return `комбо «${comboName(c.value)}» и выше`;
+        case "COMBO_IS": return `комбо «${comboName(c.value)}»`;
+        case "AFTER_FAILURE": return "после провала прошлой волны";
+        default: return "";
+      }
+    };
+    const walk = (c) => {
+      if (!c) return "";
+      if (c.all) return c.all.map(walk).filter(Boolean).join("; ");
+      if (c.any) return c.any.map(walk).filter(Boolean).join(" или ");
+      if (c.not) { const inner = walk(c.not); return inner ? `не (${inner})` : ""; }
+      return one(c);
+    };
+    return walk(w);
+  }
+
   function heroCardHtml(state, uid, index) {
     const hero = Content.heroes.byId[state.cards[uid].heroId];
     const effAttr = Game.heroAttr(state, hero.id);
@@ -310,6 +353,12 @@
       const label = k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
       return `<div class="augh-tip ${owned ? "owned" : ""}">${a.emoji} <b>${label} · ${a.name}</b><span class="augh-desc">${esc(a.desc)}</span></div>`;
     }).join("");
+    // Ненавязчивая подсказка: условие срабатывания + точка «в этом строе».
+    const hint = abilityHintText(hero);
+    const fired = UIState.lastResolution && selected
+      ? UIState.lastResolution.steps.some((st) => st.label.startsWith(hero.name + ":"))
+      : null;
+    const dot = fired != null ? `<i class="abil-dot ${fired ? "on" : "off"}"></i>` : "";
     const trained = rank !== hero.power;
     const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
     const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
@@ -326,12 +375,13 @@
       </div>
       <div class="hero-card-bottom">
         <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
-        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${augBadges}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
+        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${dot}${augBadges}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
       <span class="hero-tooltip">
         <strong>${hero.ability ? hero.ability.name : hero.name}</strong>
         <p>${esc(heroDesc(hero))}</p>
+        ${hint ? `<span class="abil-hint">🎯 ${hint}${fired === false ? " · сейчас молчит" : ""}</span>` : ""}
         ${augTipLines}
         <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${effAttr === "uni"
           ? `Универсал — четвёртый цвет: связки и «4+ одного атрибута» считают его только Универсалом${uniWildcardOn(state) ? " · Starbreaker: Универсал — джокер условий" : ""}`
@@ -864,7 +914,7 @@
           <span class="hand-instruction">Клик по предмету — разбор и продажа за половину цены</span>
           <span class="spacer"></span>
         </div>
-        <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div>
+        <div class="inventory-slots ${UIState.animInv ? "" : "no-anim"}"${cap.total !== 6 ? ` style="grid-template-columns:repeat(${cap.total},minmax(0,1fr))"` : ""}>${slots.join("")}</div>
       </section>`;
     }
     if (state.phase !== "wave") return "";
@@ -1184,6 +1234,7 @@
 
   function renderWave(state) {
     const preview = computePreview(state);
+    UIState.lastResolution = preview;
     const harass = preview ? computeHarass(state) : 0;
     app().innerHTML = `
       ${topbarHtml(state)}
@@ -1769,7 +1820,11 @@
                 title="${ownedUids.length <= Game.DECK_MIN ? "В колоде минимум 8 карт" : "Безвозвратное удаление из колоды"}">
                 ${state.run.campBoon ? "Уволить бесплатно" : `Уволить · ${Game.EXILE_COST} G`}</button>
               <button class="lab-button" data-action="train" data-id="${hr.id}" ${canTrain ? "" : "disabled"}
-                title="Постоянно +1 к рангу героя">Тренировать +1 · ${Game.TRAIN_COST} G</button>
+                title="${rank >= Game.TRAIN_RANK_MAX
+                  ? `Кап тренировок: ранг ${Game.TRAIN_RANK_MAX}. Дальше герой растёт только боевым опытом`
+                  : state.run.gold < Game.TRAIN_COST
+                    ? `Не хватает золота: нужно ${Game.TRAIN_COST}G, есть ${state.run.gold}G`
+                    : "Постоянно +1 к рангу героя"}">Тренировать +1 · ${Game.TRAIN_COST} G</button>
             </div>` : ""}
           </div></div>`;
       }).join("");

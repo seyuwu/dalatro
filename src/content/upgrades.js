@@ -160,4 +160,23 @@ const UPGRADES_DATA = [
   { id: "pakt_fortunes", name: "Пакт с Фортуны", emoji: "🎰", rarity: "mythic", cost: 9,
     react: [{ event: "WAVE_FAILED", effects: [{ type: "FORTUNE" }] }],
     desc: "Каждый провал: +1 удача (копится с Подковой). На 5-й удаче в лавке ждёт мифическое улучшение." },
+
+  // ===== ДОЛГАЯ ИГРА: скейлинг собранного билда =====
+  { id: "sakvoyazh", name: "Саквояж", emoji: "🎒", rarity: "epic", cost: 7,
+    scalar: { itemSlotBonus: 1 },
+    levels: [{ desc: "+1 слот предмета (всего до 8)." }, { desc: "+2 слота предметов (эффект ×2, всего до 8)." }],
+    desc: "+1 слот предмета (всего до 8)." },
+  { id: "ladon", name: "Широкая ладонь", emoji: "🖐️", rarity: "uncommon", cost: 4,
+    scalar: { handSizeBonus: 1 },
+    levels: [{ desc: "+1 слот руки." }, { desc: "+2 слота руки (эффект ×2, цена ×2)." }],
+    desc: "+1 слот руки." },
+  { id: "askesis", name: "Аскеза", emoji: "🪶", rarity: "rare", cost: 4,
+    scalar: { handSizeBonus: -1, fightsBonus: 1 },
+    desc: "−1 слот руки, зато +1 тимфайт за волну. Маленькая рука — формации точнее." },
+  { id: "talisman", name: "Талисман отряда", emoji: "🧿", rarity: "epic", cost: 8,
+    scalar: { heroRankBonus: 1 },
+    desc: "Все герои: +1 к рангу. Разовая инвестиция в весь ростер." },
+  { id: "nastavnik", name: "Наставник", emoji: "📖", rarity: "uncommon", cost: 4,
+    scalar: { xpGainBonus: 1 },
+    desc: "Герои в бою получают +1 опыта за бой." },
 ];
