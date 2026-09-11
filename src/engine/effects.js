@@ -92,11 +92,6 @@ const Effects = (function () {
       ctx.scoring.power += effect.value;
       return { label: `${ctx.sourceName}: ${card.heroId ? Content.heroes.byId[card.heroId].name : "карта"} +${effect.value} силы` };
     },
-    ADD_DAMAGE_PCT(effect, ctx) {
-      // Хуковые улучшения (фаза F): аддитивный процент поверх итогового урона.
-      ctx.scoring.flags.dmgPct = (ctx.scoring.flags.dmgPct || 0) + effect.value;
-      return { label: `${ctx.sourceName}: +${effect.value}% к урону` };
-    },
     WEAKEST_POWER_DOUBLE(effect, ctx) {
       const powers = ctx.playedCards.map((c) => c.power);
       if (!powers.length) return null;
@@ -231,6 +226,10 @@ const Effects = (function () {
       return { label: `${ctx.sourceName}: золото с оверкилла ×${effect.value}` };
     },
     REFRESH_HERO_TRIGGERS(effect, ctx) {
+      // Безмолвие глушит героев целиком: без второго прогона — не обещаем двойной.
+      if (ctx.scoring.flags.silenced) {
+        return { label: `${ctx.sourceName}: заглушен Безмолвием — способности героев молчат` };
+      }
       ctx.scoring.flags.refreshHeroTriggers = true;
       return { label: `${ctx.sourceName}: способности героев срабатывают дважды` };
     },
@@ -396,6 +395,15 @@ const Effects = (function () {
       if (!used) return null;
       ctx.state.run.gold += used * effect.value;
       return { label: `${ctx.sourceName}: +${used * effect.value} золота (${used} ТП-сброса)`, gold: used * effect.value };
+    },
+    // Предмет «Miser's Chest»: скупость вознаграждается — золото за каждый
+    // неиспользованный ТП-сброс волны, начисляется в каждом бою.
+    ADD_GOLD_PER_UNUSED_DISCARD(effect, ctx) {
+      const unused = ctx.state.player.discardsLeft;
+      if (!unused) return null;
+      const gain = unused * effect.value;
+      ctx.state.run.gold += gain;
+      return { label: `${ctx.sourceName}: +${gain} золота (${unused} неиспользованных ТП-сброса)`, gold: gain };
     },
     // Скипетр «Arcane Reserve» (CM): Mana Reserve копится с неиспользованных
     // сбросов волны (game.js) и тратится в первом бою следующей волны.

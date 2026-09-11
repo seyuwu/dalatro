@@ -262,7 +262,11 @@ const Combat = (function () {
     const formationMode = state.rules === "formation";
     for (const candidate of candidates) {
       const combo = formationMode
-        ? FormationSys.evaluate(candidate, { defense: towerDefenseOf(state) })
+        ? FormationSys.evaluate(candidate, {
+            defense: towerDefenseOf(state),
+            // Скипетр Starbreaker: Универсал — джокер и для условий формаций.
+            uniWildcard: !!(state.combat.scoring && state.combat.scoring.flags && state.combat.scoring.flags.uniWildcard),
+          })
         : PokerSys.evaluate(candidate);
       if (!combo) continue;
       if (!best || (formationMode ? betterFormation(combo, best.combo) : betterCombo(combo, best.combo))) {
@@ -379,7 +383,9 @@ const Combat = (function () {
     const played = realPlayedCards(state);
     played.forEach((c, i) => (c.slotIndex = i));
 
-    state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb"), lastHitGold: 0 } };
+    // Боевые активации улучшений (Игнор/Счастливый случай) входят в те же
+    // флаги, что и BKB: content-нейтрально, через run-флаги в одном месте.
+    state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb") || !!state.run.pendingIgnoreMods, lastHitGold: 0, forceHeroTriggers: !!state.run.pendingForceTriggers } };
     // Скипетр- и осколок-правила боя (preFlag): до триггеров, без порядка слотов.
     for (const card of played) {
       const owned = state.run.aghanims && state.run.aghanims[card.heroId];
@@ -420,6 +426,7 @@ const Combat = (function () {
     // Проклятия элитной башни: BKB выключает их все.
     const curses = state.combat.scoring.flags.bkbBlocksMods ? [] : waveCurses(state);
     const silenced = curses.includes("silence");
+    state.combat.scoring.flags.silenced = silenced; // предметы (Refresher) видят глушение и пишут честный шаг
     if (silenced) {
       Resolver.pushStep(resolution, { icon: "☠", label: "Безмолвие: способности героев отключены", kind: "modifier" });
     }
@@ -482,21 +489,9 @@ const Combat = (function () {
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
-    // Крепкая масть (#2): случайная карта усиливается на процент.
-    const cardBuffPct = Upgrades.sum(state, "cardBuffPct");
-    if (cardBuffPct && effective.length) {
-      const lucky = effective[Math.floor(Rng.current().next() * effective.length)];
-      const bonus = Math.max(1, Math.floor(lucky.power * cardBuffPct / 100));
-      lucky.power += bonus;
-      state.combat.scoring.trace.itemPower += 0; // не предмет: отдельный слой не нужен
-      Resolver.pushStep(resolution, {
-        icon: "🔧",
-        label: `Крепкая масть: ${Content.heroes.byId[lucky.heroId].name} +${bonus} силы`,
-        kind: "info",
-      });
-    }
-    // Эхо (#96): первый бой волны — способности героев дважды.
-    if (state.combat.wave.echoFirst && state.combat.fightIndex === 0) {
+    // Эхо (#96): первый бой волны — способности героев дважды. Под Безмолвием
+    // способности молчат целиком, так что Эхо не объявляется.
+    if (state.combat.wave.echoFirst && state.combat.fightIndex === 0 && !silenced) {
       state.combat.scoring.flags.refreshHeroTriggers = true;
       Resolver.pushStep(resolution, { icon: "📢", label: "Эхо: способности героев звучат дважды", kind: "info" });
     }
@@ -680,13 +675,18 @@ const Combat = (function () {
     } else {
       damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
     }
-    // Улучшения лавки (фаза F): аддитивный процент поверх итогового урона —
-    // scalar (агрегатор) + сработавшие хуки (flags.dmgPct).
-    const dmgPct = (s.flags.dmgPct || 0) + Upgrades.sum(state, "dmg");
+    // Аддитивный процент поверх итогового урона: Ва-банк (активка) и Грех
+    // (маршрут «Грех»), каждый со своим источником.
+    const vaPct = state.run.pendingDmgPct || 0;
+    const sinPct = state.run.sinDmg || 0;
+    const dmgPct = vaPct + sinPct;
     if (dmgPct && damage > 0) {
       damage = Math.round(damage * (1 + dmgPct / 100));
-      if (s.trace) s.trace.finalMult.push({ source: "Улучшения лавки", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
-      Resolver.pushStep(resolution, { icon: "🔧", label: `Улучшения лавки: +${dmgPct}% урона`, kind: "info" });
+      if (s.trace) s.trace.finalMult.push({ source: vaPct && sinPct ? "Ва-банк + Грех" : vaPct ? "Ва-банк" : "Грех", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
+      const label = vaPct && sinPct ? `Ва-банк + Грех: +${dmgPct}% урона`
+        : vaPct ? `Ва-банк: +${vaPct}% урона`
+        : `Грех: +${sinPct}% урона`;
+      Resolver.pushStep(resolution, { icon: "🔧", label, kind: "info" });
     }
     // Эхо-аугменты (Multicast+ Огра, Echo Strike ПА): повтор части урона.
     if (!resolution.blocked && s.flags.echoPower && !state.simulate) {

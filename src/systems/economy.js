@@ -29,11 +29,6 @@ const Economy = (function () {
     const rng = Rng.current();
     const offers = keepLocked.slice();
     const taken = new Set(offers.map((o) => o.id).concat(state.player.items));
-    // Пыльная полка (#62): шанс гарантировать редкий товар.
-    if (!guaranteeRarity) {
-      const dust = typeof Upgrades !== "undefined" ? Upgrades.sum(state, "dustChance") : 0;
-      if (dust && rng.chance(dust / 100)) guaranteeRarity = "rare";
-    }
     let guard = 60; // pool can be exhausted — never loop forever
     while (offers.length < slots && guard-- > 0) {
       const rarity = pickRarity(state, rng);
@@ -62,13 +57,9 @@ const Economy = (function () {
     return offers;
   }
 
-  // Продажа: половина цены, улучшение «Перепродажа» добавляет свой процент.
-  function sellValue(state, itemId) {
-    const item = Content.items.byId[itemId];
-    let value = item.cost / 2;
-    let bonusPct = 0;
-    if (typeof Upgrades !== "undefined") bonusPct = Upgrades.sum(state, "sell");
-    return Math.floor(value * (1 + bonusPct / 100));
+  // Продажа: половина цены.
+  function sellValue(itemId) {
+    return Math.floor(Content.items.byId[itemId].cost / 2);
   }
 
   return { generateOffers, sellValue, REROLL_COST, OFFER_SLOTS };

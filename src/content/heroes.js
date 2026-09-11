@@ -82,7 +82,9 @@ const HEROES_DATA = [
     id: "zeus", name: "Zeus", attr: "int", power: 5, inDeck: true,
     ability: {
       name: "Static Field", event: "ON_PLAY",
-      when: { type: "EXISTS_ATTRIBUTE", value: "int" },
+      // Текст способности и онбординг обещают «рядом INT-герой» — условие
+      // выровнено с текстом (было EXISTS_ATTRIBUTE: любой INT в строю).
+      when: { type: "NEIGHBOR_ATTR_IS", value: "int" },
       effects: [{ type: "ADD_MULT", value: 2 }],
     },
   },
@@ -142,7 +144,9 @@ const HEROES_DATA = [
   { id: "meepo", name: "Meepo", attr: "agi", power: 2, inDeck: false,
     ability: {
       name: "Poof", event: "ON_PLAY",
-      when: { type: "EXISTS_ATTRIBUTE", value: "agi" },
+      // «Poof» — прыжок к соседу: только позиционный сосед с AGI (баг #?): раньше
+      // EXISTS_ATTRIBUTE стрелял от любого AGI в строю.
+      when: { type: "NEIGHBOR_ATTR_IS", value: "agi" },
       effects: [{ type: "ADD_POWER", value: 6 }],
     } },
   { id: "bounty", name: "Bounty Hunter", attr: "agi", power: 3, inDeck: false,

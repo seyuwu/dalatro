@@ -294,9 +294,24 @@
       case "reroll-upgrades":
         dispatchAndRender({ type: "REROLL_UPGRADES" });
         break;
-      case "refresh-upgrade":
-        Sfx.play("buy");
-        dispatchAndRender({ type: "REFRESH_UPGRADE", upgradeId: el.dataset.id });
+      case "activate-upgrade": {
+        Sfx.play("click");
+        dispatchAndRender({ type: "ACTIVATE_UPGRADE", upgradeId: el.dataset.upgrade, targetId: el.dataset.target });
+        if (state.run.pickDiscard) {
+          UI.UIState.modal = "discard-pick";
+          rerender();
+        } else {
+          const def = Content.upgrades.byId[el.dataset.upgrade];
+          if (def) UI.toast(state, `${def.emoji} «${def.name}» активировано`);
+        }
+        break;
+      }
+      case "pick-discard":
+        dispatchAndRender({ type: "PICK_DISCARD", uid: el.dataset.uid });
+        UI.UIState.modal = null;
+        break;
+      case "retry-free":
+        dispatchAndRender({ type: "RETRY_WAVE", useUpgradeId: el.dataset.upgrade });
         break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });
@@ -324,7 +339,7 @@
         break;
       case "buy-augh": {
         Sfx.play("buy");
-        const kindWord = el.dataset.kind === "scepter" ? "Скипетр" : "Осколок";
+        const kindWord = el.dataset.kind === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
         dispatchAndRender({ type: "BUY_AUGMENT", heroId: el.dataset.hero, kind: el.dataset.kind });
         const aug = Content.aghanims.forHero(el.dataset.hero, el.dataset.kind);
         if (aug) UI.toast(state, `${kindWord} «${aug.name}» — ${Content.heroes.byId[el.dataset.hero].name}`);

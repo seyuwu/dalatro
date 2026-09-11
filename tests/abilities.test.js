@@ -72,9 +72,11 @@ test("Dawnbreaker — Solar Guardian: +1 множитель за каждого 
 });
 
 test("Primal — Pulverize: ×2 в центре пятёрки (и 4 Protect 1 собирается)", () => {
-  const f = ablPlay(ablRun("ABL6", "formation"), ["tusk", "axe", "primal", "pudge", "centaur"]);
-  assertEq(f.combo.type, "protect", "кэрри в центре: 11 против среднего 6.25, margin 4");
-  assertEq(f.damage, 510, "(23+5+36+4 Tusk) × (3.0 × 2 Pulverize) × 1.25");
+  // Каноничный 4p1: кэрри 11 в слоте 3, вся свита ≤7 (на 4+ слабее КАЖДОГО).
+  // Zeus «рядом INT» — cm поставлена соседом, чтобы Static Field жил.
+  const f = ablPlay(ablRun("ABL6", "formation"), ["zeus", "cm", "primal", "pudge", "tusk"]);
+  assertEq(f.combo.type, "protect", "кэрри 11 против сильнейшего из свиты 7: 11 ≥ 7+4");
+  assertEq(f.damage, 810, "(23+5 связки+28+4 Tusk) × ((3.0+0.4 Интеллект+2 Zeus) × 2 Pulverize) × 1.25");
   assert(ablStep(f, "Primal Beast: ×2"));
   const c = ablPlay(ablRun("ABL6b"), ["tusk", "axe", "primal", "pudge", "centaur"]);
   assertEq(c.damage, 113, "classic хай-карта 45 × 2 × 1.25");

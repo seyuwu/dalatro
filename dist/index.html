@@ -303,6 +303,9 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .hero-hand .hero-card:nth-child(-n+2):hover .hero-tooltip { animation: tooltipInL .16s ease-out; }
 @keyframes tooltipInL { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .hero-hand .hero-card:nth-child(n+6) .hero-tooltip { left: auto; right: 0; transform: none; }
+/* правым крайним картам — анимация без translateX(-50%): общая tooltipIn
+   дёргала тултип в конце открытия (прыжок у двух последних героев). */
+.hero-hand .hero-card:nth-child(n+6):hover .hero-tooltip { animation: tooltipInL .16s ease-out; }
 .hero-hand .hero-card:nth-child(n+6) .hero-tooltip:after { left: auto; right: 26px; margin-left: 0; }
 
 /* универсальный мягкий тултип: контейнер с data-tip + вложенный .pop */
@@ -1122,6 +1125,10 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 @keyframes hitGlow { from { box-shadow: 0 0 6px #a5c17a14; } to { box-shadow: 0 0 16px #a5c17a30; } }
 .modal { animation: modalIn .18s ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: none; } }
+/* Ререндер открытой модалки (пикер отряда/ранга, поиск в коллекции):
+   без повторного появления — окно не мигает на каждый клик. */
+.modal-backdrop.no-anim,
+.modal-backdrop.no-anim .modal { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -1213,6 +1220,70 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .augh-mark { display: inline-block; font-size: 9px; margin-left: 3px; vertical-align: 1px; filter: drop-shadow(0 0 3px rgba(186,104,200,.75)); cursor: help; }
 .augh-lab { display: block; margin-top: 4px; padding: 6px 8px; border: 1px solid #6b4a78; border-radius: 7px; background: #221826; color: #cfa9dd; font-size: 10.5px; line-height: 1.5; }
 .augh-lab b { color: #e3c6ef; }
+
+/* аугменты в тултипе героя и на карточке лавки: серые — не куплены, свечение — куплены */
+.augh-tip { display: block; text-align: left; font-size: 10px; line-height: 1.5; color: #77836f; margin-top: 4px; }
+.augh-tip b { color: #87947e; font-weight: 700; }
+.augh-tip.owned { color: #e4c8ff; text-shadow: 0 0 9px rgba(186,104,200,.95), 0 0 3px rgba(219,146,255,.55); }
+.augh-tip.owned b { color: #f2dcff; }
+.augh-lab .augh-tip { margin-top: 3px; }
+.augh-kind { display: block; font-size: 9px; letter-spacing: .8px; text-transform: uppercase; color: #bb8fd4; margin-bottom: 2px; }
+
+/* аугменты в лавке: карточки на анатомии рекрутов, акцент по виду */
+.shop-aghanims { margin-top: 14px; }
+.shop-aghanims .recruit-row { margin-top: 10px; }
+.recruit-card.augh-card.scepter { border-color: #7a4a99; background: #231a2a; }
+.recruit-card.augh-card.scepter .augh-kind { color: #cf9fe8; }
+.recruit-card.augh-card.shard { border-color: #35608a; background: #16222e; }
+.recruit-card.augh-card.shard .augh-kind { color: #8fb8dd; }
+.augh-emoji { position: absolute; right: 3px; bottom: 2px; z-index: 2; font-size: 15px; font-style: normal; filter: drop-shadow(0 0 5px rgba(0,0,0,.9)); }
+.recruit-card.augh-card.scepter .augh-emoji { filter: drop-shadow(0 0 6px rgba(186,104,200,.95)); }
+
+/* инвентарь: честные 6 слотов в один ряд (раньше было 5 колонок при 6 слотах — шестой прыгал) */
+.inventory-slots { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .inventory-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* глоссарий в справочнике */
+.glossary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 8px 0 14px; }
+.glossary > div { border: 1px solid #33402c; border-radius: 7px; padding: 8px 10px; background: #1a231780; }
+.glossary strong { display: block; font-size: 11px; color: #cdd6b8; margin-bottom: 3px; }
+.glossary p { font-size: 10px; line-height: 1.55; color: #8d9b74; }
+
+/* аугменты в тултипе: шапка вида+имя, описание отдельной строкой */
+.augh-tip { margin-top: 7px; }
+.augh-tip + .augh-tip { margin-top: 6px; }
+.augh-tip b { display: block; }
+.augh-tip .augh-desc { display: block; font-size: 9px; line-height: 1.5; margin-top: 2px; opacity: .85; }
+
+/* ===== Улучшения v2: панель активок и контекстные кнопки ===== */
+.upgrades-panel { display: flex; flex-direction: column; gap: 5px; }
+.upg-row { display: flex; align-items: center; gap: 7px; font-size: 11.5px; padding: 3px 2px; border-bottom: 1px dashed #2c3a28; position: relative; cursor: help; }
+.upg-row:last-child { border-bottom: none; }
+.upg-emoji { font-size: 14px; filter: drop-shadow(0 0 4px rgba(0,0,0,.6)); }
+.upg-name { flex: 1; color: #dfe6cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upg-lvl { color: #d9b25f; margin-left: 2px; }
+.upg-status { font-size: 10px; color: #7fd4a0; background: #16241b; border: 1px solid #2c4a35; border-radius: 8px; padding: 1px 6px; white-space: nowrap; }
+.upg-status.empty { color: #66735f; background: transparent; border-color: #2c3a28; }
+.energy-badge { font-size: 11px; color: #ffd97a; background: #2b2413; border: 1px solid #4a3d1a; border-radius: 9px; padding: 1px 8px; white-space: nowrap; cursor: help; position: relative; }
+
+.upg-active-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; line-height: 1.2; padding: 6px 11px; border: 1px solid #40503a; border-radius: 8px; background: linear-gradient(180deg, #263122, #1c261a); color: #e8e4d8; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; position: relative; }
+.upg-active-btn small { color: #8a967f; font-size: 9.5px; }
+.upg-active-btn:hover:not(:disabled) { border-color: #d9b25f; box-shadow: 0 0 14px rgba(217,178,95,.18); transform: translateY(-1px); }
+.upg-active-btn:disabled { opacity: .4; cursor: not-allowed; }
+.upg-acc { color: #8a967f; font-size: 10px; }
+
+.route-actives, .wave-actives { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.route-actives { margin: 4px 0 10px; }
+.wave-actives { margin-top: 9px; justify-content: center; }
+.route-replace-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: center; }
+.route-replace { font-size: 10.5px; padding: 4px 9px; }
+
+.item-actives { display: inline-flex; gap: 4px; margin-right: auto; }
+.act-btn { position: relative; }
+.act-btn:not(:disabled) { border-color: #4a5f3e; color: #ffe9b0; }
+
+.upgrade-card.active-type .upgrade-emoji { text-shadow: 0 0 10px rgba(217,178,95,.55); }
+.upgrade-reroll.free-ledger { border-color: #4a5f3e; color: #b9e4c9; }
 
 </style>
 </head>
@@ -1416,7 +1487,9 @@ const HEROES_DATA = [
     id: "zeus", name: "Zeus", attr: "int", power: 5, inDeck: true,
     ability: {
       name: "Static Field", event: "ON_PLAY",
-      when: { type: "EXISTS_ATTRIBUTE", value: "int" },
+      // Текст способности и онбординг обещают «рядом INT-герой» — условие
+      // выровнено с текстом (было EXISTS_ATTRIBUTE: любой INT в строю).
+      when: { type: "NEIGHBOR_ATTR_IS", value: "int" },
       effects: [{ type: "ADD_MULT", value: 2 }],
     },
   },
@@ -1476,7 +1549,9 @@ const HEROES_DATA = [
   { id: "meepo", name: "Meepo", attr: "agi", power: 2, inDeck: false,
     ability: {
       name: "Poof", event: "ON_PLAY",
-      when: { type: "EXISTS_ATTRIBUTE", value: "agi" },
+      // «Poof» — прыжок к соседу: только позиционный сосед с AGI (баг #?): раньше
+      // EXISTS_ATTRIBUTE стрелял от любого AGI в строю.
+      when: { type: "NEIGHBOR_ATTR_IS", value: "agi" },
       effects: [{ type: "ADD_POWER", value: 6 }],
     } },
   { id: "bounty", name: "Bounty Hunter", attr: "agi", power: 3, inDeck: false,
@@ -1677,6 +1752,7 @@ const ITEMS_DATA = [
   },
   {
     id: "bkb", name: "Black King Bar", cost: 7, emoji: "🛡️", rarity: "common", category: "rule", slotClass: "def",
+    rule: ["disarmMines", "ignoreDisarm"],
     desc: "Игнорирует модификаторы башен (Armor, Glyph, мины Techies). На Рошана не действует.",
     ability: { name: "Avatar", event: "FIGHT_SCORING", effects: [{ type: "IGNORE_TOWER_MODS" }] },
   },
@@ -1692,6 +1768,7 @@ const ITEMS_DATA = [
   },
   {
     id: "sentry", name: "Sentry Ward", cost: 6, emoji: "👁️", rarity: "common", category: "rule", slotClass: "def",
+    rule: "disarmMines",
     desc: "Обезвреживает мины Techies: заминированные карты можно разыгрывать.",
   },
 
@@ -1767,7 +1844,8 @@ const ITEMS_DATA = [
   },
   {
     id: "ledger", name: "Trader's Ledger", cost: 6, emoji: "📒", rarity: "rare", category: "rule", slotClass: "util",
-    desc: "Живой ассортимент: после покупки улучшения его карточку можно обновить за 1G. Смена стратегии без ожидания.",
+    rule: "freeUpgradeReroll",
+    desc: "Живой ассортимент: первый реролл улучшений в каждой лавке бесплатный.",
   },
   {
     id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult", slotClass: "util",
@@ -1814,6 +1892,20 @@ const ITEMS_DATA = [
     id: "octarine", name: "Octarine Core", cost: 12, emoji: "🔮", rarity: "epic", category: "mult", slotClass: "util",
     desc: "+1 к множителю за каждый твой предмет. Чем жирнее билд — тем сильнее ядро.",
     ability: { name: "Cooldown Reduction", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_ITEM", value: 1 }] },
+  },
+  {
+    id: "tempest_double", name: "Tempest Double", cost: 12, emoji: "👥", rarity: "epic", category: "mult", slotClass: "util",
+    desc: "Двойник: в первом бою каждой волны способности героев срабатывают дважды.",
+    ability: {
+      name: "Tempest Double", event: "FIGHT_SCORING",
+      when: { type: "FIGHT_FIRST" },
+      effects: [{ type: "REFRESH_HERO_TRIGGERS" }],
+    },
+  },
+  {
+    id: "misers_chest", name: "Miser's Chest", cost: 12, emoji: "💰", rarity: "epic", category: "economy", slotClass: "util",
+    desc: "Скупость вознаграждается: каждый бой приносит +1 золото за каждый неиспользованный ТП-сброс волны.",
+    ability: { name: "Hoard", event: "FIGHT_SCORING", effects: [{ type: "ADD_GOLD_PER_UNUSED_DISCARD", value: 1 }] },
   },
 ];
 
@@ -1917,14 +2009,14 @@ const FORMATIONS_DATA = [
   // Фолбэк: любой отряд 3+ всегда что-то наносит (аналог «старшей карты»).
   { id: "squad", name: "Отряд", tier: 1, basePower: 12, baseMult: 1.4, damageType: "physical", rule: "3+ героя без выраженной формации", when: { type: "PLAYED_COUNT_ABOVE", value: 2 } },
   { id: "triangle", name: "Треугольник", tier: 2, basePower: 16, baseMult: 1.9, damageType: "magical", rule: "3+ героя, минимум 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
-  { id: "wall", name: "Стена", tier: 2, positional: true, basePower: 18, baseMult: 1.9, damageType: "physical", rule: "3+ героя, слоты 1–2 — Сила ранга ≥6", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "FRONT_IS", attr: "str", minPower: 6 }] } },
-  { id: "wedge", name: "Клин", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "pure", rule: "3+ героя, сильнейший стоит в центре (не на фланге)", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "PEAK_IN_CENTER" }] } },
-  { id: "ramp", name: "Рампа", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "physical", rule: "3+ героя, ранги строго растут от слота 1 к последнему", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "RANKS_ASCENDING" }] } },
+  { id: "wall", name: "Стена", tier: 2, positional: true, basePower: 18, baseMult: 1.9, damageType: "physical", rule: "3+ героя: в слотах 1–2 два Силовика ранга 6+", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "FRONT_IS", attr: "str", minPower: 6 }] } },
+  { id: "wedge", name: "Клин", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "pure", rule: "3+ героя: самый сильный стоит в центре строя", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "PEAK_IN_CENTER" }] } },
+  { id: "ramp", name: "Рампа", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "physical", rule: "3+ героя: ранги строго растут от слота 1 к последнему", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "RANKS_ASCENDING" }] } },
   { id: "phalanx", name: "Фаланга", tier: 3, basePower: 20, baseMult: 2.2, damageType: "byAttribute", rule: "4+ героя одного атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 3 }] } },
   // margin 4, а не 3 — ручка из §10: при margin 3 формация перехватывает почти
   // любую руку с пиком в центре и убивает A/B-тест гипотезы.
-  { id: "protect", name: "4 Protect 1", tier: 5, positional: true, basePower: 23, baseMult: 3.0, damageType: "pure", rule: "5 героев, кэрри в центре и на +4 ранга выше остальных", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "CARRY_PROTECTED", margin: 4 }] } },
-  { id: "teamwipe", name: "Тимвайп", tier: 5, basePower: 23, baseMult: 3.4, damageType: "magical", rule: "5 героев, 5 рангов подряд и 3+ атрибута", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "RANK_RUN", value: 5 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
+  { id: "protect", name: "4 Protect 1", tier: 5, positional: true, basePower: 23, baseMult: 3.0, damageType: "pure", rule: "5 героев: кэрри в слоте 3 и на 4+ ранга сильнее КАЖДОГО из свиты", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "CARRY_PROTECTED", margin: 4 }] } },
+  { id: "teamwipe", name: "Тимвайп", tier: 5, basePower: 23, baseMult: 3.4, damageType: "magical", rule: "5 героев: пять рангов подряд и 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "RANK_RUN", value: 5 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
 ];
 
 // Связки — пороги признаков, все активные складываются. Одна ступень на связку,
@@ -2035,184 +2127,168 @@ const ARCHETYPES_DATA = [
 
 </script>
   <script>
-// Dalatro content — улучшения лавки (спек §5, фаза F). Отдельный слой
-// прогресса: НЕ занимают слоты предметов, накопительная ценность ~1–5%.
-// Два формата:
-//   scalar — агрегируются в systems/upgrades.js (одна точка интеграции на ключ);
-//   ability — хуки через СУЩЕСТВУЮЩУЮ триггерную систему (kind: "upgrade").
-// Реализовано 48 из 100 строк спека. Отложено с причинами (см. конец файла).
+// Dalatro content — улучшения лавки v2. Отдельный слой прогресса: НЕ занимают
+// слоты предметов. Правило пула: карточка проходит, если её эффект игрок
+// ЧУВСТВУЕТ за один акт — гарантированное событие, кнопка или правило.
+// Никаких лотерей до ~25% и никаких голых «+1–2%».
+//
+// Форматы:
+//   scalar — плоские агрегаты (systems/upgrades.js, sum × уровень);
+//   ability — боевые хуки через триггерную систему (kind: "upgrade");
+//   type:"active" — кнопка: activation { context, access, target? } + effect
+//            (примитивы применяет движок в ACTIVATE_UPGRADE);
+//   react — слушатели вне-боевых событий движка (WAVE_FAILED, UPGRADE_ACTIVATED);
+//   onBuy — флаги при покупке.
+//   levels: [{desc}, ...] — ступени скалярных дефов: уровень N даёт scalar × N
+//            и стоит cost × N; ступень II приходит отдельной карточкой «Усилить».
+//
+// Контексты кнопок: route (экран развилки), shop (лавка), wave (экран волны,
+// рядом с «В бой»), failed (модалка провала — кнопка у «Новая попытка»), any.
 const UPGRADES_DATA = [
-  // ===== СКАЛЯРЫ =====
-  { id: "ostryi_kraj", name: "Острый край", emoji: "🗡️", rarity: "common", cost: 2,
-    scalar: { dmg: 1 }, desc: "+1% к итоговому урону каждого боя." }, // #11
-  { id: "krepkaya_mast", name: "Крепкая масть", emoji: "🃏", rarity: "common", cost: 2,
-    scalar: { cardBuffPct: 2 }, desc: "Случайная карта в бою получает +2% силы." }, // #2
-  { id: "bystryy_dabor", name: "Быстрый добор", emoji: "📥", rarity: "common", cost: 2,
-    scalar: { extraDrawChance: 5 }, desc: "5% шанс: следующая волна играется с +1 картой в руке." }, // #3
+  // ===== ПАССИВКИ-ПРАВИЛА (плоские и гарантированные) =====
   { id: "chistyy_dabor", name: "Чистый добор", emoji: "♻️", rarity: "common", cost: 2,
-    scalar: { discardsBonus: 1 }, desc: "+1 ТП-сброс за волну." }, // #4
-  { id: "maly_rezerv", name: "Малый резерв", emoji: "📦", rarity: "uncommon", cost: 3,
-    scalar: { discardsBonus: 1 }, desc: "+1 ТП-сброс за волну. Складывается с «Чистым добором»." }, // #9
+    scalar: { discardsBonus: 1 },
+    levels: [{ desc: "+1 ТП-сброс за волну." }, { desc: "+2 ТП-сброса за волну (эффект ×2, цена ×2)." }],
+    desc: "+1 ТП-сброс за волну." }, // #4
   { id: "koshelek", name: "Кошелёк", emoji: "👛", rarity: "common", cost: 2,
-    scalar: { goldPerAct: 5 }, desc: "+5 золота при переходе в новый акт." }, // #51
-  { id: "meloch", name: "Мелочь", emoji: "🪙", rarity: "common", cost: 2,
-    scalar: { goldChance: 5 }, desc: "5% шанс +1 золота после зачистки волны." }, // #52
-  { id: "berezhlivost", name: "Бережливость", emoji: "🧮", rarity: "common", cost: 2,
-    scalar: { thirdRerollOff: 1 }, desc: "Каждый третий реролл лавки дешевле на 1." }, // #53
-  { id: "torg", name: "Торг", emoji: "🤝", rarity: "uncommon", cost: 3,
-    scalar: { itemDiscountPct: 5 }, desc: "Случайный товар каждой лавки −5% (метка на карточке)." }, // #54
-  { id: "loyalnost", name: "Лояльность", emoji: "💗", rarity: "uncommon", cost: 3,
-    scalar: { shopLoyalty: 1 }, desc: "После трёх покупок в лавке следующий товар −1 золото." }, // #55
-  { id: "pereprodazha", name: "Перепродажа", emoji: "🏷️", rarity: "common", cost: 2,
-    scalar: { sell: 3 }, desc: "Продажа предметов +3% к цене." }, // #56
-  { id: "sberezheniya", name: "Сбережения", emoji: "🐖", rarity: "common", cost: 3,
-    scalar: { rerollRich: 1 }, desc: "При 15+ золоте реролл дешевле на 1." }, // #57
-  { id: "nalogovyy_vychet", name: "Налоговый вычет", emoji: "🧾", rarity: "common", cost: 2,
-    scalar: { postBossDiscount: 1 }, desc: "Первая покупка после босса акта −1 золото." }, // #58
-  { id: "monetka", name: "Монетка", emoji: "🪙", rarity: "common", cost: 2,
-    scalar: { purchaseRefundChance: 10 }, desc: "10% шанс вернуть 1 золото после покупки предмета." }, // #59
-  { id: "rezervnyy_fond", name: "Резервный фонд", emoji: "🏦", rarity: "common", cost: 2,
-    scalar: { brokeBonus: 1 }, desc: "Опустошили кошелёк покупкой? Вам дадут 1 золото." }, // #60
-  { id: "trenzal", name: "Тренировочный зал", emoji: "🏋️", rarity: "uncommon", cost: 3,
-    scalar: { xpStartBonus: 3 }, desc: "Нанятые герои начинают с +3 опыта." }, // #23
-  { id: "vdohn", name: "Вдохновение", emoji: "🎭", rarity: "rare", cost: 4,
-    scalar: { inspireXp: 2 }, desc: "Близкая победа (точный ласт-хит или оверкилл <10%) даёт героям боя +2 опыта." }, // #30
-  { id: "assortiment", name: "Хороший ассортимент", emoji: "🛍️", rarity: "rare", cost: 4,
-    scalar: { itemRareBias: 2 }, desc: "Редкие товары в лавке выпадают заметно чаще." }, // #61
-  { id: "pylnaya_polka", name: "Пыльная полка", emoji: "🕸️", rarity: "rare", cost: 4,
-    scalar: { dustChance: 15 }, desc: "15% шанс: в лавке будет редкий товар." }, // #62
-  { id: "bystryy_prodavets", name: "Быстрый продавец", emoji: "🏃", rarity: "common", cost: 2,
-    scalar: { firstRerollOff: 1 }, desc: "Первый реролл каждой лавки дешевле на 1." }, // #63
-  { id: "taynyy_yaschik", name: "Тайный ящик", emoji: "🎁", rarity: "rare", cost: 4,
-    scalar: { secretSlotChance: 15 }, desc: "15% шанс: в лавке появится лишний товар." }, // #65
+    scalar: { goldPerAct: 5 },
+    levels: [{ desc: "+5 золота при переходе в новый акт." }, { desc: "+10 золота при переходе в новый акт (эффект ×2, цена ×2)." }],
+    desc: "+5 золота при переходе в новый акт." }, // #51
   { id: "boyevoy_opyt", name: "Боевой опыт", emoji: "📜", rarity: "uncommon", cost: 3,
-    scalar: { winMilestoneGold: 3 }, desc: "Каждая 5-я зачистка за забег: +3 золота." }, // #72
-  { id: "seriya", name: "Серия", emoji: "🔗", rarity: "uncommon", cost: 3,
-    scalar: { streakGold: 2 }, desc: "Серия 2+ зачисток подряд: награда за зачистку +2%." }, // #73
-  { id: "staryy_amulet", name: "Старый амулет", emoji: "🧿", rarity: "rare", cost: 4,
-    scalar: { upgradeLoyalty: 1 }, desc: "Каждая пятая покупка улучшения дешевле на 1." }, // #96
-  { id: "malenkaya_udacha", name: "Маленькая удача", emoji: "✨", rarity: "common", cost: 2,
-    scalar: { shopCoinChance: 10 }, desc: "10% шанс: лавка встречает вас +2 золотами." }, // #100
-  { id: "podkova", name: "Подкова", emoji: "🧲", rarity: "common", cost: 3,
-    scalar: { luck: 1 }, desc: "+1 удача: улучшения в лавках выпадают жирнее." },
-  { id: "krolichya_lapka", name: "Кроличья лапка", emoji: "🐇", rarity: "rare", cost: 5,
-    scalar: { luck: 2 }, desc: "+2 удачи: редкие и эпические улучшения заметно чаще." },
-  { id: "klever", name: "Четырёхлистный клевер", emoji: "🍀", rarity: "mythic", cost: 8,
-    scalar: { luck: 3 }, desc: "+3 удачи. Топовые улучшения почти ваши." },
-  { id: "zolotoe_serdtse", name: "Золотое сердце", emoji: "💛", rarity: "mythic", cost: 7,
-    scalar: { dmg: 2, goldOnClear: 1 }, desc: "+2% урона и +1 золота после каждой зачистки." },
-
-  // ===== ХУКИ (триггерная система, kind: "upgrade") =====
+    scalar: { winMilestoneGold: 3 },
+    levels: [{ desc: "Каждая 5-я зачистка за забег: +3 золота." }, { desc: "Каждая 5-я зачистка за забег: +6 золота (эффект ×2, цена ×2)." }],
+    desc: "Каждая 5-я зачистка за забег: +3 золота." }, // #72
+  { id: "svobodnaya_kletka", name: "Свободная клетка", emoji: "⬜", rarity: "uncommon", cost: 3,
+    ability: { name: "Свободная клетка", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_ABOVE", value: 0 },
+      effects: [{ type: "ADD_POWER_PER_EMPTY_SLOT", value: 3 }] },
+    desc: "+3 силы за каждую пустую позицию. Билд «малым составом»." }, // #38
   { id: "iskra", name: "Искра", emoji: "⚡", rarity: "common", cost: 2,
     ability: { name: "Искра", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_RANDOM_CARD", value: 2 }] },
     desc: "Каждый бой случайный герой получает +2 силы." }, // #92
-  { id: "posl_shtrih", name: "Последний штрих", emoji: "🖌️", rarity: "common", cost: 2,
-    ability: { name: "Последний штрих", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_LAST_CARD", pct: 3 }] },
-    desc: "Последняя карта боя даёт +3% своей силы." }, // #5
-  { id: "pervaya_karta", name: "Первая карта", emoji: "🥇", rarity: "common", cost: 2,
-    ability: { name: "Первая карта", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_FIRST_CARD", pct: 3 }] },
-    desc: "Первая карта боя даёт +3% своей силы." }, // #6
-  { id: "podderzhka", name: "Поддержка", emoji: "🤲", rarity: "uncommon", cost: 3,
-    ability: { name: "Поддержка", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_WEAKEST", pct: 3 }] },
-    desc: "Слабейший герой отряда добавляет +3% своей силы." }, // #26
-  { id: "prochnyy_centr", name: "Прочный центр", emoji: "🗿", rarity: "uncommon", cost: 3,
-    ability: { name: "Прочный центр", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_CENTER", pct: 2 }] },
-    desc: "Центральная позиция отряда даёт +2% своей силы." }, // #32
-  { id: "krepkiy_kray", name: "Крепкий край", emoji: "🧱", rarity: "uncommon", cost: 3,
-    ability: { name: "Крепкий край", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_EDGES", pct: 2 }] },
-    desc: "Крайние позиции отряда дают +2% своей силы." }, // #33
-  { id: "svobodnaya_kletka", name: "Свободная клетка", emoji: "⬜", rarity: "uncommon", cost: 3,
-    ability: { name: "Свободная клетка", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 0 },
-      effects: [{ type: "ADD_POWER_PER_EMPTY_SLOT", value: 2 }] },
-    desc: "+2 силы за каждую пустую позицию." }, // #38
-  { id: "poslednij_udar", name: "Последний удар", emoji: "🩸", rarity: "common", cost: 2,
-    ability: { name: "Последний удар", event: "FIGHT_SCORING",
-      when: { type: "TOWER_HP_BELOW", pct: 10 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "Башня ниже 10% HP: +3% урона." }, // #13
-  { id: "vtoroe_dyhanie", name: "Второе дыхание", emoji: "💨", rarity: "uncommon", cost: 3,
-    ability: { name: "Второе дыхание", event: "FIGHT_SCORING",
-      when: { type: "TOWER_HP_BELOW", pct: 10 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Башня ниже 10% HP: ещё +2% урона. Копится с «Последним ударом»." }, // #97
-  { id: "ritm", name: "Ритм", emoji: "🥁", rarity: "uncommon", cost: 3,
-    ability: { name: "Ритм", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "3+ героя в отряде: +3% урона." }, // #15
-  { id: "polnyy_sostav", name: "Полный состав", emoji: "🎖️", rarity: "uncommon", cost: 3,
-    ability: { name: "Полный состав", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_IS", value: 5 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Полная пятёрка: +2% урона." },
-  { id: "plotnyy_stroy", name: "Плотный строй", emoji: "🛡️", rarity: "uncommon", cost: 3,
-    ability: { name: "Плотный строй", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 3 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 1 }] },
-    desc: "Отряд 4+ героя: +1% урона." }, // #39
-  { id: "universalnost", name: "Универсальность", emoji: "🌐", rarity: "uncommon", cost: 3,
-    ability: { name: "Универсальность", event: "FIGHT_SCORING",
-      when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "3+ разных атрибута в отряде: +2% урона." }, // #43
-  { id: "specializaciya", name: "Специализация", emoji: "🔱", rarity: "uncommon", cost: 3,
-    ability: { name: "Специализация", event: "FIGHT_SCORING",
-      when: { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "3+ героя одного атрибута: +2% урона." }, // #44
-  { id: "tochnaya_rasstanovka", name: "Точная расстановка", emoji: "🧩", rarity: "uncommon", cost: 3,
-    ability: { name: "Точная расстановка", event: "FIGHT_SCORING",
-      when: { type: "MODE_IS", value: "formation" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Режим формаций: +2% урона." }, // #31
-  { id: "nestandart", name: "Нестандартное мышление", emoji: "🧠", rarity: "uncommon", cost: 3,
-    ability: { name: "Нестандартное мышление", event: "FIGHT_SCORING",
-      when: { type: "COMBO_DIFFERENT_FROM_LAST" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Комбо отличается от предыдущего боя: +2% урона." }, // #99
-  { id: "uporstvo", name: "Упорство", emoji: "🔥", rarity: "uncommon", cost: 3,
-    ability: { name: "Упорство", event: "FIGHT_SCORING",
-      when: { type: "AFTER_FAILURE" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "После проваленной волны: +2% урона до первой победы." }, // #78
-  { id: "ekonomnyy", name: "Экономный бой", emoji: "🪙", rarity: "common", cost: 2,
-    ability: { name: "Экономный бой", event: "FIGHT_SCORING", chance: 0.15,
-      when: { type: "FIGHTS_LEFT_ABOVE", value: 1 },
-      effects: [{ type: "GOLD", value: 1 }] },
-    desc: "15%: +1 золото, если победа взята малой кровью." }, // #19
   { id: "tochnyy_raschet", name: "Точный расчёт", emoji: "🎯", rarity: "rare", cost: 4,
     ability: { name: "Точный расчёт", event: "FIGHT_SCORING",
       effects: [{ type: "LAST_HIT_GOLD", value: 3 }] },
     desc: "Точный ласт-хит приносит +3 золота." }, // #18
-  { id: "bossslayer", name: "Боссобой", emoji: "👑", rarity: "rare", cost: 4,
-    ability: { name: "Боссобой", event: "FIGHT_SCORING",
-      when: { type: "IS_BOSS_WAVE" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "На волне босса: +3% урона." },
-  { id: "odinokiy_volk", name: "Одинокий волк", emoji: "🐺", rarity: "uncommon", cost: 3,
-    ability: { name: "Одинокий волк", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_IS", value: 1 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 4 }] },
-    desc: "Соло-рейд: +4% урона, если в бою ровно один герой." },
-  { id: "perelom", name: "Перелом", emoji: "📉", rarity: "uncommon", cost: 3,
-    ability: { name: "Перелом", event: "FIGHT_SCORING",
-      when: { type: "TOWER_HP_BELOW", pct: 25 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "Башня ниже четверти HP: +3% урона." }, // #20
+  { id: "trenzal", name: "Тренировочный зал", emoji: "🏋️", rarity: "uncommon", cost: 3,
+    scalar: { xpStartBonus: 3 },
+    levels: [{ desc: "Нанятые герои начинают с +3 опыта." }, { desc: "Нанятые герои начинают с +6 опыта (эффект ×2, цена ×2)." }],
+    desc: "Нанятые герои начинают с +3 опыта." }, // #23
+  { id: "vdohn", name: "Вдохновение", emoji: "🎭", rarity: "rare", cost: 4,
+    scalar: { inspireXp: 2 }, desc: "Близкая победа (точный ласт-хит или оверкилл <10%) даёт героям боя +2 опыта." }, // #30
+  { id: "assortiment", name: "Хороший ассортимент", emoji: "🛍️", rarity: "rare", cost: 4,
+    scalar: { itemRareBias: 2 }, desc: "Редкие товары в лавке выпадают заметно чаще." }, // #61
+  { id: "podkova", name: "Подкова", emoji: "🧲", rarity: "common", cost: 3,
+    scalar: { luck: 1 },
+    levels: [{ desc: "+1 удача: улучшения в лавках выпадают жирнее." }, { desc: "+2 удачи: улучшения в лавках выпадают жирнее (эффект ×2, цена ×2)." }],
+    desc: "+1 удача: улучшения в лавках выпадают жирнее." },
+  { id: "krolichya_lapka", name: "Кроличья лапка", emoji: "🐇", rarity: "rare", cost: 5,
+    scalar: { luck: 2 }, desc: "+2 удачи: редкие и эпические улучшения заметно чаще." },
+  { id: "klever", name: "Четырёхлистный клевер", emoji: "🍀", rarity: "mythic", cost: 8,
+    scalar: { luck: 3 }, desc: "+3 удачи. Топовые улучшения почти ваши." },
 
-  // Отложено с причинами: #21/24/25/27/28 (нужен учёт «стажа» героя) — ждут
-  // расширения фазы G; #23/#30 реализованы выше;
-  // Архив руки/Дубликатор/Запас/Замок/Продавец знакомых (#8/10/64/66/68) —
-  // UI-механики переноса и хранения; ослабления штрафов (#7/41/46/50/76/77) —
-  // у игрока пока нет негативных случайных эффектов; информационные
-  // (#80–90) — тип, HP и моды башни уже видны до боя в базовом UI.
+  // ===== АКТИВКИ — РАЗВИЛКА =====
+  { id: "kartograf", name: "Картограф", emoji: "🗺️", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "route", access: { act: 2 } },
+    effect: { type: "rerollRoute" },
+    desc: "Кнопка на развилке: перевыбросить все пути. 2 раза за акт." },
+  { id: "dezertir", name: "Дезертир", emoji: "🏃", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "route", access: { act: 1 }, target: "routeOption" },
+    effect: { type: "replaceRouteOption" },
+    desc: "Кнопка на карточке пути: заменить этот путь новым. 1 раз за акт." },
+  { id: "podsmotr", name: "Подсмотр", emoji: "👁️", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "route", access: { charges: 2 } },
+    effect: { type: "revealRoutes" },
+    desc: "Кнопка на развилке: вскрыть скрытые жребии — точные HP и будущие правила. 2 заряда за забег." },
+
+  // ===== АКТИВКИ — ЛАВКА =====
+  { id: "torgash", name: "Торгаш", emoji: "🤝", rarity: "common", cost: 2,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 }, target: "item" },
+    effect: { type: "discountItem", value: 30 },
+    desc: "Кнопка на товаре: −30% к его цене. 1 раз за акт." },
+  { id: "magnit", name: "Магнит", emoji: "🧲", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 } },
+    effect: { type: "guaranteeItemRarity", value: "rare" },
+    desc: "Кнопка в лавке: в следующей лавке гарантированно будет редкий товар. 1 раз за акт." },
+  { id: "insider", name: "Инсайдер", emoji: "🕵️", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "shop", access: { charges: 2 } },
+    effect: { type: "guaranteeUpgradeRarity", value: "rare" },
+    desc: "Кнопка в лавке: следующая полка улучшений гарантированно содержит rare+. 2 заряда за забег." },
+  { id: "surprise", name: "Сюрприз", emoji: "🎁", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 } },
+    effect: { type: "freeItemOffer" },
+    desc: "Кнопка в лавке: торговец выставляет бесплатный товар прямо сейчас. 1 раз за акт." },
+  { id: "v_dolg", name: "В долг", emoji: "💳", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 }, target: "item" },
+    effect: { type: "buyOnDebt" },
+    desc: "Кнопка на товаре: купить без золота — заплатишь +25% после следующей зачистки. 1 раз за акт." },
+  { id: "obhodchik", name: "Обходчик", emoji: "🏕️", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 } },
+    effect: { type: "skipBattle" },
+    desc: "Кнопка в лавке: следующая волна пропускается без боя и без награды. 1 раз за акт." },
+
+  // ===== АКТИВКИ — БОЙ =====
+  { id: "vozvrat", name: "Второе дыхание", emoji: "♻️", rarity: "common", cost: 2,
+    type: "active",
+    activation: { context: "wave", access: { charges: 2 } },
+    effect: { type: "pickDiscard" },
+    desc: "Кнопка в бою: вернуть карту из сброса в руку. 2 заряда за забег." },
+  { id: "ignor", name: "Игнор", emoji: "🛡️", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "wave", access: { charges: 2 } },
+    effect: { type: "ignoreTowerMods" },
+    desc: "Кнопка в бою: следующий бой игнорирует правила башни (глиф, броня, проклятия). 2 заряда за забег." },
+  { id: "schastlivy", name: "Счастливый случай", emoji: "🎲", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "wave", access: { charges: 1 } },
+    effect: { type: "forceHeroTriggers" },
+    desc: "Кнопка в бою: в следующем бою способности героев срабатывают гарантированно. 1 заряд за забег." },
+  { id: "vabank", name: "Ва-банк", emoji: "🔥", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "wave", access: { act: 1 } },
+    effect: { type: "vaBank", value: 20 },
+    desc: "Кнопка в бою: следующий бой +20% урона. Провал волны отнимет вторую казарму. 1 раз за акт." },
+  { id: "peresdacha", name: "Пересдача", emoji: "🕯️", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "failed", access: { act: 1 } },
+    effect: { type: "freeRetry" },
+    desc: "Кнопка на экране провала: переиграть волну, не теряя казарму. 1 раз за акт." },
+
+  // ===== ENGINE — улучшения, играющие с другими улучшениями =====
+  { id: "kondensator", name: "Конденсатор", emoji: "🔋", rarity: "rare", cost: 5,
+    react: [{ event: "UPGRADE_ACTIVATED", effects: [{ type: "ENERGY", value: 1 }] }],
+    desc: "Каждая активация любого улучшения даёт +1⚡ энергии (кап 6)." },
+  { id: "peregruzka", name: "Перегрузка", emoji: "⚡", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "any", access: { energy: 2 } },
+    effect: { type: "doubleNext" },
+    desc: "Потратить 2⚡: следующая активация улучшения срабатывает дважды." },
+  { id: "katalizator", name: "Катализатор", emoji: "🧠", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "any", access: { act: 1 } },
+    effect: { type: "resetActLimits" },
+    desc: "Кнопка где угодно: все лимиты «за акт» у твоих активок сбрасываются. 1 раз за акт." },
+
+  // ===== РЕАКТИВКИ И МИФИКИ =====
+  { id: "optimist", name: "Оптимист", emoji: "🎲", rarity: "uncommon", cost: 3,
+    react: [{ event: "WAVE_FAILED", effects: [{ type: "GOLD_FLAT", value: 4 }] }],
+    desc: "Провал волны: +4 золота на восстановление." },
+  { id: "posledniy_bilet", name: "Последний билет", emoji: "☠️", rarity: "mythic", cost: 9,
+    onBuy: { flags: { extraLife: true }, log: "Последний билет: спасение забега заряжено. Один раз казарма не уйдёт в минус." },
+    desc: "Раз за забег провал, обнуляющий казармы, оставляет одну. Без штрафов." },
+  { id: "pakt_fortunes", name: "Пакт с Фортуны", emoji: "🎰", rarity: "mythic", cost: 9,
+    react: [{ event: "WAVE_FAILED", effects: [{ type: "FORTUNE" }] }],
+    desc: "Каждый провал: +1 удача (копится с Подковой). На 5-й удаче в лавке ждёт мифическое улучшение." },
 ];
 
 </script>
@@ -3633,6 +3709,15 @@ const Cond = (function () {
         if (!ctx.playedCards) return false;
         const counts = {};
         for (const c of ctx.playedCards) for (const a of cardAttrs(c)) counts[a] = (counts[a] || 0) + 1;
+        // Скипетр «Starbreaker» (Dawnbreaker): Универсал — джокер атрибутов для
+        // условий, поэтому присоединяется к крупнейшему реальному бакету
+        // (паритет с attrIs: иначе Фаланга не видит джокера).
+        const uni = counts.uni || 0;
+        if (uniWildcard(ctx) && uni && Object.keys(counts).length > 1) {
+          delete counts.uni;
+          const best = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+          counts[best] += uni;
+        }
         return Object.values(counts).some((n) => n > condition.value);
       }
       case "SLOT_IS":
@@ -3645,12 +3730,6 @@ const Cond = (function () {
         return ctx.playedCards && ctx.playedCards.length > condition.value;
       case "PLAYED_COUNT_BELOW":
         return ctx.playedCards && ctx.playedCards.length < condition.value;
-      case "POWER_ABOVE":
-        return typeof ctx.power === "number" && ctx.power > condition.value;
-      case "HAS_ITEM":
-        return ctx.state && ctx.state.player.items.includes(condition.item);
-      case "TAG_IS":
-        return !!(ctx.hero && ctx.hero.tags && ctx.hero.tags.includes(condition.tag));
       case "EXISTS_ATTRIBUTE":
         // Any OTHER played card (self excluded by reference) with this attribute.
         return !!(ctx.playedCards && ctx.playedCards.some(
@@ -3695,8 +3774,6 @@ const Cond = (function () {
         return !!(ctx.combo && ctx.state && ctx.state.combat.lastComboType && ctx.state.combat.lastComboType !== ctx.combo.type);
       case "AFTER_FAILURE":
         return !!(ctx.state && ctx.state.run.failedLastWave);
-      case "FIGHTS_LEFT_ABOVE":
-        return !!(ctx.state && ctx.state.player.fightsLeft > condition.value);
       case "TOWER_HP_BELOW":
         // Улучшение «Перелом»: башня ниже pct% текущего максимума.
         return !!(ctx.state && ctx.state.combat.wave &&
@@ -3864,11 +3941,6 @@ const Effects = (function () {
       ctx.scoring.power += effect.value;
       return { label: `${ctx.sourceName}: ${card.heroId ? Content.heroes.byId[card.heroId].name : "карта"} +${effect.value} силы` };
     },
-    ADD_DAMAGE_PCT(effect, ctx) {
-      // Хуковые улучшения (фаза F): аддитивный процент поверх итогового урона.
-      ctx.scoring.flags.dmgPct = (ctx.scoring.flags.dmgPct || 0) + effect.value;
-      return { label: `${ctx.sourceName}: +${effect.value}% к урону` };
-    },
     WEAKEST_POWER_DOUBLE(effect, ctx) {
       const powers = ctx.playedCards.map((c) => c.power);
       if (!powers.length) return null;
@@ -4003,6 +4075,10 @@ const Effects = (function () {
       return { label: `${ctx.sourceName}: золото с оверкилла ×${effect.value}` };
     },
     REFRESH_HERO_TRIGGERS(effect, ctx) {
+      // Безмолвие глушит героев целиком: без второго прогона — не обещаем двойной.
+      if (ctx.scoring.flags.silenced) {
+        return { label: `${ctx.sourceName}: заглушен Безмолвием — способности героев молчат` };
+      }
       ctx.scoring.flags.refreshHeroTriggers = true;
       return { label: `${ctx.sourceName}: способности героев срабатывают дважды` };
     },
@@ -4168,6 +4244,15 @@ const Effects = (function () {
       if (!used) return null;
       ctx.state.run.gold += used * effect.value;
       return { label: `${ctx.sourceName}: +${used * effect.value} золота (${used} ТП-сброса)`, gold: used * effect.value };
+    },
+    // Предмет «Miser's Chest»: скупость вознаграждается — золото за каждый
+    // неиспользованный ТП-сброс волны, начисляется в каждом бою.
+    ADD_GOLD_PER_UNUSED_DISCARD(effect, ctx) {
+      const unused = ctx.state.player.discardsLeft;
+      if (!unused) return null;
+      const gain = unused * effect.value;
+      ctx.state.run.gold += gain;
+      return { label: `${ctx.sourceName}: +${gain} золота (${unused} неиспользованных ТП-сброса)`, gold: gain };
     },
     // Скипетр «Arcane Reserve» (CM): Mana Reserve копится с неиспользованных
     // сбросов волны (game.js) и тратится в первом бою следующей волны.
@@ -4410,18 +4495,28 @@ const Triggers = (function () {
         }
       }
 
-      if (def.chance != null) {
+      // Refresher/Эхо: второй прогон героев помечаем ♻, чтобы в стеке боя
+      // читался порядок «способности → рефрешер → способности (повтор)».
+      const re = payload.refreshed ? { icon: "♻", note: " · повтор" } : null;
+
+      // «Счастливый случай»: шанс-способности героя срабатывают гарантированно.
+      const forcedHero = source.kind === "hero" && payload.scoring && payload.scoring.flags.forceHeroTriggers && def.chance != null;
+      if (forcedHero) {
+        resolution.steps.push({ icon: "🎯", label: `${def.sourceName}: гарантировано улучшением`, kind: "info" });
+      }
+
+      if (def.chance != null && !forcedHero) {
         if (payload.simulate) {
           // Preview: show the lottery without spinning it.
           resolution.steps.push({
             icon: "🎲",
-            label: `${def.sourceName}: шанс ${Math.round(def.chance * 100)}% — эффект ещё не разыгран`,
+            label: `${def.sourceName}: шанс ${Math.round(def.chance * 100)}% — эффект ещё не разыгран${re ? re.note : ""}`,
             kind: "info",
           });
           continue;
         }
         if (!Rng.current().chance(def.chance)) {
-          resolution.steps.push({ icon: "🎲", label: `${def.sourceName}: шанс не сработал`, kind: "miss" });
+          resolution.steps.push({ icon: re ? re.icon : "🎲", label: `${def.sourceName}: шанс не сработал${re ? re.note : ""}`, kind: "miss" });
           continue;
         }
         ctxBase.note = "крит!";
@@ -4433,7 +4528,11 @@ const Triggers = (function () {
         const result = Effects.apply(effect, ctxBase);
         if (result) {
           const iconByKind = { hero: "✦", item: "◆", upgrade: "🔧", aghanim: "🟣", modifier: "☠" };
-          resolution.steps.push({ icon: iconByKind[source.kind] || "☠", label: result.label, kind: source.kind });
+          resolution.steps.push({
+            icon: re ? re.icon : (iconByKind[source.kind] || "☠"),
+            label: result.label + (re ? re.note : ""),
+            kind: source.kind,
+          });
         }
       }
     }
@@ -4498,7 +4597,7 @@ const Game = (function () {
     return {
       seedCode: seedCode || "",
       phase: "title",
-      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, aghanims: {}, heroCharges: {}, manaReserve: 0, rerollCharges: 0, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, loyaltyUsed: false, brokeUsed: false, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0 },
+      run: { act: 1, waveIndex: 0, barracks: 2, gold: 4, momentum: 0, ranks: {}, campBoon: false, rank: 1, heroUses: {}, comboUses: {}, curses: [], pendingCurse: null, inflationBuys: 0, archetype: null, freeRerollUsed: false, pendingShopPrice: null, pendingItemRarity: null, pendingExtraRecruit: 0, pendingRoute: null, shopPriceMult: 1, waveHandBonus: 0, upgrades: [], skipNextBattle: false, handSlots: 0, attrCharges: 0, heroAttrs: {}, heroXp: {}, aghanims: {}, heroCharges: {}, manaReserve: 0, rerollCharges: 0, shopRerolls: 0, deathsCount: 0, startedAt: 0, shopBuys: 0, afterBoss: false, failedLastWave: false, winCount: 0, upgradePurchases: 0, pendingHandBonus: 0, debtGold: 0, sinDmg: 0, sinDiscards: 0, pawnBonus: 0, exiledHeroes: [], extraLife: false, lifePenalty: 1, routeInflation: false, shopSlotsDelta: 0, upgradeSlotsDelta: 0, upgradeState: {}, energy: 0, fortune: 0, pendingUpgradeRarity: null, revealRoutes: false, pickDiscard: null, pendingIgnoreMods: false, pendingForceTriggers: false, pendingDmgPct: 0, vaBankStrike: false, pendingDoubleActivation: false, pendingFreeRetry: false, ledgerRerollUsed: false },
       player: { deckUids: [], handUids: [], discardUids: [], items: [], fightsLeft: 0, discardsLeft: 0 },
       cards: {},
       combat: { wave: null, fightIndex: 0, selectedUids: [], outcome: null, lastResolution: null, scoring: null, minedUids: [], lastComboType: null, lastSlot: {}, movesUsed: 0, campTaken: false, forbiddenSlot: null, routeOptions: [] },
@@ -4566,7 +4665,7 @@ const Game = (function () {
     // Маршрут «Архитектор»/«Одинокий волк»/«Заблокированная клетка».
     if (wave && wave.maxSlotsOverride) return Math.min(wave.maxSlotsOverride, Combat.MAX_SLOTS);
     if (wave && wave.blockedSlot) return Math.min(wave.blockedSlot - 1, Combat.MAX_SLOTS);
-    if (wave && (wave.modifiers || []).some((m) => m.id === "disarm") && !state.player.items.includes("bkb")) {
+    if (wave && (wave.modifiers || []).some((m) => m.id === "disarm") && !hasItemRule(state, "ignoreDisarm")) {
       return 4;
     }
     return Combat.MAX_SLOTS;
@@ -4584,6 +4683,18 @@ const Game = (function () {
   function classFull(state, cap, slotClass) {
     return !!cap.perClass &&
       state.player.items.filter((id) => Content.items.byId[id].slotClass === slotClass).length >= cap.perClass[slotClass];
+  }
+
+  // Предметные правила как данные: деф с rule: "..." (или массивом правил)
+  // включает пассивные правила — disarmMines (Sentry), ignoreDisarm + disarmMines
+  // (BKB), freeUpgradeReroll (Trader's Ledger). Контент не трогает стейт,
+  // движок только читает флаг.
+  function hasItemRule(state, rule) {
+    return state.player.items.some((id) => {
+      const def = Content.items.byId[id];
+      if (!def || !def.rule) return false;
+      return Array.isArray(def.rule) ? def.rule.includes(rule) : def.rule === rule;
+    });
   }
 
   // Причина, по которой предмет нельзя купить (null — можно): для UI лавки.
@@ -4668,7 +4779,9 @@ const Game = (function () {
     for (const id of mutations) state.combat.wave.modifiers.push({ id, rolled: true });
     // Аномалия/Папочка-маршрут: маршрут докидывает свои случайные правила.
     if (route && route.modsRandom) {
-      for (const id of Ranks.rollMutations(route.modsRandom)) state.combat.wave.modifiers.push({ id, rolled: true });
+      // «Подсмотр»: жребий мог быть вскрыт заранее на развилке.
+      const mods = (routeOpt && routeOpt.pinnedMods) || Ranks.rollMutations(route.modsRandom);
+      for (const id of mods) state.combat.wave.modifiers.push({ id, rolled: true });
     }
     // Нестабильная позиция (Властелин+): один слот волны с −40% силы.
     state.combat.forbiddenSlot = Ranks.has(state, "unstable") ? Rng.current().int(1, 5) : null;
@@ -4705,33 +4818,21 @@ const Game = (function () {
     let cost = Ranks.hasCurse(state, "hunger") ? Math.floor(item.cost * 0.8) : item.cost;
     if (Ranks.has(state, "inflation")) cost += state.run.inflationBuys || 0;
     let mult = state.run.shopPriceMult != null ? state.run.shopPriceMult : 1;
-    // Торг: помеченный оффер со скидкой.
+    // Торг: помеченный оффер со скидкой; Сюрприз — бесплатный товар.
     const offer = (state.shop.offers || []).find((o) => o.id === itemId);
+    if (offer && offer.free) return 0;
     if (offer && offer.sale) mult *= 1 - offer.sale / 100;
     cost = Math.round(cost * mult);
     if (offer && offer.sale >= 100) return 0; // уценка хлама: бесплатно
     if (mult === 0) return 0; // банкротство: вся лавка бесплатна
     // Инфляция-маршрут (#27): первая покупка дешевле, остальные дорожают.
     if (state.run.routeInflation) cost += (state.run.shopBuys || 0) - 1;
-    cost = Math.max(1, cost);
-    // Налоговый вычет: первая покупка после босса акта.
-    if (state.run.afterBoss && Upgrades.sum(state, "postBossDiscount")) cost = Math.max(1, cost - 1);
-    // Лояльность: после трёх покупок следующий товар дешевле (раз за визит).
-    if ((state.run.shopBuys || 0) >= 3 && !state.run.loyaltyUsed && Upgrades.sum(state, "shopLoyalty")) cost = Math.max(1, cost - 1);
-    return cost;
+    return Math.max(1, cost);
   }
 
-  // Цена реролла: правила лиги + улучшение «Сбережения» при 15+ золоте.
+  // Цена реролла товаров: правила лиги.
   function rerollCost(state) {
-    let cost = Ranks.rerollCost(state);
-    const rich = Upgrades.sum(state, "rerollRich");
-    if (rich && state.run.gold > 15) cost = Math.max(1, cost - rich);
-    const rerolls = state.run.shopRerolls || 0;
-    const first = Upgrades.sum(state, "firstRerollOff");
-    if (first && rerolls === 0) cost = Math.max(1, cost - first);
-    const third = Upgrades.sum(state, "thirdRerollOff");
-    if (third && rerolls > 0 && rerolls % 3 === 2) cost = Math.max(1, cost - third);
-    return cost;
+    return Ranks.rerollCost(state);
   }
 
   // Аугменты героев (docs/AGHANIMS.md): ролл предложений лавки.
@@ -4787,7 +4888,7 @@ const Game = (function () {
   function assignMines(state) {
     const wave = state.combat.wave;
     const hasMines = !!wave && (wave.modifiers || []).some((m) => m.id === "mines");
-    const disarmed = state.player.items.includes("sentry") || state.player.items.includes("bkb");
+    const disarmed = hasItemRule(state, "disarmMines");
     if (!hasMines || disarmed || state.combat.outcome || state.simulate) {
       state.combat.minedUids = [];
       return;
@@ -4829,6 +4930,189 @@ const Game = (function () {
       specials.push(opt);
     }
     return options.concat(specials);
+  }
+
+  // ===== Улучшения v2: активации и вне-боевые события =====
+  // Контент объявляет примитивы (effect/react), движок применяет их здесь.
+  // Никаких if (upgrade.id === ...) по кодовой базе — всё через эффекты.
+
+  // Вне-боевые события (боевые идут через Triggers.runEvent).
+  function emitUpgradeEvent(s, eventName) {
+    for (const id of s.run.upgrades || []) {
+      const def = Content.upgrades.byId[id];
+      if (!def || !def.react) continue;
+      for (const r of def.react) {
+        if (r.event !== eventName) continue;
+        for (const effect of r.effects || []) applyUpgradeEffect(s, effect, { sourceId: id, sourceName: def.name });
+      }
+    }
+  }
+
+  function applyUpgradeEffect(s, effect, ctx) {
+    switch (effect.type) {
+      case "rerollRoute":
+        s.combat.routeOptions = rollRouteOptions(s, s.run.waveIndex + 1);
+        log(s, `${ctx.sourceName}: пути развилки перевыброшены`);
+        break;
+      case "replaceRouteOption": {
+        const opts = s.combat.routeOptions;
+        const idx = opts.findIndex((o) => o.id === ctx.targetId);
+        if (idx === -1 || opts[idx].id === "normal") { log(s, `${ctx.sourceName}: обычную башню не заменить`); break; }
+        const nextIndex = s.run.waveIndex + 1;
+        const nextDef = Content.waves.byId[Content.waves.order[nextIndex]];
+        const act = nextDef.act || (Math.floor(nextIndex / 5) + 1);
+        const rng = Rng.current();
+        const pool = Content.routes.list.filter((r) => r.weight > 0 && (r.minAct || 1) <= act && (r.minRank || 1) <= (s.run.rank || 1)
+          && !opts.some((o) => o.id === r.id));
+        if (!pool.length) { log(s, `${ctx.sourceName}: замен нет`); break; }
+        const total = pool.reduce((a, r) => a + r.weight, 0);
+        let roll = rng.next() * total;
+        let chosen = pool[pool.length - 1];
+        for (const r of pool) { roll -= r.weight; if (roll < 0) { chosen = r; break; } }
+        const opt = { id: chosen.id };
+        if (chosen.curse) opt.curse = Content.curses[Math.floor(rng.next() * Content.curses.length)];
+        opts[idx] = opt;
+        log(s, `${ctx.sourceName}: путь заменён на «${chosen.name}»`);
+        break;
+      }
+      case "revealRoutes": {
+        s.run.revealRoutes = true;
+        for (const opt of s.combat.routeOptions) {
+          const route = Content.routes.byId[opt.id];
+          if (!route) continue;
+          // Жребий вскрывается и закрепляется: параметры волны читают его.
+          if (route.randomHp && opt.hpMultRoll == null) {
+            opt.hpMultRoll = route.randomHp[0] + Rng.current().next() * (route.randomHp[1] - route.randomHp[0]);
+          }
+          if (route.modsRandom && !opt.pinnedMods) opt.pinnedMods = Ranks.rollMutations(route.modsRandom);
+        }
+        log(s, `${ctx.sourceName}: скрытые жребии развилки вскрыты`);
+        break;
+      }
+      case "discountItem": {
+        const offer = (s.shop.offers || []).find((o) => o.id === ctx.targetId);
+        if (offer) {
+          offer.sale = Math.max(offer.sale || 0, effect.value || 30);
+          log(s, `${ctx.sourceName}: ${Content.items.byId[offer.id].name} −${offer.sale}%`);
+        }
+        break;
+      }
+      case "guaranteeItemRarity":
+        s.run.pendingItemRarity = effect.value;
+        log(s, `${ctx.sourceName}: в следующей лавке ждёт ${effect.value === "epic" ? "эпик" : "редкий"} товар`);
+        break;
+      case "guaranteeUpgradeRarity":
+        s.run.pendingUpgradeRarity = effect.value;
+        log(s, `${ctx.sourceName}: следующая полка улучшений с ${effect.value === "mythic" ? "мификом" : "rare+"}`);
+        break;
+      case "freeItemOffer": {
+        const taken = new Set([...s.shop.offers.map((o) => o.id), ...s.player.items]);
+        const pool = Content.items.list.filter((i) => i.rarity === "common" && !taken.has(i.id));
+        if (pool.length) {
+          const item = pool[Math.floor(Rng.current().next() * pool.length)];
+          s.shop.offers.push({ id: item.id, free: true });
+          log(s, `${ctx.sourceName}: торговец выставил бесплатный ${item.name}`);
+        }
+        break;
+      }
+      case "buyOnDebt": {
+        const offer = (s.shop.offers || []).find((o) => o.id === ctx.targetId);
+        if (!offer || itemBlockedReason(s, ctx.targetId)) break;
+        const item = Content.items.byId[offer.id];
+        const cost = itemCost(s, offer.id);
+        s.player.items.push(offer.id);
+        s.shop.offers.splice(s.shop.offers.indexOf(offer), 1);
+        const debt = Math.ceil(cost * 1.25);
+        s.run.debtGold = (s.run.debtGold || 0) + debt;
+        log(s, `${ctx.sourceName}: ${item.name} в долг — ${debt}G после следующей зачистки`);
+        break;
+      }
+      case "pickDiscard":
+        // Ресурс списывается в PICK_DISCARD после выбора карты.
+        s.run.pickDiscard = ctx.upgradeId;
+        log(s, `${ctx.sourceName}: выбери карту из сброса`);
+        break;
+      case "ignoreTowerMods":
+        s.run.pendingIgnoreMods = true;
+        log(s, `${ctx.sourceName}: следующий бой игнорирует правила башни`);
+        break;
+      case "forceHeroTriggers":
+        s.run.pendingForceTriggers = true;
+        log(s, `${ctx.sourceName}: способности героев в следующем бою гарантированы`);
+        break;
+      case "vaBank":
+        s.run.pendingDmgPct = effect.value || 20;
+        s.run.vaBankStrike = true;
+        log(s, `${ctx.sourceName}: следующий бой +${effect.value || 20}% урона — провал волны отнимет вторую казарму`);
+        break;
+      case "skipBattle":
+        s.run.skipNextBattle = true;
+        log(s, `${ctx.sourceName}: следующая волна будет пропущена без боя и награды`);
+        break;
+      case "freeRetry":
+        s.run.pendingFreeRetry = true;
+        break;
+      case "doubleNext":
+        s.run.pendingDoubleActivation = true;
+        log(s, `${ctx.sourceName}: следующая активация улучшения сработает дважды`);
+        break;
+      case "resetActLimits": {
+        let n = 0;
+        for (const id of s.run.upgrades || []) {
+          if (id === ctx.sourceId) continue; // сам себя не разгоняет
+          const d = Content.upgrades.byId[id];
+          if (d && d.type === "active" && d.activation.access && d.activation.access.act != null) {
+            Upgrades.instanceOf(s, id).actUses = 0;
+            n++;
+          }
+        }
+        log(s, `${ctx.sourceName}: лимиты «за акт» сброшены (${n} активок)`);
+        break;
+      }
+      case "ENERGY":
+        s.run.energy = Math.min(Upgrades.ENERGY_CAP, (s.run.energy || 0) + (effect.value || 1));
+        log(s, `${ctx.sourceName}: +${effect.value || 1}⚡ энергии`);
+        break;
+      case "GOLD_FLAT":
+        s.run.gold += effect.value || 0;
+        log(s, `${ctx.sourceName}: +${effect.value} золота на восстановление`);
+        break;
+      case "FORTUNE": {
+        s.run.fortune = (s.run.fortune || 0) + 1;
+        if (s.run.fortune >= 5) {
+          s.run.fortune = 0;
+          s.run.pendingUpgradeRarity = "mythic";
+          log(s, `${ctx.sourceName}: ставка сыграла! В лавке ждёт мифическое улучшение`);
+        } else {
+          log(s, `${ctx.sourceName}: удача ${s.run.fortune}/5`);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  // Единая точка активации: проверка → валидация цели → списание → эффект
+  // (×2 под «Перегрузкой») → событие UPGRADE_ACTIVATED.
+  function tryActivate(s, upgradeId, targetId) {
+    const def = Content.upgrades.byId[upgradeId];
+    if (!def || def.type !== "active" || !def.activation) return { ok: false, reason: "Пассивное улучшение" };
+    const check = Upgrades.canActivate(s, upgradeId);
+    if (!check.ok) return check;
+    if (def.activation.target === "item" && !(s.shop.offers || []).some((o) => o.id === targetId)) {
+      return { ok: false, reason: "Товар не найден" };
+    }
+    if (def.activation.target === "routeOption" && !s.combat.routeOptions.some((o) => o.id === targetId)) {
+      return { ok: false, reason: "Путь не найден" };
+    }
+    const doubled = !!s.run.pendingDoubleActivation && def.effect.type !== "pickDiscard";
+    if (def.effect.type !== "pickDiscard") Upgrades.spendActivation(s, upgradeId);
+    s.run.pendingDoubleActivation = false;
+    const ctx = { sourceId: upgradeId, sourceName: def.name, targetId, upgradeId };
+    for (let i = 0; i < (doubled ? 2 : 1); i++) applyUpgradeEffect(s, def.effect, ctx);
+    emitUpgradeEvent(s, "UPGRADE_ACTIVATED");
+    return { ok: true };
   }
 
   function dispatch(state, action) {
@@ -4876,11 +5160,18 @@ const Game = (function () {
 
       case "CONFIRM_FIGHT": {
         if (s.phase !== "wave" || s.combat.outcome || s.player.fightsLeft <= 0) return s;
+        s.run.pickDiscard = null; // пикер сброса не переживает бой
         if (!s.combat.selectedUids.length || s.combat.selectedUids.length > maxSlots(s)) return s;
         const resolution = Combat.resolveFight(s);
         log(s, `Бой #${s.combat.fightIndex}: ${resolution.combo.name} → ${resolution.damage} урона${(resolution.crits || []).length ? ` · КРИТ! (${resolution.crits.join(", ")})` : ""}`);
         for (const st of resolution.steps) if (st.icon === "🌱") log(s, st.label);
+        // Одноразовые боевые активации (Игнор/Счастливый случай/Ва-банк) —
+        // потрачены этим боем.
+        s.run.pendingIgnoreMods = false;
+        s.run.pendingForceTriggers = false;
+        s.run.pendingDmgPct = 0;
         if (resolution.killed) {
+          s.run.vaBankStrike = false;
           s.combat.outcome = "cleared";
           s.run.momentum = Math.min((s.run.momentum || 0) + 1, Combat.MOMENTUM_CAP);
           s.combat.campTaken = false;
@@ -4899,16 +5190,12 @@ const Game = (function () {
             clearGold += leftoverFights;
             log(s, `Бонус скорости: +${leftoverFights}G за ${leftoverFights} неиспользованн${leftoverFights === 1 ? "ый тимфайт" : "ых тимфайта"}`);
           }
-          const streakGold = Upgrades.sum(s, "streakGold");
-          if (streakGold && (s.run.momentum || 0) >= 2) clearGold = Math.round(clearGold * (1 + streakGold / 100));
           s.run.winCount = (s.run.winCount || 0) + 1;
           const milestone = Upgrades.sum(s, "winMilestoneGold");
           if (milestone && s.run.winCount % 5 === 0) {
             clearGold += milestone;
             log(s, `Боевой опыт: ${s.run.winCount}-я зачистка +${milestone} золота`);
           }
-          const goldFlat = Upgrades.sum(s, "goldOnClear");
-          if (goldFlat) clearGold += goldFlat;
           // Долг/лихва: возврат после зачистки.
           if (s.run.debtGold) {
             const pay = Math.min(s.run.debtGold, clearGold);
@@ -4925,24 +5212,13 @@ const Game = (function () {
               log(s, `Время: победа за ${used} бой — награда вполовину`);
             }
           }
-          const goldChance = Upgrades.sum(s, "goldChance");
-          let luckyGold = 0;
-          if (goldChance && Rng.current().chance(goldChance / 100)) {
-            clearGold += 1;
-            luckyGold = 1;
-          }
           // Скипетр «Arcane Reserve» (CM): неиспользованные сбросы волны — мана.
           if (s.run.aghanims && s.run.aghanims.cm && s.run.aghanims.cm.scepter === "cm_sc" && s.player.discardsLeft > 0) {
             s.run.manaReserve = Math.min(3, (s.run.manaReserve || 0) + s.player.discardsLeft);
             log(s, `Arcane Reserve: Mana Reserve ${s.run.manaReserve}/3 (неиспользованные сбросы)`);
           }
           s.run.gold += clearGold;
-          const drawChance = Upgrades.sum(s, "extraDrawChance");
-          if (drawChance && Rng.current().chance(drawChance / 100)) {
-            s.run.pendingHandBonus = (s.run.pendingHandBonus || 0) + 1;
-            log(s, "Быстрый добор: следующая волна с +1 картой в руке");
-          }
-          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}${goldFlat ? ` (улучшение +${goldFlat}G)` : ""}${luckyGold ? " (Мелочь +1G)" : ""}. Импульс: ${s.run.momentum} волн подряд`);
+          log(s, `Волна зачищена! +${clearGold} золота${rewardMult !== 1 ? ` (награда маршрута ×${rewardMult})` : ""}${tax ? ` (налог −${tax}G)` : ""}. Импульс: ${s.run.momentum} волн подряд`);
           returnRapierIfHeld(s);
           if (s.combat.wave.isBoss) {
             if (s.run.waveIndex >= Content.waves.order.length - 1) {
@@ -4956,6 +5232,8 @@ const Game = (function () {
               if (perAct) s.run.gold += perAct;
               s.run.afterBoss = true;
               log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота${perAct ? ` (+${perAct} за кошелёк)` : ""}, +1 казарма (восстановление)`);
+              // Новый акт: лимиты «за акт» у активок сбрасываются.
+              for (const inst of Object.values(s.run.upgradeState || {})) inst.actUses = 0;
               // Лига Титанов: перед новым актом игрок выбирает проклятие забега.
               if (Ranks.has(s, "curseChoice")) {
                 s.run.pendingCurse = Ranks.rollCurseChoices();
@@ -5038,29 +5316,15 @@ const Game = (function () {
         }
         s.run.pendingFreeCommons = 0;
         s.shop.recruits = pickRecruits(s);
-        s.shop.upgrades = Upgrades.generateOffers(s);
+        s.shop.upgrades = Upgrades.generateOffers(s, null, [], { consumeGuarantee: true });
         s.shop.aghanims = aghanimOffers(s);
         s.run.shopRerolls = 0;
         s.run.shopBuys = 0;
-        s.run.loyaltyUsed = false;
-        s.run.brokeUsed = false;
-        // Маленькая удача (#100): лавка может встретить золотом.
-        const coinChance = Upgrades.sum(s, "shopCoinChance");
-        if (coinChance && Rng.current().chance(coinChance / 100)) {
-          s.run.gold += 2;
-          log(s, "Маленькая удача: лавка подкинула +2 золота");
-        }
-        // Торг (#54): случайный товар со скидкой.
-        const discountPct = Upgrades.sum(s, "itemDiscountPct");
-        if (discountPct && s.shop.offers.length) {
-          s.shop.offers[Math.floor(Rng.current().next() * s.shop.offers.length)].sale = discountPct;
-        }
-        // Тайный ящик (#65): лишний товар.
-        const secret = Upgrades.sum(s, "secretSlotChance");
-        if (secret && Rng.current().chance(secret / 100)) {
-          s.shop.offers = s.shop.offers.concat(Economy.generateOffers(s, 1, s.shop.offers));
-          log(s, "Тайный ящик: у торговца нашёлся лишний товар");
-        }
+        s.run.ledgerRerollUsed = false;
+        // «Гарантия скипетра после босса акта» — только на эту лавку.
+        s.run.afterBoss = false;
+        s.run.revealRoutes = false;
+        s.run.pickDiscard = null;
         return s;
       }
 
@@ -5068,18 +5332,23 @@ const Game = (function () {
         if (s.phase !== "shop") return s;
         const offerIdx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
         if (offerIdx === -1) return s;
-        // «Запасной слот» — виртуальный повторяемый апгрейд: уровень в run.handSlots.
+        const offer = s.shop.upgrades[offerIdx];
+        // Виртуальные повторяемые: Запасной слот / Зелье атрибута / Розетка.
         const isHandSlot = action.upgradeId === Upgrades.HAND_SLOT_ID;
         const isAttrPotion = action.upgradeId === Upgrades.ATTR_POTION_ID;
-        const up = isHandSlot ? Upgrades.handSlotDef(s) : isAttrPotion ? Upgrades.attrPotionDef(s) : Content.upgrades.byId[action.upgradeId];
+        const isRecharge = action.upgradeId === Upgrades.RECHARGE_ID;
+        const up = isHandSlot ? Upgrades.handSlotDef(s)
+          : isAttrPotion ? Upgrades.attrPotionDef(s)
+          : isRecharge ? Upgrades.rechargeDef(s)
+          : Content.upgrades.byId[action.upgradeId];
         if (!up) return s;
-        let finalCost = up.cost;
+        // Дубликаты запрещены: обычное улучшение покупается один раз за забег,
+        // следующая ступень уровневого дефа приходит отдельной карточкой.
+        const isTier = !!offer.tier;
+        if (!isHandSlot && !isAttrPotion && !isRecharge && !isTier && (s.run.upgrades || []).includes(up.id)) return s;
+        // Ступень стоит кратно уровню: II = ×2 к эффекту и к цене.
+        const finalCost = isTier ? up.cost * offer.tier : up.cost;
         s.run.upgradePurchases = (s.run.upgradePurchases || 0) + 1;
-        const amulet = Upgrades.sum(s, "upgradeLoyalty");
-        if (amulet && s.run.upgradePurchases % 5 === 0) {
-          finalCost = Math.max(1, finalCost - 1);
-          log(s, "Старый амулет: пятая покупка улучшения дешевле");
-        }
         if (s.run.gold < finalCost) return s;
         s.run.gold -= finalCost;
         if (isHandSlot) {
@@ -5088,40 +5357,72 @@ const Game = (function () {
         } else if (isAttrPotion) {
           s.run.attrCharges = (s.run.attrCharges || 0) + 1;
           log(s, `Зелье атрибута: +1 заряд смены атрибута (−${finalCost} золота). Потрать в лаборатории колоды.`);
+        } else if (isRecharge) {
+          let n = 0;
+          for (const id of s.run.upgrades || []) {
+            const d = Content.upgrades.byId[id];
+            if (d && d.type === "active") { Upgrades.instanceOf(s, id).charges += 1; n++; }
+          }
+          log(s, `Розетка: активки заряжены (+1 заряд ×${n}, −${finalCost} золота)`);
         } else {
-          s.run.upgrades = s.run.upgrades || [];
-          s.run.upgrades.push(up.id);
-          log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
+          const inst = Upgrades.instanceOf(s, up.id);
+          if (isTier) {
+            inst.level = offer.tier;
+            log(s, `Улучшение усилено: ${up.emoji} «${up.name} ${Upgrades.roman(offer.tier)}» (−${finalCost} золота)`);
+          } else {
+            s.run.upgrades.push(up.id);
+            if (up.onBuy && up.onBuy.flags) {
+              for (const [k, v] of Object.entries(up.onBuy.flags)) s.run[k] = v;
+            }
+            if (up.onBuy && up.onBuy.log) log(s, up.onBuy.log);
+            log(s, `Улучшение куплено: ${up.emoji} «${up.name}» (−${finalCost} золота)`);
+          }
         }
-        // Улучшение остаётся на месте (стакается); с «Торговой книгой» карточку
-        // можно обновить за 1G прямо на месте.
-        if (s.player.items.includes("ledger")) s.shop.upgrades[offerIdx].justBought = true;
-        return s;
-      }
-
-      // Торговая книга: заменить только что купленное улучшение на новое (1G).
-      case "REFRESH_UPGRADE": {
-        if (s.phase !== "shop") return s;
-        if (!s.player.items.includes("ledger")) return s;
-        const idx = (s.shop.upgrades || []).findIndex((o) => o.id === action.upgradeId);
-        if (idx === -1) return s;
-        if (s.run.gold < Upgrades.REROLL_COST) return s;
-        s.run.gold -= Upgrades.REROLL_COST;
-        const others = s.shop.upgrades.filter((_, i) => i !== idx);
+        // Слот немедленно заменяется новым предложением: купленное и соседние
+        // карточки в ролл не попадают (дублей нет).
+        const others = s.shop.upgrades.filter((_, i) => i !== offerIdx);
         const fresh = Upgrades.generateOffers(s, 1, others);
-        if (fresh.length) {
-          s.shop.upgrades[idx] = fresh[0];
-          log(s, "Торговая книга: карточка улучшения обновлена");
-        }
+        if (fresh.length) s.shop.upgrades[offerIdx] = fresh[0];
         return s;
       }
 
-      // Обновление предложений улучшений (фидбек): 1G.
+      // Активация улучшения-кнопки: единая точка (проверка → списание →
+      // эффект → событие UPGRADE_ACTIVATED для Конденсатора и статистики).
+      case "ACTIVATE_UPGRADE": {
+        if (!["shop", "route", "wave"].includes(s.phase)) return s;
+        tryActivate(s, action.upgradeId, action.targetId);
+        return s;
+      }
+
+      // Выбор карты сброса для «Второго дыхания»: ресурс списывается здесь.
+      case "PICK_DISCARD": {
+        if (!s.run.pickDiscard || s.combat.outcome) return s;
+        const id = s.run.pickDiscard;
+        const uid = action.uid;
+        if (!s.player.discardUids.includes(uid)) return s;
+        s.run.pickDiscard = null;
+        s.player.discardUids = s.player.discardUids.filter((u) => u !== uid);
+        s.player.handUids.push(uid);
+        Upgrades.spendActivation(s, id);
+        const up = Content.upgrades.byId[id];
+        log(s, `${up ? `${up.emoji} ${up.name}` : "Возврат"}: ${Content.heroes.byId[s.cards[uid].heroId].name} вернулся в руку`);
+        emitUpgradeEvent(s, "UPGRADE_ACTIVATED");
+        return s;
+      }
+
+      // Обновление предложений улучшений: 1G; «Торговая книга» делает первый
+      // реролл каждой лавки бесплатным.
       case "REROLL_UPGRADES": {
         if (s.phase !== "shop") return s;
-        if (s.run.gold < Upgrades.REROLL_COST) return s;
-        s.run.gold -= Upgrades.REROLL_COST;
-        s.shop.upgrades = Upgrades.generateOffers(s);
+        const freeLedger = hasItemRule(s, "freeUpgradeReroll") && !s.run.ledgerRerollUsed;
+        const cost = freeLedger ? 0 : Upgrades.REROLL_COST;
+        if (s.run.gold < cost) return s;
+        s.run.gold -= cost;
+        if (freeLedger) {
+          s.run.ledgerRerollUsed = true;
+          log(s, "Торговая книга: первый реролл улучшений бесплатен");
+        }
+        s.shop.upgrades = Upgrades.generateOffers(s, null, [], { consumeGuarantee: true });
         return s;
       }
 
@@ -5138,19 +5439,7 @@ const Game = (function () {
         s.shop.offers.splice(offerIdx, 1);
         if (Ranks.has(s, "inflation")) s.run.inflationBuys += 1;
         s.run.shopBuys = (s.run.shopBuys || 0) + 1;
-        if (s.run.afterBoss && Upgrades.sum(s, "postBossDiscount")) s.run.afterBoss = false;
-        if ((s.run.shopBuys || 0) >= 3 && !s.run.loyaltyUsed && Upgrades.sum(s, "shopLoyalty")) s.run.loyaltyUsed = true;
-        const refundChance = Upgrades.sum(s, "purchaseRefundChance");
-        if (refundChance && Rng.current().chance(refundChance / 100)) {
-          s.run.gold += 1;
-          log(s, "Монетка: 1 золото вернулась после покупки");
-        }
-        if (s.run.gold === 0 && !s.run.brokeUsed && Upgrades.sum(s, "brokeBonus")) {
-          s.run.brokeUsed = true;
-          s.run.gold = 1;
-          log(s, "Резервный фонд: кошелёк пуст — вам дадут 1 золото");
-        }
-        log(s, `Куплено: ${item.name} (−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""})${s.player.items.length >= itemCapacity(s).total ? " · слоты предметов заполнены" : ""}`);
+        log(s, `Куплено: ${item.name} (${cost ? `−${cost} золота${cost !== item.cost ? `, база ${item.cost}` : ""}` : "бесплатно"})${s.player.items.length >= itemCapacity(s).total ? " · слоты предметов заполнены" : ""}`);
         return s;
       }
 
@@ -5170,7 +5459,7 @@ const Game = (function () {
         s.run.gold -= aug.cost;
         s.run.aghanims[action.heroId][kind] = aug.id;
         s.shop.aghanims.splice(offerIdx, 1);
-        log(s, `${aug.emoji} ${aug.name}: ${Content.heroes.byId[action.heroId].name} получает ${kind === "scepter" ? "скипетр" : "осколок"} (−${aug.cost} золота)`);
+        log(s, `${aug.emoji} ${aug.name}: ${Content.heroes.byId[action.heroId].name} получает ${kind === "scepter" ? "Скипетр Аганима" : "Осколок Аганима"} (−${aug.cost} золота)`);
         return s;
       }
 
@@ -5186,7 +5475,7 @@ const Game = (function () {
         const idx = s.player.items.indexOf(action.itemId);
         if (idx === -1) return s;
         const item = Content.items.byId[action.itemId];
-        const value = Economy.sellValue(s, action.itemId);
+        const value = Economy.sellValue(action.itemId);
         s.player.items.splice(idx, 1);
         s.run.gold += value;
         log(s, `Продано: ${item.name} (+${value} золота)`);
@@ -5452,6 +5741,7 @@ const Game = (function () {
         s.run.pendingExtraRecruit = route.extraRecruit || 0;
         s.run.pendingRecruitDiscount = route.recruitDiscount || null;
         s.run.pendingFreeCommons = route.freeCommons || 0;
+        s.run.revealRoutes = false;
         s.combat.routeOptions = [];
         s.phase = "wave";
         s.run.waveIndex = nextIndex;
@@ -5497,11 +5787,17 @@ const Game = (function () {
           }
         }
         if (!removed) return s;
-        // Аугменты героя уходят вместе с ним (docs/AGHANIMS.md).
+        // Аугменты героя уходят вместе с ним (docs/AGHANIMS.md); за покупку
+        // возвращается половина цены — увольнение не сжигает вложенное даром.
         if (s.run.aghanims && s.run.aghanims[heroId]) {
           const lost = s.run.aghanims[heroId];
           delete s.run.aghanims[heroId];
-          log(s, `Аугменты ${Content.heroes.byId[heroId].name} потеряны: ${[lost.scepter, lost.shard].filter(Boolean).map((id) => Content.aghanims.byId[id].name).join(", ")}`);
+          let refund = 0;
+          for (const id of [lost.scepter, lost.shard]) {
+            if (id) refund += Math.floor(Content.aghanims.byId[id].cost / 2);
+          }
+          if (refund) s.run.gold += refund;
+          log(s, `Аугменты ${Content.heroes.byId[heroId].name} потеряны: ${[lost.scepter, lost.shard].filter(Boolean).map((id) => Content.aghanims.byId[id].name).join(", ")}${refund ? ` (возвращено ${refund} золота)` : ""}`);
         }
         if (s.run.heroCharges && s.run.heroCharges[heroId]) delete s.run.heroCharges[heroId];
         s.run.exiledHeroes = s.run.exiledHeroes || [];
@@ -5546,7 +5842,20 @@ const Game = (function () {
 
       case "RETRY_WAVE": {
         if (s.phase !== "wave" || s.combat.outcome !== "failed") return s;
-        s.run.deathsCount = (s.run.deathsCount || 0) + 1;
+        // Реактивки на провал (Пакт с Фортуны, Оптимист).
+        emitUpgradeEvent(s, "WAVE_FAILED");
+        // «Пересдача»: реролл без потери казармы — расход активации здесь.
+        let freeRetry = false;
+        if (action.useUpgradeId) {
+          const up = Content.upgrades.byId[action.useUpgradeId];
+          if (up && up.effect && up.effect.type === "freeRetry" && Upgrades.canActivate(s, action.useUpgradeId).ok) {
+            Upgrades.spendActivation(s, action.useUpgradeId);
+            emitUpgradeEvent(s, "UPGRADE_ACTIVATED");
+            freeRetry = true;
+            log(s, `${up.emoji} ${up.name}: волна переигрывается — казарма цела`);
+          }
+        }
+        if (!freeRetry) s.run.deathsCount = (s.run.deathsCount || 0) + 1;
         const mercy = s.combat.wave && s.combat.wave.mercyWave;
         if (mercy) {
           // Последний шанс (#89): казарма цела, но золото сгорает.
@@ -5554,10 +5863,20 @@ const Game = (function () {
           s.combat.wave.mercyWave = false;
           log(s, "Последний шанс: казарма уцелела, но золото сгорело дотла");
         }
-        if (!mercy) s.run.barracks -= 1;
-        if ((s.run.momentum || 0) > 0) log(s, "Импульс сброшен: серия волн прервана.");
-        s.run.momentum = 0;
-        if (!mercy) log(s, `Казарма потеряна! Осталось: ${s.run.barracks}`);
+        if (!mercy && !freeRetry) s.run.barracks -= 1;
+        // Ва-банк: провал с разогнанным боем — вторая казарма.
+        if (s.run.vaBankStrike) {
+          s.run.vaBankStrike = false;
+          if (!mercy && !freeRetry) {
+            s.run.barracks -= 1;
+            log(s, "Ва-банк: проигранная ставка обошлась второй казармой");
+          }
+        }
+        if (!freeRetry) {
+          if ((s.run.momentum || 0) > 0) log(s, "Импульс сброшен: серия волн прервана.");
+          s.run.momentum = 0;
+          if (!mercy) log(s, `Казарма потеряна! Осталось: ${s.run.barracks}`);
+        }
         if (s.run.barracks <= 0) {
           if (s.run.extraLife) {
             s.run.extraLife = false;
@@ -5569,7 +5888,7 @@ const Game = (function () {
             return s;
           }
         }
-        if (s.player.items.includes("rapier")) {
+        if (!freeRetry && s.player.items.includes("rapier")) {
           s.player.items = s.player.items.filter((id) => id !== "rapier");
           s.combat.wave.enemyItems.push("rapier");
           log(s, "Divine Rapier у врага! Твой урон по этой башне ×0.5, пока он её держит.");
@@ -5630,7 +5949,7 @@ const Game = (function () {
   return {
     createInitialState, dispatch, scoreOf,
     FIGHTS_PER_WAVE, DISCARDS_PER_WAVE, WAVE_CLEAR_GOLD, BARRACKS_MAX,
-    EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN,
+    EXILE_COST, TRAIN_COST, TRAIN_RANK_MAX, DECK_MIN, hasItemRule,
     assignMines, rankOf, heroAttr, heroLevel, maxSlots, recruitPrice, itemCost, rerollCost,
     XP_PER_LEVEL, XP_LEVEL_CAP,
     archPerk, discardsPerWave, starterDeckIds,
@@ -5814,15 +6133,17 @@ const FormationSys = (function () {
     return ctx.n % 2 === 1 ? idx === mid : idx === mid || idx === mid + 1;
   }
 
-  // Кэрри в центре и заметно выше остальных — «4 protect 1».
+  // Кэрри в центре и заметно выше остальных — «4 protect 1». Порог — по
+  // СИЛЬНЕЙШЕМУ из остальных (не по среднему): иначе три слабых героя
+  // «разбавляют» планку и рядом с кэрри встаёт почти равный ему герой.
   function carryProtected(ctx, margin) {
     if (ctx.n < 5) return false;
     const center = Math.floor(ctx.n / 2);
     const carry = ctx.powers[center];
     if (carry !== ctx.maxPower) return false;
     const others = ctx.powers.filter((_, i) => i !== center);
-    const avgOthers = others.reduce((a, b) => a + b, 0) / others.length;
-    return carry >= avgOthers + margin;
+    const strongestOther = Math.max(...others);
+    return carry >= strongestOther + margin;
   }
 
   function frontIs(ctx, attr, minPower) {
@@ -5848,8 +6169,20 @@ const FormationSys = (function () {
       case "PLAYED_COUNT_ABOVE": return ctx.n > when.value;
       case "PLAYED_COUNT_BELOW": return ctx.n < when.value;
       case "DISTINCT_ATTRIBUTES_ABOVE": return new Set(ctx.attrs).size > when.value;
-      case "SAME_ATTRIBUTE_COUNT_ABOVE":
-        return Array.from(ctx.attrCounts.values()).some((n) => n > when.value);
+      case "SAME_ATTRIBUTE_COUNT_ABOVE": {
+        // Универсал — отдельный бакет; со скипетром Starbreaker (opts.uniWildcard)
+        // он — джокер: присоединяется к крупнейшему реальному бакету. Паритет с
+        // Cond.evaluate (conditions.js) — превью и бой считают одинаково.
+        const counts = {};
+        for (const [a, n] of ctx.attrCounts) counts[a] = n;
+        const uni = counts.uni || 0;
+        if (ctx.uniWildcard && uni && Object.keys(counts).length > 1) {
+          delete counts.uni;
+          const best = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+          counts[best] += uni;
+        }
+        return Object.values(counts).some((n) => n > when.value);
+      }
       case "FRONT_IS": return frontIs(ctx, when.attr, when.minPower || 0);
       case "BACK_IS": return backIs(ctx, when.attr, when.minPower || 0);
       case "PEAK_IN_CENTER": return peakInCenter(ctx);
@@ -5858,8 +6191,6 @@ const FormationSys = (function () {
       case "CARRY_PROTECTED": return carryProtected(ctx, when.margin || 0);
       case "COUNT_ATTR": return (ctx.attrCounts.get(when.attr) || 0) >= when.min;
       case "SAME_RANK_GROUP": return Array.from(ctx.rankCounts.values()).some((n) => n >= when.size);
-      case "ALL_RANKS_DISTINCT":
-        return ctx.n >= when.min && new Set(ctx.powers).size === ctx.n;
       default:
         // Делегируем в боевой Cond (COMBO_IS и пр. там уже умеют работать).
         if (typeof Cond !== "undefined") return Cond.evaluate(when, { playedCards: ctx.cards, card: null, slotIndex: -1 });
@@ -5923,6 +6254,9 @@ const FormationSys = (function () {
   function rankFormations(cards, opts = {}) {
     const withSlots = cards.map((c, i) => ({ ...c, slotIndex: c.slotIndex != null ? c.slotIndex : i }));
     const ctx = buildCtx(withSlots);
+    // Правило боя со скипетром Starbreaker (Dawnbreaker): Универсал — джокер
+    // условий. Бой передаёт флаг из scoring.flags, превью — так же, как бой.
+    ctx.uniWildcard = !!(opts && opts.uniWildcard);
     const list = [];
     for (const def of FORMATIONS_DATA) {
       if (!evalWhen(def.when, ctx)) continue;
@@ -6015,8 +6349,7 @@ const DeckSys = (function () {
   function handSize(state) {
     return Ranks.handSize(state)
       + (state.run.waveHandBonus || 0)
-      + (state.run.handSlots || 0)
-      + (typeof Upgrades !== "undefined" ? Upgrades.sum(state, "hand") : 0);
+      + (state.run.handSlots || 0);
   }
 
   function draw(state, rng) {
@@ -6063,26 +6396,43 @@ const DeckSys = (function () {
 
 </script>
   <script>
-// Dalatro — улучшения лавки (фаза F, спек §5). Отдельный слой прогресса,
-// НЕ занимает слоты предметов. Два формата контента:
-//   scalar — складываются в несколько чисел (sum(state, key)); каждая точка
-//            интеграции (урон/золото/продажа/рука/реролл) читает свой ключ;
-//   ability — хуки боя через обычную триггерную систему (Triggers, kind
-//            "upgrade") — см. collectSources в engine/triggers.js.
+// Dalatro — улучшения лавки v2. Отдельный слой прогресса, НЕ занимает слоты
+// предметов. Улучшения продают КОНТРОЛЬ (кнопки, заряды, гарантии, правила),
+// а не проценты — сила остаётся у героев и предметов.
 //
-// УДАЧА (luck): скаляр, который дают сами улучшения (Подкова/Лапка/Клевер).
-// Сдвигает веса редкостей предложений к топу и добавляет слоты:
-//   удача ≥3 → 3-я карточка, ≥6 → 4-я.
+// Форматы контента:
+//   scalar — плоские агрегаты (sum по ключу × уровень инстанса);
+//   ability — боевые хуки через триггерную систему (kind: "upgrade");
+//   type:"active" — кнопка: activation { context, access, target? } + effect;
+//   react — вне-боевые слушатели событий движка (WAVE_FAILED, UPGRADE_ACTIVATED);
+//   onBuy — флаги, выставляемые при покупке (Последний билет).
 //
-// ЗАПАСНОЙ СЛОТ — бесконечный повторяемый апгрейд (виртуальный id "hand_slot"):
-// +1 карта в руке за уровень, цена ×1.8 за уровень, редкость растёт
-// (эпик → мифик с 3-го уровня). Баланс: экспонента ограничивает сама,
-// естественный потолок — размер колоды; на высоких рангах лига режет руку.
+// ДУБЛИКАТЫ ЗАПРЕЩЕНЫ: купленное не предлагается. Повторяемость дают
+// виртуальные карточки (Запасной слот, Зелье, Розетка) и ступени уровней
+// (defs с levels[] — следующий уровень как отдельная карточка).
+//
+// УДАЧА (luck): скаляры Подкова/Лапка/Клевер + копилка «Пакта с Фортуны»
+// (run.fortune). Сдвигает веса редкостей и добавляет слоты: ≥3 → 5-я, ≥6 → 6-я.
 const Upgrades = (function () {
   const REROLL_COST = 1;
   const HAND_SLOT_ID = "hand_slot";
   const ATTR_POTION_ID = "attr_potion";
+  const RECHARGE_ID = "recharge";
+  const ENERGY_CAP = 6;
   const BASE_WEIGHTS = { common: 60, uncommon: 25, rare: 10, epic: 4, mythic: 1 };
+  const ROMAN = ["I", "II", "III", "IV", "V"];
+  const CONTEXT_LABELS = { route: "на развилке", shop: "в лавке", wave: "в бою", failed: "при провале", any: "везде" };
+
+  // --- инстансы: состояние купленного улучшения (только счётчики) ---
+  function instanceOf(state, id) {
+    state.run.upgradeState = state.run.upgradeState || {};
+    if (!state.run.upgradeState[id]) {
+      const def = Content.upgrades.byId[id];
+      const acc = def && def.activation && def.activation.access ? def.activation.access : {};
+      state.run.upgradeState[id] = { level: 1, charges: acc.charges || 0, actUses: 0 };
+    }
+    return state.run.upgradeState[id];
+  }
 
   function ownedDefs(state) {
     return (state.run.upgrades || [])
@@ -6090,11 +6440,11 @@ const Upgrades = (function () {
       .filter(Boolean);
   }
 
-  // Сумма скаляра по всем купленным улучшениям.
+  // Сумма скаляра по купленным улучшениям (× уровень инстанса).
   function sum(state, key) {
     let total = 0;
     for (const u of ownedDefs(state)) {
-      if (u.scalar && u.scalar[key]) total += u.scalar[key];
+      if (u.scalar && u.scalar[key]) total += u.scalar[key] * instanceOf(state, u.id).level;
     }
     return total;
   }
@@ -6104,6 +6454,8 @@ const Upgrades = (function () {
     // Осколок «Shuriken Toss» (Bounty): удача копится ласт-хитами в heroCharges.
     const charges = state.run && state.run.heroCharges;
     if (charges) for (const h of Object.values(charges)) l += h.luck || 0;
+    // Пакт с Фортуны: провалы копят удачу (см. react FORTUNE в движке).
+    l += (state.run && state.run.fortune) || 0;
     return l;
   }
 
@@ -6118,7 +6470,7 @@ const Upgrades = (function () {
     };
   }
 
-  // Виртуальное «Зелье атрибута»: +1 заряд смены атрибута (трата в лаборатории).
+  // Виртуальные повторяемые карточки.
   function attrPotionDef(state) {
     return {
       id: ATTR_POTION_ID,
@@ -6132,7 +6484,6 @@ const Upgrades = (function () {
     };
   }
 
-  // Виртуальный «Запасной слот»: уровень живёт в run.handSlots.
   function handSlotDef(state) {
     const lvl = state.run.handSlots || 0;
     return {
@@ -6147,8 +6498,20 @@ const Upgrades = (function () {
     };
   }
 
-  // Число карточек улучшений в лавке: минимум 4, удача добавляет до 6,
-  // другие бонусы (например «Распродажа») могут уменьшать.
+  function rechargeDef(state) {
+    return {
+      id: RECHARGE_ID,
+      name: "Розетка",
+      emoji: "🔌",
+      repeatable: true,
+      rarity: "uncommon",
+      cost: 5,
+      desc: "Все твои активные улучшения получают +1 заряд.",
+    };
+  }
+
+  // Число карточек улучшений в лавке: база 4, удача добавляет до 6,
+  // маршруты (Распродажа) могут уменьшать.
   function slotsFor(state) {
     return Math.max(1, 4 + Math.min(2, Math.floor(luck(state) / 3)) + (state.run.upgradeSlotsDelta || 0));
   }
@@ -6164,42 +6527,157 @@ const Upgrades = (function () {
     return "common";
   }
 
-  // Карточки улучшений: без дублей; обычные — по одному разу за забег,
-  // «Запасной слот» — повторяемый (максимум одна карточка в лавке).
-  function generateOffers(state, slots, exclude) {
+  // Карточки улучшений: БЕЗ дубликатов (купленное не предлагается), кроме
+  // следующей ступени уровневых дефов. Опция consumeGuarantee съедает
+  // run.pendingUpgradeRarity (Инсайдер/Пакт с Фортуны) — только на полной
+  // перегенерации полки, чтобы замена одного слота не сжигала гарантию.
+  function generateOffers(state, slots, exclude, opts) {
     const l = luck(state);
     const count = slots || slotsFor(state);
     const weights = rarityWeights(l);
     const rng = Rng.current();
-    // Улучшения стакаются: купленное можно покупать снова, поэтому owned
-    // не исключает пул — исключаются только карточки, уже лежащие в лавке.
+    const consumeGuarantee = !!(opts && opts.consumeGuarantee);
+    const guarantee = state.run.pendingUpgradeRarity || null;
+    if (consumeGuarantee) state.run.pendingUpgradeRarity = null;
+    let guaranteed = false;
     const taken = new Set((exclude || []).map((o) => o.id || o));
+    const owned = new Set(state.run.upgrades || []);
     const offers = [];
-    let handSlotOffered = (taken.has(HAND_SLOT_ID) ? true : false);
-    let potionOffered = (taken.has(ATTR_POTION_ID) ? true : false);
-    let guard = 60;
-    while (offers.length < count && guard-- > 0) {
-      const rarity = pickRarity(rng, weights);
+    let handSlotOffered = taken.has(HAND_SLOT_ID);
+    let potionOffered = taken.has(ATTR_POTION_ID);
+    let rechargeOffered = taken.has(RECHARGE_ID);
+    const hasActives = ownedDefs(state).some((u) => u.type === "active");
+    const nextTier = (u) => {
+      const lvl = instanceOf(state, u.id).level;
+      return u.levels && lvl < u.levels.length ? lvl + 1 : null;
+    };
+    const eligible = (u) => {
+      if (taken.has(u.id) || offers.some((o) => o.id === u.id)) return false;
+      if (!owned.has(u.id)) return true;
+      return nextTier(u) != null; // купленное — только следующей ступенью
+    };
+    const offerDef = (u) => {
+      const tier = nextTier(u);
+      offers.push(tier ? { id: u.id, tier } : { id: u.id });
+    };
+    const virtualForRarity = (rarity) => {
       if (rarity === handSlotDef(state).rarity && !handSlotOffered && rng.next() < 0.35) {
         offers.push({ id: HAND_SLOT_ID });
         handSlotOffered = true;
-        continue;
+        return true;
       }
       if (rarity === "rare" && !potionOffered && rng.next() < 0.3) {
         offers.push({ id: ATTR_POTION_ID });
         potionOffered = true;
+        return true;
+      }
+      if (rarity === "uncommon" && hasActives && !rechargeOffered && rng.next() < 0.3) {
+        offers.push({ id: RECHARGE_ID });
+        rechargeOffered = true;
+        return true;
+      }
+      return false;
+    };
+    let guard = 60;
+    while (offers.length < count && guard-- > 0) {
+      const rarity = guarantee && !guaranteed ? guarantee : pickRarity(rng, weights);
+      if (!guarantee || guaranteed) {
+        if (virtualForRarity(rarity)) continue;
+      }
+      const pool = Content.upgrades.list.filter((u) => u.rarity === rarity && eligible(u));
+      if (!pool.length) { guaranteed = true; continue; }
+      offerDef(pool[Math.floor(rng.next() * pool.length)]);
+      guaranteed = true;
+    }
+    // Полка вырождалась бы в пустоту — добираем ступенями/виртуальными без
+    // учёта редкости (практически недостижимо при пуле 30+).
+    guard = 40;
+    while (offers.length < count && guard-- > 0) {
+      if (hasActives && !rechargeOffered) {
+        offers.push({ id: RECHARGE_ID });
+        rechargeOffered = true;
         continue;
       }
-      const pool = Content.upgrades.list
-        .filter((u) => u.rarity === rarity && !taken.has(u.id) && !offers.some((o) => o.id === u.id));
-      if (!pool.length) continue;
-      const u = pool[Math.floor(rng.next() * pool.length)];
-      offers.push({ id: u.id });
+      if (!handSlotOffered) { offers.push({ id: HAND_SLOT_ID }); handSlotOffered = true; continue; }
+      if (!potionOffered) { offers.push({ id: ATTR_POTION_ID }); potionOffered = true; continue; }
+      const pool = Content.upgrades.list.filter((u) => eligible(u));
+      if (!pool.length) break;
+      offerDef(pool[Math.floor(rng.next() * pool.length)]);
     }
     return offers;
   }
 
-  return { ownedDefs, sum, luck, rarityWeights, handSlotDef, attrPotionDef, generateOffers, slotsFor, REROLL_COST, HAND_SLOT_ID, ATTR_POTION_ID };
+  // --- активации ---
+
+  // Контекст экрана: где сейчас находится игрок.
+  function contextOf(state) {
+    if (state.phase === "route") return "route";
+    if (state.phase === "shop") return "shop";
+    if (state.phase === "wave") return state.combat.outcome === "failed" ? "failed" : "wave";
+    return "none";
+  }
+
+  function canActivate(state, id) {
+    const def = Content.upgrades.byId[id];
+    if (!def || def.type !== "active" || !def.activation) return { ok: false, reason: "Пассивное улучшение" };
+    const ctx = contextOf(state);
+    const act = def.activation;
+    if (act.context !== "any" && act.context !== ctx) {
+      return { ok: false, reason: `Только ${CONTEXT_LABELS[act.context] || act.context}` };
+    }
+    const inst = instanceOf(state, id);
+    const acc = act.access || {};
+    if (acc.charges != null && inst.charges <= 0) return { ok: false, reason: "Нет зарядов" };
+    if (acc.act != null && inst.actUses >= acc.act) return { ok: false, reason: "Лимит на акт исчерпан" };
+    if (acc.energy != null && (state.run.energy || 0) < acc.energy) return { ok: false, reason: `Нужно ${acc.energy}⚡` };
+    // Спец-валидация Обходчика: босса пропустить нельзя.
+    if (def.effect && def.effect.type === "skipBattle") {
+      const nextDef = Content.waves.byId[Content.waves.order[(state.run.waveIndex || 0) + 1]];
+      if (nextDef && (nextDef.isBoss || nextDef.miniBoss)) return { ok: false, reason: "Босса не пропустить" };
+    }
+    // Сюрприз: нужен свободный товар для бесплатной полки.
+    if (def.effect && def.effect.type === "freeItemOffer") {
+      const taken = new Set([...(state.shop.offers || []).map((o) => o.id), ...(state.player.items || [])]);
+      const pool = Content.items.list.filter((i) => i.rarity === "common" && !taken.has(i.id));
+      if (!pool.length) return { ok: false, reason: "Торговцу нечего предложить" };
+    }
+    return { ok: true };
+  }
+
+  // Списание ресурса активации. Для effect "pickDiscard" списывается движком
+  // в PICK_DISCARD (после выбора карты).
+  function spendActivation(state, id) {
+    const def = Content.upgrades.byId[id];
+    const inst = instanceOf(state, id);
+    const acc = def && def.activation && def.activation.access ? def.activation.access : {};
+    if (acc.charges != null) inst.charges = Math.max(0, inst.charges - 1);
+    if (acc.act != null) inst.actUses += 1;
+    if (acc.energy != null) state.run.energy = Math.max(0, (state.run.energy || 0) - acc.energy);
+    if (acc.once) inst.used = true;
+  }
+
+  // Подпись для UI: сколько и как часто можно нажать.
+  function accessLabel(def) {
+    const a = def.activation;
+    if (!a) return "";
+    const acc = a.access || {};
+    if (acc.charges != null) return `${acc.charges} зар. за забег`;
+    if (acc.act != null) return `${acc.act} за акт`;
+    if (acc.energy != null) return `${acc.energy}⚡ энергии`;
+    if (acc.once) return "один раз";
+    return "";
+  }
+
+  function roman(level) {
+    return ROMAN[level - 1] || String(level);
+  }
+
+  return {
+    ownedDefs, sum, luck, rarityWeights, handSlotDef, attrPotionDef, rechargeDef,
+    generateOffers, slotsFor, instanceOf, contextOf, canActivate, spendActivation,
+    accessLabel, roman,
+    REROLL_COST, HAND_SLOT_ID, ATTR_POTION_ID, RECHARGE_ID, ENERGY_CAP, CONTEXT_LABELS,
+  };
 })();
 
 </script>
@@ -6468,7 +6946,11 @@ const Combat = (function () {
     const formationMode = state.rules === "formation";
     for (const candidate of candidates) {
       const combo = formationMode
-        ? FormationSys.evaluate(candidate, { defense: towerDefenseOf(state) })
+        ? FormationSys.evaluate(candidate, {
+            defense: towerDefenseOf(state),
+            // Скипетр Starbreaker: Универсал — джокер и для условий формаций.
+            uniWildcard: !!(state.combat.scoring && state.combat.scoring.flags && state.combat.scoring.flags.uniWildcard),
+          })
         : PokerSys.evaluate(candidate);
       if (!combo) continue;
       if (!best || (formationMode ? betterFormation(combo, best.combo) : betterCombo(combo, best.combo))) {
@@ -6585,7 +7067,9 @@ const Combat = (function () {
     const played = realPlayedCards(state);
     played.forEach((c, i) => (c.slotIndex = i));
 
-    state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb"), lastHitGold: 0 } };
+    // Боевые активации улучшений (Игнор/Счастливый случай) входят в те же
+    // флаги, что и BKB: content-нейтрально, через run-флаги в одном месте.
+    state.combat.scoring = { power: 0, mult: 1, finalMult: 1, flags: { ignoreTowerMods: false, overkillRate: 1, refreshHeroTriggers: false, bkbBlocksMods: state.player.items.includes("bkb") || !!state.run.pendingIgnoreMods, lastHitGold: 0, forceHeroTriggers: !!state.run.pendingForceTriggers } };
     // Скипетр- и осколок-правила боя (preFlag): до триггеров, без порядка слотов.
     for (const card of played) {
       const owned = state.run.aghanims && state.run.aghanims[card.heroId];
@@ -6626,6 +7110,7 @@ const Combat = (function () {
     // Проклятия элитной башни: BKB выключает их все.
     const curses = state.combat.scoring.flags.bkbBlocksMods ? [] : waveCurses(state);
     const silenced = curses.includes("silence");
+    state.combat.scoring.flags.silenced = silenced; // предметы (Refresher) видят глушение и пишут честный шаг
     if (silenced) {
       Resolver.pushStep(resolution, { icon: "☠", label: "Безмолвие: способности героев отключены", kind: "modifier" });
     }
@@ -6688,21 +7173,9 @@ const Combat = (function () {
     state.combat.scoring.mult = combo.baseMult;
     state.combat.scoring.effective = effective;
     state.combat.scoring.copyLog = copyLog;
-    // Крепкая масть (#2): случайная карта усиливается на процент.
-    const cardBuffPct = Upgrades.sum(state, "cardBuffPct");
-    if (cardBuffPct && effective.length) {
-      const lucky = effective[Math.floor(Rng.current().next() * effective.length)];
-      const bonus = Math.max(1, Math.floor(lucky.power * cardBuffPct / 100));
-      lucky.power += bonus;
-      state.combat.scoring.trace.itemPower += 0; // не предмет: отдельный слой не нужен
-      Resolver.pushStep(resolution, {
-        icon: "🔧",
-        label: `Крепкая масть: ${Content.heroes.byId[lucky.heroId].name} +${bonus} силы`,
-        kind: "info",
-      });
-    }
-    // Эхо (#96): первый бой волны — способности героев дважды.
-    if (state.combat.wave.echoFirst && state.combat.fightIndex === 0) {
+    // Эхо (#96): первый бой волны — способности героев дважды. Под Безмолвием
+    // способности молчат целиком, так что Эхо не объявляется.
+    if (state.combat.wave.echoFirst && state.combat.fightIndex === 0 && !silenced) {
       state.combat.scoring.flags.refreshHeroTriggers = true;
       Resolver.pushStep(resolution, { icon: "📢", label: "Эхо: способности героев звучат дважды", kind: "info" });
     }
@@ -6886,13 +7359,18 @@ const Combat = (function () {
     } else {
       damage = resolution.blocked ? 0 : Math.round(s.power * s.mult * s.finalMult * towerMult);
     }
-    // Улучшения лавки (фаза F): аддитивный процент поверх итогового урона —
-    // scalar (агрегатор) + сработавшие хуки (flags.dmgPct).
-    const dmgPct = (s.flags.dmgPct || 0) + Upgrades.sum(state, "dmg");
+    // Аддитивный процент поверх итогового урона: Ва-банк (активка) и Грех
+    // (маршрут «Грех»), каждый со своим источником.
+    const vaPct = state.run.pendingDmgPct || 0;
+    const sinPct = state.run.sinDmg || 0;
+    const dmgPct = vaPct + sinPct;
     if (dmgPct && damage > 0) {
       damage = Math.round(damage * (1 + dmgPct / 100));
-      if (s.trace) s.trace.finalMult.push({ source: "Улучшения лавки", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
-      Resolver.pushStep(resolution, { icon: "🔧", label: `Улучшения лавки: +${dmgPct}% урона`, kind: "info" });
+      if (s.trace) s.trace.finalMult.push({ source: vaPct && sinPct ? "Ва-банк + Грех" : vaPct ? "Ва-банк" : "Грех", value: Math.round((1 + dmgPct / 100) * 100) / 100 });
+      const label = vaPct && sinPct ? `Ва-банк + Грех: +${dmgPct}% урона`
+        : vaPct ? `Ва-банк: +${vaPct}% урона`
+        : `Грех: +${sinPct}% урона`;
+      Resolver.pushStep(resolution, { icon: "🔧", label, kind: "info" });
     }
     // Эхо-аугменты (Multicast+ Огра, Echo Strike ПА): повтор части урона.
     if (!resolution.blocked && s.flags.echoPower && !state.simulate) {
@@ -7138,11 +7616,6 @@ const Economy = (function () {
     const rng = Rng.current();
     const offers = keepLocked.slice();
     const taken = new Set(offers.map((o) => o.id).concat(state.player.items));
-    // Пыльная полка (#62): шанс гарантировать редкий товар.
-    if (!guaranteeRarity) {
-      const dust = typeof Upgrades !== "undefined" ? Upgrades.sum(state, "dustChance") : 0;
-      if (dust && rng.chance(dust / 100)) guaranteeRarity = "rare";
-    }
     let guard = 60; // pool can be exhausted — never loop forever
     while (offers.length < slots && guard-- > 0) {
       const rarity = pickRarity(state, rng);
@@ -7171,13 +7644,9 @@ const Economy = (function () {
     return offers;
   }
 
-  // Продажа: половина цены, улучшение «Перепродажа» добавляет свой процент.
-  function sellValue(state, itemId) {
-    const item = Content.items.byId[itemId];
-    let value = item.cost / 2;
-    let bonusPct = 0;
-    if (typeof Upgrades !== "undefined") bonusPct = Upgrades.sum(state, "sell");
-    return Math.floor(value * (1 + bonusPct / 100));
+  // Продажа: половина цены.
+  function sellValue(itemId) {
+    return Math.floor(Content.items.byId[itemId].cost / 2);
   }
 
   return { generateOffers, sellValue, REROLL_COST, OFFER_SLOTS };
@@ -7823,6 +8292,13 @@ const Art = (function () {
     return "Без способности — играет через ранг и атрибут.";
   }
 
+  // Скипетр «Starbreaker» (Dawnbreaker): Универсал — джокер атрибутов для
+  // условий способностей и формаций. Подсказки UI читают это состояние.
+  function uniWildcardOn(state) {
+    const augs = state && state.run && state.run.aghanims && state.run.aghanims.dawnbreaker;
+    return !!(augs && augs.scepter === "dawnbreaker_sc");
+  }
+
   function attrOf(state, uid) {
     return Game.heroAttr(state, Content.heroes.byId[state.cards[uid].heroId].id);
   }
@@ -7935,10 +8411,19 @@ const Art = (function () {
     const lvl = Game.heroLevel(state, hero.id);
     const xp = (state.run.heroXp || {})[hero.id] || 0;
     const augs = (state.run.aghanims || {})[hero.id];
-    const augBadges = augs ? ["scepter", "shard"].filter((k) => augs[k]).map((k) => {
+    const augBadges = augs ? ["shard", "scepter"].filter((k) => augs[k]).map((k) => {
       const a = Content.aghanims.byId[augs[k]];
       return `<span class="augh-mark" data-tip>${a.emoji}<span class="pop"><strong>${a.emoji} ${a.name}</strong><p>${esc(a.desc)}</p><small>${k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима"}</small></span></span>`;
     }).join("") : "";
+    // Каталог аугментов героя в тултипе: сначала Осколок, потом Скипетр.
+    // Серым — не куплено, светящимся — куплено. Две строки: шапка + описание.
+    const augTipLines = ["shard", "scepter"].map((k) => {
+      const a = Content.aghanims.forHero(hero.id, k);
+      if (!a) return "";
+      const owned = !!(augs && augs[k]);
+      const label = k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
+      return `<div class="augh-tip ${owned ? "owned" : ""}">${a.emoji} <b>${label} · ${a.name}</b><span class="augh-desc">${esc(a.desc)}</span></div>`;
+    }).join("");
     const trained = rank !== hero.power;
     const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
     const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
@@ -7961,7 +8446,10 @@ const Art = (function () {
       <span class="hero-tooltip">
         <strong>${hero.ability ? hero.ability.name : hero.name}</strong>
         <p>${esc(heroDesc(hero))}</p>
-        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${ATTR_NAMES[effAttr]} — 5 карт одного цвета = флеш</small>
+        ${augTipLines}
+        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${effAttr === "uni"
+          ? `Универсал — четвёртый цвет: связки и «4+ одного атрибута» считают его только Универсалом${uniWildcardOn(state) ? " · Starbreaker: Универсал — джокер условий" : ""}`
+          : `${ATTR_NAMES[effAttr]} — 5 карт одного цвета = флеш`}</small>
       </span>
     </button>`;
   }
@@ -8089,6 +8577,55 @@ const Art = (function () {
   }
 
   // mode: "wave" — с ресурсами боя; "meta" — только состояние забега (лавка/развилка).
+  // ---------- улучшения v2: панель и контекстные кнопки ----------
+
+  // Дескриптор уровня: defs с levels[] описывают мутации II/III словами.
+  function upDescOf(state, u) {
+    const inst = Upgrades.instanceOf(state, u.id);
+    return (u.levels && u.levels[inst.level - 1] && u.levels[inst.level - 1].desc) || u.desc;
+  }
+
+  // Кнопка активации: единый рендер для всех контекстов (route/shop/wave).
+  function activeBtnHtml(state, u) {
+    const check = Upgrades.canActivate(state, u.id);
+    return `<button class="upg-active-btn" ${check.ok ? "" : "disabled"} data-action="activate-upgrade" data-upgrade="${u.id}" data-tip>
+      <span>${u.emoji} ${u.name}</span><small>${Upgrades.accessLabel(u)}</small>
+      <span class="pop"><strong>${u.emoji} ${u.name}</strong><p>${esc(u.desc)}</p>${check.ok ? "" : `<small>Недоступно: ${check.reason}</small>`}</span>
+    </button>`;
+  }
+
+  function ownedActives(state, context, withTarget = false) {
+    return Upgrades.ownedDefs(state).filter((u) => u.type === "active" && u.activation
+      && u.activation.context === context && !!u.activation.target === withTarget);
+  }
+
+  // Мастер-панель в сайдбаре: что куплено, сколько зарядов/лимитов осталось.
+  function upgradesPanelHtml(state) {
+    const owned = Upgrades.ownedDefs(state);
+    const energy = state.run.energy || 0;
+    const fortune = state.run.fortune || 0;
+    const rows = owned.map((u) => {
+      const inst = Upgrades.instanceOf(state, u.id);
+      const lvl = inst.level > 1 ? ` <b class="upg-lvl">${Upgrades.roman(inst.level)}</b>` : "";
+      let status = "";
+      if (u.type === "active") {
+        const acc = u.activation.access || {};
+        if (acc.charges != null) status = `<span class="upg-status ${inst.charges ? "" : "empty"}">⚡${inst.charges}/${acc.charges}</span>`;
+        else if (acc.act != null) status = `<span class="upg-status ${inst.actUses < acc.act ? "" : "empty"}">${acc.act - inst.actUses}/${acc.act}</span>`;
+        else if (acc.energy != null) status = `<span class="upg-status">⚡${acc.energy}</span>`;
+      }
+      return `<div class="upg-row" data-tip><span class="upg-emoji">${u.emoji}</span>
+        <span class="upg-name">${u.name}${lvl}</span>${status}
+        <span class="pop"><strong>${u.emoji} ${u.name}${lvl}</strong><p>${esc(upDescOf(state, u))}</p>
+        <small>${u.type === "active" ? `Кнопка ${Upgrades.CONTEXT_LABELS[u.activation.context]} · ${Upgrades.accessLabel(u)}` : "Пассивное"}</small></span></div>`;
+    }).join("");
+    return `<section class="panel upgrades-panel">
+      <div class="section-label"><span>${icon("sparkles", 13)}УЛУЧШЕНИЯ</span>${energy ? `<span class="energy-badge" data-tip>⚡ ${energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за каждые активации. Тратится Перегрузкой.</p></span></span>` : ""}</div>
+      ${rows || '<div class="effect-row none">Пока ни одного — загляни в лавку</div>'}
+      ${fortune ? `<div class="effect-row momentum"><span>🎰 Фортуна: ${fortune}/5 провалов до мифика в лавке</span></div>` : ""}
+    </section>`;
+  }
+
   function sidebarHtml(state, mode) {
     const waveMode = mode === "wave";
     const { mom, mult } = momentumInfo(state);
@@ -8115,6 +8652,7 @@ const Art = (function () {
       : `<div class="effect-row none">Серия не начата — зачищай волны подряд</div>`}
       ${rankEffectsHtml(state)}
     </section>
+    ${upgradesPanelHtml(state)}
     <section class="panel journal-panel ${UIState.journalOpen ? "open" : ""}">
       <div class="section-label"><span>${icon("history", 13)}ЖУРНАЛ</span>
         <span class="journal-tools">
@@ -8156,6 +8694,10 @@ const Art = (function () {
 
   function commitInfoHtml(state, preview) {
     const chips = [];
+    // Активации «на следующий бой» — видны до клика «В бой».
+    if (state.run.pendingIgnoreMods) chips.push(`<span class="commit-chip momentum">🛡️ ИГНОР</span>`);
+    if (state.run.pendingForceTriggers) chips.push(`<span class="commit-chip momentum">🎯 ГАРАНТИЯ</span>`);
+    if (state.run.pendingDmgPct) chips.push(`<span class="commit-chip">🔥 ВА-БАНК +${state.run.pendingDmgPct}%</span>`);
     const n = preview ? preview.playedCount || state.combat.selectedUids.length : 0;
     const tier = Combat.COMMIT_TIERS[n];
     if (tier) {
@@ -8249,6 +8791,10 @@ const Art = (function () {
               <button class="primary-button attack-button" ${canFight ? "" : "disabled"} data-action="fight">${icon("swords", 17)}В бой<kbd>↵</kbd></button>
               <button class="discard-button" ${canDiscard ? "" : "disabled"} data-action="discard">${icon("rotate", 14)}ТП-сброс<kbd>R</kbd></button>
             </div>
+            ${(() => {
+              const acts = ownedActives(state, "wave").map((u) => activeBtnHtml(state, u)).join("");
+              return acts ? `<div class="wave-actives">${acts}</div>` : "";
+            })()}
           </div>
         </div>
       </div>
@@ -8273,6 +8819,15 @@ const Art = (function () {
   function formationContextHtml(state, preview) {
     const dtName = (dt) => Content.damageTypeNames[dt] || dt;
     const combo = preview ? preview.combo : null;
+    // Универсал в текущем отряде — поясняем, как он считается (задача «Dawnbreaker»).
+    const uniPlayed = state.combat.selectedUids.some((uid) => {
+      const c = state.cards[uid];
+      const hr = c ? Content.heroes.byId[c.heroId] : null;
+      return !!hr && Game.heroAttr(state, hr.id) === "uni";
+    });
+    const uniNote = uniPlayed
+      ? `<div class="combo-legend uni-note"><span>◈ Универсал — отдельный атрибут: связки и «4+ одного атрибута» считают его своим цветом${uniWildcardOn(state) ? " · Starbreaker: Универсал — джокер условий" : ""}</span></div>`
+      : "";
     let active;
     if (combo) {
       const bonds = (combo.bonds || []).map((b) => {
@@ -8302,6 +8857,7 @@ const Art = (function () {
       <section class="panel context-inner">
         <div class="section-label"><span>${icon("target", 13)}ТВОЯ ФОРМАЦИЯ</span></div>
         ${active}
+        ${uniNote}
       </section>
       ${alts}
       <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Все формации ${icon("chevron", 13)}</button>
@@ -8371,13 +8927,13 @@ const Art = (function () {
   function buildStripHtml(state) {
     const items = state.player.items;
     const slots = [];
-    for (let i = 0; i < Math.max(5, items.length); i++) {
+    for (let i = 0; i < Game.itemCapacity(state).total; i++) {
       const id = items[i];
       if (id) {
         const item = Content.items.byId[id];
         slots.push(`<button class="build-icon ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" data-tip>
           ${Art.itemIcon(item)}
-          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
+          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
         </button>`);
       } else {
         slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 13)}
@@ -8399,7 +8955,7 @@ const Art = (function () {
         }).join("")
         : "";
       const slots = [];
-      for (let i = 0; i < Math.max(5, items.length); i++) {
+      for (let i = 0; i < Game.itemCapacity(state).total; i++) {
         const id = items[i];
         if (id) {
           const item = Content.items.byId[id];
@@ -8407,7 +8963,7 @@ const Art = (function () {
             <div class="item-art">${Art.itemIcon(item)}</div>
             <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
             <span class="item-slot-dot"></span>
-            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
+            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
           </button>`);
         } else {
           slots.push(`<button class="item-slot empty-slot" data-action="item-hint" data-tip><span>${icon("plus", 18)}</span><span>Слот предмета</span>
@@ -8689,6 +9245,9 @@ const Art = (function () {
     if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} тимфайт` : `−${-route.fights} тимфайт`);
     if (route.power) lines.push(`+${route.power} силы каждому бою`);
     if (route.itemRarity) lines.push(`В лавке ждёт ${route.itemRarity === "epic" ? "эпик" : "редкий"} товар`);
+    // «Подсмотр»: вскрытые жребии развилки показываются точно.
+    if (route.randomHp && opt.hpMultRoll != null) lines.push(`👁️ Точный HP: ${fmt(Math.round(nextHp * route.hp * opt.hpMultRoll))}`);
+    if (opt.pinnedMods) lines.push("👁️ Правила: " + opt.pinnedMods.map((id) => Content.modifiers.byId[id].name).join(", "));
     lines.push(route.desc);
     return lines;
   }
@@ -8702,6 +9261,17 @@ const Art = (function () {
       const route = Content.routes.byId[opt.id];
       return routeCardHtml(state, opt, route, routeCardLines(opt, route, nextDef, nextHp, baseRules), i);
     }).join("");
+    const routeBtns = ownedActives(state, "route").map((u) => activeBtnHtml(state, u)).join("");
+    const dezerterOk = Upgrades.canActivate(state, "dezertir").ok;
+    const replaceRow = ownedActives(state, "route", true).length ? `<div class="route-replace-row">${(state.combat.routeOptions || [])
+      .filter((o) => o.id !== "normal")
+      .map((o) => {
+        const route = Content.routes.byId[o.id];
+        return `<button class="upg-active-btn route-replace" ${dezerterOk ? "" : "disabled"} data-action="activate-upgrade" data-upgrade="dezertir" data-target="${o.id}" data-tip>
+          <span>🔄 ${route.emoji} ${route.name}</span><small>заменить</small>
+          <span class="pop"><strong>🏃 Дезертир</strong><p>Заменить «${route.name}» новым путём.</p>${dezerterOk ? "" : "<small>Лимит на акт исчерпан</small>"}</span>
+        </button>`;
+      }).join("")}</div>` : "";
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -8712,7 +9282,9 @@ const Art = (function () {
               <span class="section-label mint">${icon("target", 15)}РАЗВИЛКА · ВОЛНА ${nextIndex + 1} ИЗ ${Content.waves.order.length}</span>
               <h2>Куда двинемся?</h2>
               <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${fmt(nextHp)} HP · ${baseRules}</p>
+              ${routeBtns ? `<div class="route-actives">${routeBtns}</div>` : ""}
               <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">${cards}</div>
+              ${replaceRow}
             </section>
           </div>
         </div>
@@ -8762,9 +9334,17 @@ const Art = (function () {
       const blockedLabel = blocked === "full"
         ? `Слоты ${state.player.items.length}/${cap.total}`
         : blocked === "class" ? `Нет слота ${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}` : "";
+      const itemActs = ownedActives(state, "shop", true).map((u) => {
+        const ok = Upgrades.canActivate(state, u.id).ok
+          && (u.effect.type !== "buyOnDebt" || !blocked);
+        return `<button class="icon-button small act-btn" ${ok ? "" : "disabled"} data-action="activate-upgrade" data-upgrade="${u.id}" data-target="${item.id}" data-tip>${u.emoji}
+          <span class="pop side"><strong>${u.emoji} ${u.name}</strong><p>${esc(u.desc)}</p>${ok ? "" : `<small>Недоступно: ${Upgrades.canActivate(state, u.id).reason}</small>`}</span>
+        </button>`;
+      }).join("");
       return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
+          <span class="item-actives">${itemActs}</span>
           <button class="icon-button small lock-btn ${o.locked ? "locked" : ""}" data-action="lock" data-id="${item.id}" data-tip>${o.locked ? "🔒" : "🔓"}
             <span class="pop side"><strong>${o.locked ? "Залочен" : "Свободен"}</strong><p>Зафиксируй товар — он сохранится при обновлении лавки, остальные слоты перевыбросятся.</p></span>
           </button>
@@ -8773,9 +9353,9 @@ const Art = (function () {
         <h3>${item.name}</h3>
         <p>${esc(item.desc)}</p>
         <span class="slot-class-tag">${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}</span>
-        ${cost !== item.cost ? `<span class="price-note">${cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
+        ${cost !== item.cost ? `<span class="price-note">${o.free ? "🎁 Сюрприз: бесплатно" : cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
         <button class="buy-button" ${afford && !blocked ? "" : "disabled"} data-action="buy" data-id="${item.id}">
-          <span>${blocked && blockedLabel ? blockedLabel : afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
+          <span>${o.free ? "Забрать" : blocked && blockedLabel ? blockedLabel : afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
         </button>
       </div>`;
     }).join("");
@@ -8795,57 +9375,79 @@ const Art = (function () {
             <div class="shop-section-title"><h3>Предметы торговца</h3>
               <button class="secondary-button" data-action="reroll" ${state.run.gold >= Game.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Game.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
-            ${(state.shop.aghanims || []).length ? `<div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">герой-персональные · не занимают слоты предметов · 1+1 на героя</small></h3></div>
-            <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">${state.shop.aghanims.map((o) => {
-    const aug = Content.aghanims.forHero(o.heroId, o.kind);
-    const hero = Content.heroes.byId[o.heroId];
-    const afford = state.run.gold >= aug.cost;
-    return `<div class="upgrade-card ${o.kind === "scepter" ? "mythic" : "rare"}" data-tip>
-                <span class="upgrade-emoji">${aug.emoji}</span>
-                <div class="upgrade-info"><strong>${aug.name} <small>· ${hero.name}</small></strong><small>${esc(aug.desc)}</small></div>
-                <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-augh" data-hero="${o.heroId}" data-kind="${o.kind}">
-                  <span>${afford ? "Купить" : "Дорого"}</span><span>${aug.cost} ${icon("coins", 12)}</span>
-                </button>
-                <span class="pop"><strong>${aug.emoji} ${aug.name} — ${hero.name}</strong><p>${esc(aug.desc)}</p><small>${o.kind === "scepter" ? "Скипетр: меняет поведение героя" : "Осколок: малое изменение паттерна"} · остаётся до увольнения героя</small></span>
-              </div>`;
-  }).join("")}</div>` : ""}
             <div class="shop-upgrades">
-              <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
-                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
+              <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов · кнопки активируются на своих экранах</small></h3>
+                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер) и Пактом с Фортуны. Жирнее редкости предложений: с удачи 3 — пятая карточка, с 6 — шестая.</p></span></span>
                 <span class="upgrade-owned">${(() => {
     const counts = {};
     for (const u of Upgrades.ownedDefs(state)) counts[u.id] = (counts[u.id] || 0) + 1;
     return Object.entries(counts).map(([id, n]) => {
       const u = Content.upgrades.byId[id];
       if (!u) return "";
-      return `<span class="upgrade-chip" data-tip>${u.emoji}${n > 1 ? `<b>×${n}</b>` : ""}<span class="pop"><strong>${u.name}${n > 1 ? " ×" + n : ""}</strong><p>${esc(u.desc)}</p></span></span>`;
+      const inst = Upgrades.instanceOf(state, id);
+      const lvl = inst.level > 1 ? ` ${Upgrades.roman(inst.level)}` : "";
+      const acc = u.type === "active"
+        ? ` · осталось: ${u.activation.access.charges != null ? `⚡${inst.charges}` : `${u.activation.access.act - inst.actUses}/${u.activation.access.act}`}`
+        : "";
+      return `<span class="upgrade-chip" data-tip>${u.emoji}${lvl}${n > 1 ? `<b>×${n}</b>` : ""}<span class="pop"><strong>${u.emoji} ${u.name}${lvl}${n > 1 ? " ×" + n : ""}</strong><p>${esc(upDescOf(state, u))}</p><small>${acc || "пассивное"}</small></span></span>`;
     }).join("");
-  })()}
+  })()}</span>
                   ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}
-                  ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}</span>
-                <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
+                  ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}
+                ${ownedActives(state, "shop").filter((u) => !u.activation.target).map((u) => activeBtnHtml(state, u)).join("")}
+                ${(state.run.energy || 0) ? `<span class="energy-badge" data-tip>⚡ ${state.run.energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за активации. Тратится Перегрузкой.</p></span></span>` : ""}
+                <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST || (Game.hasItemRule(state, "freeUpgradeReroll") && !state.run.ledgerRerollUsed) ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Game.hasItemRule(state, "freeUpgradeReroll") && !state.run.ledgerRerollUsed ? "0" : Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
                 ${(state.shop.upgrades || []).map((o) => {
     const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state)
       : o.id === Upgrades.ATTR_POTION_ID ? Upgrades.attrPotionDef(state)
+      : o.id === Upgrades.RECHARGE_ID ? Upgrades.rechargeDef(state)
       : Content.upgrades.byId[o.id];
-    const afford = state.run.gold >= up.cost;
+    const isTier = !!o.tier;
     const lvl = up.repeatable ? ` ×${(state.run.handSlots || 0) + 1}` : "";
-    const canRefresh = state.player.items.includes("ledger") && o.justBought;
+    // Ступень уровневого дефа стоит кратно уровню (II = ×2 к цене и эффекту).
+    const cost = isTier ? up.cost * o.tier : up.cost;
+    const afford = state.run.gold >= cost;
+    const name = isTier ? `${up.name} ${Upgrades.roman(o.tier)}` : `${up.name}${lvl}`;
+    const upDesc = isTier
+      ? (up.levels && up.levels[o.tier - 1] ? up.levels[o.tier - 1].desc : up.desc)
+      : upDescOf(state, up);
+    const accLine = up.type === "active"
+      ? `<small class="upg-acc">🔘 Кнопка ${Upgrades.CONTEXT_LABELS[up.activation.context]} · ${Upgrades.accessLabel(up)}${up.activation.target === "item" ? " (на товаре)" : up.activation.target === "routeOption" ? " (на пути)" : ""}</small>`
+      : "";
     return `<div class="upgrade-card ${up.rarity}" data-tip>
                   <span class="upgrade-emoji">${up.emoji}</span>
-                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small>
-                    ${canRefresh ? `<button class="upgrade-refresh" data-action="refresh-upgrade" data-id="${up.id}">↻ Обновить · ${Upgrades.REROLL_COST} ${icon("coins", 11)}</button>` : ""}
-                  </div>
+                  <div class="upgrade-info"><strong>${name}</strong><small>${esc(upDesc)}</small>${accLine}</div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
-                    <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
+                    <span>${afford ? (isTier ? "Усилить" : "Купить") : "Дорого"}</span><span>${cost} ${icon("coins", 12)}</span>
                   </button>
-                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · покупается многократно, эффекты складываются</small></span>
+                  <span class="pop"><strong>${up.emoji} ${name}</strong><p>${esc(upDesc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]}${up.type === "active" ? ` · кнопка ${Upgrades.CONTEXT_LABELS[up.activation.context]}` : " · пассивное"} · покупается один раз за забег</small></span>
                 </div>`;
   }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке или обнови.</span>'}
               </div>
             </div>
+            ${(state.shop.aghanims || []).length ? `<div class="shop-aghanims">
+              <div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">осколок — 55% в каждой лавке · скипетр — гарантия после босса акта · не занимают слоты предметов</small></h3></div>
+              <div class="recruit-row ${UIState.animShop ? "" : "no-anim"}">${state.shop.aghanims.map((o) => {
+    const aug = Content.aghanims.forHero(o.heroId, o.kind);
+    const hero = Content.heroes.byId[o.heroId];
+    const afford = state.run.gold >= aug.cost;
+    const kindLabel = o.kind === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
+    return `<div class="recruit-card augh-card ${o.kind}" data-tip>
+                  <div class="recruit-portrait">${Art.heroArt(hero)}<i class="augh-emoji">${aug.emoji}</i></div>
+                  <div class="recruit-info">
+                    <small class="augh-kind">${kindLabel} · ${hero.name}</small>
+                    <strong>${aug.name}</strong>
+                    <small>${esc(aug.desc)}</small>
+                  </div>
+                  <button class="buy-button recruit-buy" ${afford ? "" : "disabled"} data-action="buy-augh" data-hero="${o.heroId}" data-kind="${o.kind}">
+                    <span>${afford ? "Купить" : "Дорого"}</span><span>${aug.cost} ${icon("coins", 13)}</span>
+                  </button>
+                  <span class="pop"><strong>${aug.emoji} ${aug.name} — ${hero.name}</strong><p>${esc(aug.desc)}</p><small>${kindLabel}: ${o.kind === "scepter" ? "меняет поведение героя" : "малое изменение паттерна"} · при увольнении героя возвращается половина цены</small></span>
+                </div>`;
+  }).join("")}</div>
+            </div>` : ""}
             <div class="shop-lab">
               <div class="shop-lab-head">
                 <h3>${icon("layers", 14)} Лаборатория колоды</h3>
@@ -9036,6 +9638,10 @@ const Art = (function () {
       ? `<div><span>Divine Rapier</span><b class="lose-text">у врага: урон ×0.5</b></div>` : ""}
       </div>
       <button class="primary-button full-width" data-action="retry">Новая попытка ${icon("rotate", 15)}</button>
+      ${(() => {
+        const ok = (state.run.upgrades || []).includes("peresdacha") && Upgrades.canActivate(state, "peresdacha").ok;
+        return ok ? `<button class="secondary-button full-width" data-action="retry-free" data-upgrade="peresdacha" data-tip>🕯️ Пересдача — казарма цела<span class="pop"><strong>🕯️ Пересдача</strong><p>Переиграть волну, не теряя казарму и смерть в зачёте.</p></span></button>` : "";
+      })()}
     </section></div>`;
   }
 
@@ -9071,7 +9677,11 @@ const Art = (function () {
     if (!UIState.modal && !UIState.detail) return "";
     const wide = UIState.modal === "collection" || UIState.modal === "help" ? "wide-modal" : "";
     const focusCls = UIState.labFocus === "train" ? "focus-train" : UIState.labFocus === "exile" ? "focus-exile" : "";
-    return `<div class="modal-backdrop" data-action="modal-backdrop"><section class="modal ${wide} ${focusCls}" role="dialog" aria-modal="true">
+    // Модалка уже открыта (смена отряда/ранга в «Ещё один забег» и т.п.):
+    // полный ререндер пересоздаёт DOM — не проигрывать появление заново,
+    // иначе окно мигает при каждом клике.
+    const keep = document.querySelector(".modal-backdrop") ? " no-anim" : "";
+    return `<div class="modal-backdrop${keep}" data-action="modal-backdrop"><section class="modal ${wide} ${focusCls}" role="dialog" aria-modal="true">
       <button class="modal-close icon-button" data-action="close-modal">${icon("x", 20)}</button>
       ${modalBodyHtml(state)}
     </section></div>`;
@@ -9197,6 +9807,20 @@ const Art = (function () {
         ${comboRows}
       </div>
       <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> ТП-сброс (R) заменит выбранных героев, не расходуя тимфайт. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>
+      <span class="section-label mint">${icon("book", 15)}СЛОВАРЬ</span>
+      <div class="glossary">
+        <div><strong>Кэрри</strong><p>Главный герой отряда — самый сильный. В «4 Protect 1» он стоит в центре, а четыре героя-свиты его прикрывают.</p></div>
+        <div><strong>Свита</strong><p>Четыре героя вокруг кэрри. Им не нужно быть сильными — они дают формацию, связки и свои способности.</p></div>
+        <div><strong>Слот / позиция</strong><p>Порядок, в котором ты выбрал героев: первый выбранный — слот 1. Часть формаций и способностей читает позицию: «Фронт» — слоты 1–2, «Тыл» — два последних, «Клин» — центр строя.</p></div>
+        <div><strong>Фронт / Тыл</strong><p>Связки: «Фронт» — два Силовика в первых слотах (+сила), «Тыл» — два Интеллекта в последних (+множитель).</p></div>
+        <div><strong>Ганг</strong><p>Связка за пару героев одинакового ранга: сходили вдвоём на одного — получи +силы.</p></div>
+        <div><strong>Цепочка</strong><p>Связка за три ранга подряд (например 4-5-6) в любой позиции строя.</p></div>
+        <div><strong>Флеш («Тимфайт атрибута»)</strong><p>Пять героев одного цвета-атрибута. Даёт большой бонус и тип урона по доминирующему атрибуту отряда.</p></div>
+        <div><strong>Тимвайп</strong><p>«Убийство всей команды». Формация-топ: полная пятёрка с пятью рангами подряд и тремя атрибутами.</p></div>
+        <div><strong>Тип урона</strong><p>Физический — режется бронёй, магический — сопротивлением, чистый — игнорирует всё. Смотри «Следующую цель»: против брони бери чистый или магический, против сопротивления — физический.</p></div>
+        <div><strong>Ставка</strong><p>Сколько героев отправил в бой: 1 — харас (+1 золото), 4 — ×1.1 к урону, 5 — ×1.25. Больше героев — больше урона, но рука пустеет.</p></div>
+        <div><strong>Импульс</strong><p>Серия зачищенных волн подряд: +5% урона за каждую. Провал сбрасывает серию.</p></div>
+      </div>
       <span class="section-label mint">${icon("crown", 15)}ЛИГА DALATRO · РАНГИ</span>
       <p class="modal-description">Ранг задаётся перед забегом. Правила наслаиваются: ранг N держит всё, что дали ранги 1..N. Победа на ранге открывает следующий.</p>
       <div class="combo-table rank-table">
@@ -9240,10 +9864,13 @@ const Art = (function () {
             <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}${(state.run.heroXp || {})[hr.id] ? ` · опыт ${(state.run.heroXp || {})[hr.id]} (ур. ${Game.heroLevel(state, hr.id)})` : ""}</span>
             <p>${heroDesc(hr)}</p>
             <small class="gold">${where}</small>
-            ${(state.run.aghanims || {})[hr.id] ? `<small class="augh-lab">${["scepter", "shard"].filter((k) => state.run.aghanims[hr.id][k]).map((k) => {
-      const a = Content.aghanims.byId[state.run.aghanims[hr.id][k]];
-      return `${a.emoji} <b>${a.name}</b> — ${esc(a.desc)}`;
-    }).join("<br>")}</small>` : ""}
+            <small class="augh-lab">${["shard", "scepter"].map((k) => {
+      const a = Content.aghanims.forHero(hr.id, k);
+      if (!a) return "";
+      const owned = !!((state.run.aghanims || {})[hr.id] || {})[k];
+      const label = k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
+      return `<span class="augh-tip ${owned ? "owned" : ""}">${a.emoji} <b>${label} · ${a.name}</b><span class="augh-desc">${esc(a.desc)}</span></span>`;
+    }).filter(Boolean).join("")}</small>
             ${labMode ? `<div class="attr-change-row">${["str", "agi", "int", "uni"].map((a) => {
       const cur = Game.heroAttr(state, hr.id);
       const has = (state.run.attrCharges || 0) > 0;
@@ -9347,7 +9974,7 @@ const Art = (function () {
     const synergies = Advisor.itemSynergy(item.id, state);
     const owned = state.player.items.includes(item.id);
     const inShop = state.phase === "shop";
-    const sellValue = Economy.sellValue(state, item.id);
+    const sellValue = Economy.sellValue(item.id);
     return `<div class="item-detail-image">${Art.itemIcon(item)}</div>
       <span class="section-label gold">${RARITY_NAMES[item.rarity]} предмет · ${item.cost} G</span>
       <h2>${item.name}</h2>
@@ -9360,6 +9987,23 @@ const Art = (function () {
       : owned ? '<div class="muted-note">Продажа доступна в лавке между волнами.</div>' : ""}`;
   }
 
+  // Пикер сброса «Второго дыхания»: клик по карте возвращает её в руку.
+  function discardPickerHtml(state) {
+    const uids = (state.player.discardUids || []).filter((uid) => state.cards[uid]);
+    return `<span class="section-label mint">♻️ ВТОРОЕ ДЫХАНИЕ</span>
+      <h2>Кого вернуть в руку?</h2>
+      <p class="modal-description">Карта вернётся из сброса — спишется один заряд.</p>
+      ${uids.length ? `<div class="recruit-row">${uids.map((uid) => {
+        const hero = Content.heroes.byId[state.cards[uid].heroId];
+        return `<div class="recruit-card ${Game.heroAttr(state, hero.id) !== hero.attr ? Game.heroAttr(state, hero.id) : hero.attr}" data-action="pick-discard" data-uid="${uid}" role="button" data-tip>
+          <div class="recruit-portrait">${Art.heroArt(hero)}<b>${hero.power}</b></div>
+          <div class="recruit-info"><strong>${hero.name}</strong>
+            <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hero.id)]} ${ATTR_NAMES[Game.heroAttr(state, hero.id)]}</span>
+            <small>${esc(heroDesc(hero))}</small></div>
+        </div>`;
+      }).join("")}</div>` : '<div class="muted-note">Сброс пуст — заряд останется при тебе.</div>'}`;
+  }
+
   function modalBodyHtml(state) {
     switch (UIState.modal) {
       case "help": return helpModalHtml(state);
@@ -9369,6 +10013,7 @@ const Art = (function () {
       case "new": return newRunModalHtml();
       case "score": return scoreModalHtml(state);
       case "detail": return detailModalHtml(state);
+      case "discard-pick": return discardPickerHtml(state);
       default: return "";
     }
   }
@@ -9420,9 +10065,9 @@ const Art = (function () {
         el.className = "preview-step appear";
         el.innerHTML = `<span class="step-icon">${step.icon}</span><span>${esc(step.label)}</span>`;
         stepsEl.appendChild(el);
-      }, 150 + i * 280));
+      }, 80 + i * 140));
     });
-    timers.push(setTimeout(finish, 500 + resolution.steps.length * 280 + 900));
+    timers.push(setTimeout(finish, 300 + resolution.steps.length * 140 + 500));
   }
 
   // ---------- entry ----------
@@ -9754,9 +10399,24 @@ const Art = (function () {
       case "reroll-upgrades":
         dispatchAndRender({ type: "REROLL_UPGRADES" });
         break;
-      case "refresh-upgrade":
-        Sfx.play("buy");
-        dispatchAndRender({ type: "REFRESH_UPGRADE", upgradeId: el.dataset.id });
+      case "activate-upgrade": {
+        Sfx.play("click");
+        dispatchAndRender({ type: "ACTIVATE_UPGRADE", upgradeId: el.dataset.upgrade, targetId: el.dataset.target });
+        if (state.run.pickDiscard) {
+          UI.UIState.modal = "discard-pick";
+          rerender();
+        } else {
+          const def = Content.upgrades.byId[el.dataset.upgrade];
+          if (def) UI.toast(state, `${def.emoji} «${def.name}» активировано`);
+        }
+        break;
+      }
+      case "pick-discard":
+        dispatchAndRender({ type: "PICK_DISCARD", uid: el.dataset.uid });
+        UI.UIState.modal = null;
+        break;
+      case "retry-free":
+        dispatchAndRender({ type: "RETRY_WAVE", useUpgradeId: el.dataset.upgrade });
         break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });
@@ -9784,7 +10444,7 @@ const Art = (function () {
         break;
       case "buy-augh": {
         Sfx.play("buy");
-        const kindWord = el.dataset.kind === "scepter" ? "Скипетр" : "Осколок";
+        const kindWord = el.dataset.kind === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
         dispatchAndRender({ type: "BUY_AUGMENT", heroId: el.dataset.hero, kind: el.dataset.kind });
         const aug = Content.aghanims.forHero(el.dataset.hero, el.dataset.kind);
         if (aug) UI.toast(state, `${kindWord} «${aug.name}» — ${Content.heroes.byId[el.dataset.hero].name}`);

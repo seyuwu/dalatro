@@ -135,18 +135,28 @@ const Triggers = (function () {
         }
       }
 
-      if (def.chance != null) {
+      // Refresher/Эхо: второй прогон героев помечаем ♻, чтобы в стеке боя
+      // читался порядок «способности → рефрешер → способности (повтор)».
+      const re = payload.refreshed ? { icon: "♻", note: " · повтор" } : null;
+
+      // «Счастливый случай»: шанс-способности героя срабатывают гарантированно.
+      const forcedHero = source.kind === "hero" && payload.scoring && payload.scoring.flags.forceHeroTriggers && def.chance != null;
+      if (forcedHero) {
+        resolution.steps.push({ icon: "🎯", label: `${def.sourceName}: гарантировано улучшением`, kind: "info" });
+      }
+
+      if (def.chance != null && !forcedHero) {
         if (payload.simulate) {
           // Preview: show the lottery without spinning it.
           resolution.steps.push({
             icon: "🎲",
-            label: `${def.sourceName}: шанс ${Math.round(def.chance * 100)}% — эффект ещё не разыгран`,
+            label: `${def.sourceName}: шанс ${Math.round(def.chance * 100)}% — эффект ещё не разыгран${re ? re.note : ""}`,
             kind: "info",
           });
           continue;
         }
         if (!Rng.current().chance(def.chance)) {
-          resolution.steps.push({ icon: "🎲", label: `${def.sourceName}: шанс не сработал`, kind: "miss" });
+          resolution.steps.push({ icon: re ? re.icon : "🎲", label: `${def.sourceName}: шанс не сработал${re ? re.note : ""}`, kind: "miss" });
           continue;
         }
         ctxBase.note = "крит!";
@@ -158,7 +168,11 @@ const Triggers = (function () {
         const result = Effects.apply(effect, ctxBase);
         if (result) {
           const iconByKind = { hero: "✦", item: "◆", upgrade: "🔧", aghanim: "🟣", modifier: "☠" };
-          resolution.steps.push({ icon: iconByKind[source.kind] || "☠", label: result.label, kind: source.kind });
+          resolution.steps.push({
+            icon: re ? re.icon : (iconByKind[source.kind] || "☠"),
+            label: result.label + (re ? re.note : ""),
+            kind: source.kind,
+          });
         }
       }
     }

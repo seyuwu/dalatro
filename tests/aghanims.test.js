@@ -650,13 +650,8 @@ test("Beastmaster Call of the Wild: ранги ±1 считаются", () => {
   assert(stepLabels(res2).some((l) => l.includes("Wild Axes") && l.includes("+4")), "пара рангов");
 });
 
-test("Фикс #44 «Специализация»: 3+ одного атрибута дают +2% урона", () => {
-  const s = agRun("AGSP1");
-  agAdd(s, ["lina"]);
-  s.run.upgrades = ["specializaciya"];
-  const res = agPlay(s, ["cm", "zeus", "lina"], 999999);
-  assert(stepLabels(res).some((l) => l.includes("Улучшения лавки: +2% урона")), "условие наконец работает");
-});
+// Тест «Фикс #44 Специализация» удалён вместе с самим улучшением:
+// свап пула v2 убрал условные +% хуки (улучшения теперь — контроль, не проценты).
 
 suite("Aghanim — текстовые 15 (батч 3)");
 
@@ -951,4 +946,18 @@ test("Слоты и серия пишутся после боя (проводк�
   assert(s.combat.lastSlot && s.combat.lastSlot.cm === 0, "слоты запоминаются");
   assertEq(s.run.comboStreak, 1, "серия инициализирована");
   assert(Object.keys(s.run.comboTypes || {}).length === 1, "тип комбо записан");
+});
+
+test("Увольнение героя возвращает половину цены аугментов", () => {
+  const s = agRun("AGREF1");
+  agAdd(s, ["ursa"]);
+  agEquip(s, "ursa", "scepter", "ursa_sc");
+  agEquip(s, "ursa", "shard", "ursa_sh");
+  s.combat.outcome = "cleared";
+  Game.dispatch(s, { type: "ENTER_SHOP" });
+  s.run.gold = 4;
+  Game.dispatch(s, { type: "EXILE_HERO", heroId: "ursa" });
+  assert(!s.run.aghanims.ursa, "аугменты сняты с владельца");
+  assertEq(s.run.gold, 6, "−4 увольнение, +5 за скипетр, +1 за осколок");
+  assert(s.log.some((l) => l.includes("возвращено 6 золота")), "компенсация в журнале");
 });

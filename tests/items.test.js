@@ -124,3 +124,70 @@ test("itemSynergy: Daedalus видит PA, BKB видит модификатор
   const bkbLines = Advisor.itemSynergy("bkb", s);
   assert(bkbLines.some((l) => l.includes("Armor")), "BKB знает про Armor на T2");
 });
+
+// ---------- Refresher: читаемость стека боя ----------
+
+function stepLabels(res) {
+  return res.steps.map((st) => st.label);
+}
+
+test("Refresher: второй прогон способностей помечен «повтор», порядок виден в стеке", () => {
+  const s = newRun("RFR1");
+  s.player.items.push("refresher");
+  const res = play(s, ["zeus", "morphling"]);
+  assertEq(res.damage, 120, "урон как в combat-тесте: 20 × (2+2+2)");
+  const labels = stepLabels(res);
+  const refIdx = labels.findIndex((l) => l.includes("Refresher Orb"));
+  const firstIdx = labels.findIndex((l) => l.includes("Zeus: +2"));
+  const repeatIdx = labels.findIndex((l) => l.includes("повтор"));
+  assert(refIdx !== -1, "шаг рефрешера в стеке");
+  assert(firstIdx !== -1 && firstIdx < refIdx, "первый Static Field до рефрешера");
+  assert(repeatIdx !== -1 && repeatIdx > refIdx, "повтор Static Field после рефрешера");
+  assertEq(labels.filter((l) => l.includes("повтор")).length, 1, "ровно один повторный шаг");
+});
+
+test("Безмолвие: Refresher пишет «заглушен», герои молчат, повторов нет", () => {
+  const s = newRun("RFRSL1");
+  s.player.items.push("refresher");
+  s.combat.wave.modifiers.push({ id: "silence" });
+  const res = play(s, ["zeus", "morphling"]);
+  const labels = stepLabels(res);
+  assert(labels.some((l) => l.includes("Refresher Orb") && l.includes("заглушен")), "честный шаг вместо обещания двойного прогона");
+  assert(!labels.some((l) => l.includes("Static Field")), "способности героев молчат");
+  assert(!labels.some((l) => l.includes("повтор")), "второго прогона нет");
+});
+
+// ===== Эпики v2 (Tempest Double, Miser's Chest) =====
+
+test("Tempest Double: первый бой волны — способности героев дважды, дальше один раз", () => {
+  const s = newRun("TDOUBLE1");
+  s.player.items.push("tempest_double");
+  const res = play(s, ["zeus", "morphling"]);
+  assertEq(res.damage, 120, "как с Refresher: 20 × (2+2+2)");
+  assert(stepLabels(res).some((l) => l.includes("Tempest Double")), "шаг двойника в стеке");
+  // Второй бой волны: FIGHT_FIRST уже не выполняется.
+  forceHand(s, ["zeus", "morphling"]);
+  s.combat.selectedUids = s.player.handUids.slice();
+  Game.dispatch(s, { type: "CONFIRM_FIGHT" });
+  const res2 = s.combat.lastResolution;
+  assertEq(res2.damage, 80, "без двойника: 20 × (2+2)");
+  assert(!stepLabels(res2).some((l) => l.includes("повтор")), "повторного прогона нет");
+});
+
+test("Tempest Double под Безмолвием честно молчит", () => {
+  const s = newRun("TDOUBLE2");
+  s.player.items.push("tempest_double");
+  s.combat.wave.modifiers.push({ id: "silence" });
+  const res = play(s, ["zeus", "morphling"]);
+  assertEq(res.damage, 40, "способности героев глушены: 20 × 2");
+  assert(!stepLabels(res).some((l) => l.includes("повтор")), "второго прогона нет");
+});
+
+test("Miser's Chest: +1G за каждый неиспользованный ТП-сброс в бою", () => {
+  const s = newRun("MCHEST1");
+  s.player.items.push("misers_chest");
+  const before = s.run.gold;
+  const res = play(s, ["tusk", "cm"]);
+  assertEq(s.run.gold - before, 3, "3 сброса не потрачены — +3G");
+  assert(stepLabels(res).some((l) => l.includes("Miser's Chest") && l.includes("+3")), "шаг в стеке боя");
+});

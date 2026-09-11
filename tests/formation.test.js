@@ -68,14 +68,24 @@ test("митигейт: физический урон минус броня T2, 
   assert(frmHasStep(res, "Броня башни 14"), "шаг митигейта телеграфирует расчёт");
 });
 
-test("чистый урон игнорирует броню (Клин/4-1 pure)", () => {
+test("чистый урон игнорирует броню (Клин pure)", () => {
   const s = frmRun("FRM5", "formation");
   s.combat.wave.towerId = "t2";
-  const res = frmPlay(s, ["cm", "tusk", "centaur", "pudge", "zeus"]);
-  assertEq(res.combo.type, "protect", "пик в центре, margin 4: 10 против среднего 4.25");
+  // Zeus теперь «рядом INT» (Static Field): cm стоит соседом, чтобы +2 множ. жил.
+  const res = frmPlay(s, ["cm", "zeus", "centaur", "tusk", "pudge"]);
+  assertEq(res.combo.type, "wedge", "пик в центре, но свита не на 4 слабее: не 4p1, берётся Клин");
   assertEq(res.damageType, "pure");
-  assertEq(res.damage, 425, "(23+5+27+8 Tusk) × (3.0+0.4 Интеллект +2 Zeus) × 1.25 — броня T2 не применяется");
+  assertEq(res.damage, 315, "(16+5 связки+27+8 Tusk) × (2.1+0.4 Интеллект+2 Zeus) × 1.25 — броня T2 не применяется");
   assert(frmHasStep(res, "Чистый урон"), "шаг «чистый урон» в стеке");
+});
+
+test("4 Protect 1: порог по СИЛЬНЕЙШЕМУ из свиты, не по среднему", () => {
+  // Каноничный: Primal 11 в центре, свита 2/3/5/7 — 11 ≥ 7+4.
+  const ok = frmPlay(frmRun("FRM9", "formation"), ["cm", "tusk", "primal", "pudge", "zeus"]);
+  assertEq(ok.combo.type, "protect", "кэрри на 4+ сильнее каждого");
+  // Рядом с кэрри почти равный герой — 4p1 не собирается (раньше собирался по среднему).
+  const no = frmPlay(frmRun("FRM9b", "formation"), ["cm", "tusk", "primal", "pudge", "centaur"]);
+  assert(no.combo.type !== "protect", "11 против Центавра 10 — не «защита кэрри»");
 });
 
 test("алиас Satanic: ×1.5 на слабых формациях (tier ≤ 2), молчит на жирных", () => {

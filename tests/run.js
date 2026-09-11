@@ -34,9 +34,30 @@ const SRC_FILES = [
   "src/systems/economy.js",
   "src/systems/advisor.js",
   "src/ui/icons.js",
+  "src/ui/art.js",
+  "src/ui/ui.js",
 ];
 
-const ctx = vm.createContext({ console, structuredClone });
+// DOM/Sfx-заглушки: ui.js рендерит в innerHTML и читает Sfx.isMuted —
+// для headless smoke-тестов хватает пустышек.
+const appEl = { innerHTML: "", scrollTop: 0 };
+const stubEl = () => ({ innerHTML: "", scrollTop: 0, style: {}, classList: { toggle() {}, add() {}, remove() {} }, appendChild() {}, remove() {} });
+const documentStub = {
+  body: stubEl(),
+  getElementById: (id) => (id === "app" ? appEl : stubEl()),
+  querySelector: () => null,
+  querySelectorAll: () => [],
+  createElement: () => stubEl(),
+  addEventListener() {},
+};
+
+const ctx = vm.createContext({
+  console,
+  structuredClone,
+  document: documentStub,
+  window: {},
+  Sfx: { isMuted: () => false, play() {}, toggleMuted() {} },
+});
 
 for (const file of SRC_FILES) {
   const code = readFileSync(join(root, file), "utf8");

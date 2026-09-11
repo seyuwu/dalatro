@@ -1,179 +1,163 @@
-// Dalatro content — улучшения лавки (спек §5, фаза F). Отдельный слой
-// прогресса: НЕ занимают слоты предметов, накопительная ценность ~1–5%.
-// Два формата:
-//   scalar — агрегируются в systems/upgrades.js (одна точка интеграции на ключ);
-//   ability — хуки через СУЩЕСТВУЮЩУЮ триггерную систему (kind: "upgrade").
-// Реализовано 48 из 100 строк спека. Отложено с причинами (см. конец файла).
+// Dalatro content — улучшения лавки v2. Отдельный слой прогресса: НЕ занимают
+// слоты предметов. Правило пула: карточка проходит, если её эффект игрок
+// ЧУВСТВУЕТ за один акт — гарантированное событие, кнопка или правило.
+// Никаких лотерей до ~25% и никаких голых «+1–2%».
+//
+// Форматы:
+//   scalar — плоские агрегаты (systems/upgrades.js, sum × уровень);
+//   ability — боевые хуки через триггерную систему (kind: "upgrade");
+//   type:"active" — кнопка: activation { context, access, target? } + effect
+//            (примитивы применяет движок в ACTIVATE_UPGRADE);
+//   react — слушатели вне-боевых событий движка (WAVE_FAILED, UPGRADE_ACTIVATED);
+//   onBuy — флаги при покупке.
+//   levels: [{desc}, ...] — ступени скалярных дефов: уровень N даёт scalar × N
+//            и стоит cost × N; ступень II приходит отдельной карточкой «Усилить».
+//
+// Контексты кнопок: route (экран развилки), shop (лавка), wave (экран волны,
+// рядом с «В бой»), failed (модалка провала — кнопка у «Новая попытка»), any.
 const UPGRADES_DATA = [
-  // ===== СКАЛЯРЫ =====
-  { id: "ostryi_kraj", name: "Острый край", emoji: "🗡️", rarity: "common", cost: 2,
-    scalar: { dmg: 1 }, desc: "+1% к итоговому урону каждого боя." }, // #11
-  { id: "krepkaya_mast", name: "Крепкая масть", emoji: "🃏", rarity: "common", cost: 2,
-    scalar: { cardBuffPct: 2 }, desc: "Случайная карта в бою получает +2% силы." }, // #2
-  { id: "bystryy_dabor", name: "Быстрый добор", emoji: "📥", rarity: "common", cost: 2,
-    scalar: { extraDrawChance: 5 }, desc: "5% шанс: следующая волна играется с +1 картой в руке." }, // #3
+  // ===== ПАССИВКИ-ПРАВИЛА (плоские и гарантированные) =====
   { id: "chistyy_dabor", name: "Чистый добор", emoji: "♻️", rarity: "common", cost: 2,
-    scalar: { discardsBonus: 1 }, desc: "+1 ТП-сброс за волну." }, // #4
-  { id: "maly_rezerv", name: "Малый резерв", emoji: "📦", rarity: "uncommon", cost: 3,
-    scalar: { discardsBonus: 1 }, desc: "+1 ТП-сброс за волну. Складывается с «Чистым добором»." }, // #9
+    scalar: { discardsBonus: 1 },
+    levels: [{ desc: "+1 ТП-сброс за волну." }, { desc: "+2 ТП-сброса за волну (эффект ×2, цена ×2)." }],
+    desc: "+1 ТП-сброс за волну." }, // #4
   { id: "koshelek", name: "Кошелёк", emoji: "👛", rarity: "common", cost: 2,
-    scalar: { goldPerAct: 5 }, desc: "+5 золота при переходе в новый акт." }, // #51
-  { id: "meloch", name: "Мелочь", emoji: "🪙", rarity: "common", cost: 2,
-    scalar: { goldChance: 5 }, desc: "5% шанс +1 золота после зачистки волны." }, // #52
-  { id: "berezhlivost", name: "Бережливость", emoji: "🧮", rarity: "common", cost: 2,
-    scalar: { thirdRerollOff: 1 }, desc: "Каждый третий реролл лавки дешевле на 1." }, // #53
-  { id: "torg", name: "Торг", emoji: "🤝", rarity: "uncommon", cost: 3,
-    scalar: { itemDiscountPct: 5 }, desc: "Случайный товар каждой лавки −5% (метка на карточке)." }, // #54
-  { id: "loyalnost", name: "Лояльность", emoji: "💗", rarity: "uncommon", cost: 3,
-    scalar: { shopLoyalty: 1 }, desc: "После трёх покупок в лавке следующий товар −1 золото." }, // #55
-  { id: "pereprodazha", name: "Перепродажа", emoji: "🏷️", rarity: "common", cost: 2,
-    scalar: { sell: 3 }, desc: "Продажа предметов +3% к цене." }, // #56
-  { id: "sberezheniya", name: "Сбережения", emoji: "🐖", rarity: "common", cost: 3,
-    scalar: { rerollRich: 1 }, desc: "При 15+ золоте реролл дешевле на 1." }, // #57
-  { id: "nalogovyy_vychet", name: "Налоговый вычет", emoji: "🧾", rarity: "common", cost: 2,
-    scalar: { postBossDiscount: 1 }, desc: "Первая покупка после босса акта −1 золото." }, // #58
-  { id: "monetka", name: "Монетка", emoji: "🪙", rarity: "common", cost: 2,
-    scalar: { purchaseRefundChance: 10 }, desc: "10% шанс вернуть 1 золото после покупки предмета." }, // #59
-  { id: "rezervnyy_fond", name: "Резервный фонд", emoji: "🏦", rarity: "common", cost: 2,
-    scalar: { brokeBonus: 1 }, desc: "Опустошили кошелёк покупкой? Вам дадут 1 золото." }, // #60
-  { id: "trenzal", name: "Тренировочный зал", emoji: "🏋️", rarity: "uncommon", cost: 3,
-    scalar: { xpStartBonus: 3 }, desc: "Нанятые герои начинают с +3 опыта." }, // #23
-  { id: "vdohn", name: "Вдохновение", emoji: "🎭", rarity: "rare", cost: 4,
-    scalar: { inspireXp: 2 }, desc: "Близкая победа (точный ласт-хит или оверкилл <10%) даёт героям боя +2 опыта." }, // #30
-  { id: "assortiment", name: "Хороший ассортимент", emoji: "🛍️", rarity: "rare", cost: 4,
-    scalar: { itemRareBias: 2 }, desc: "Редкие товары в лавке выпадают заметно чаще." }, // #61
-  { id: "pylnaya_polka", name: "Пыльная полка", emoji: "🕸️", rarity: "rare", cost: 4,
-    scalar: { dustChance: 15 }, desc: "15% шанс: в лавке будет редкий товар." }, // #62
-  { id: "bystryy_prodavets", name: "Быстрый продавец", emoji: "🏃", rarity: "common", cost: 2,
-    scalar: { firstRerollOff: 1 }, desc: "Первый реролл каждой лавки дешевле на 1." }, // #63
-  { id: "taynyy_yaschik", name: "Тайный ящик", emoji: "🎁", rarity: "rare", cost: 4,
-    scalar: { secretSlotChance: 15 }, desc: "15% шанс: в лавке появится лишний товар." }, // #65
+    scalar: { goldPerAct: 5 },
+    levels: [{ desc: "+5 золота при переходе в новый акт." }, { desc: "+10 золота при переходе в новый акт (эффект ×2, цена ×2)." }],
+    desc: "+5 золота при переходе в новый акт." }, // #51
   { id: "boyevoy_opyt", name: "Боевой опыт", emoji: "📜", rarity: "uncommon", cost: 3,
-    scalar: { winMilestoneGold: 3 }, desc: "Каждая 5-я зачистка за забег: +3 золота." }, // #72
-  { id: "seriya", name: "Серия", emoji: "🔗", rarity: "uncommon", cost: 3,
-    scalar: { streakGold: 2 }, desc: "Серия 2+ зачисток подряд: награда за зачистку +2%." }, // #73
-  { id: "staryy_amulet", name: "Старый амулет", emoji: "🧿", rarity: "rare", cost: 4,
-    scalar: { upgradeLoyalty: 1 }, desc: "Каждая пятая покупка улучшения дешевле на 1." }, // #96
-  { id: "malenkaya_udacha", name: "Маленькая удача", emoji: "✨", rarity: "common", cost: 2,
-    scalar: { shopCoinChance: 10 }, desc: "10% шанс: лавка встречает вас +2 золотами." }, // #100
-  { id: "podkova", name: "Подкова", emoji: "🧲", rarity: "common", cost: 3,
-    scalar: { luck: 1 }, desc: "+1 удача: улучшения в лавках выпадают жирнее." },
-  { id: "krolichya_lapka", name: "Кроличья лапка", emoji: "🐇", rarity: "rare", cost: 5,
-    scalar: { luck: 2 }, desc: "+2 удачи: редкие и эпические улучшения заметно чаще." },
-  { id: "klever", name: "Четырёхлистный клевер", emoji: "🍀", rarity: "mythic", cost: 8,
-    scalar: { luck: 3 }, desc: "+3 удачи. Топовые улучшения почти ваши." },
-  { id: "zolotoe_serdtse", name: "Золотое сердце", emoji: "💛", rarity: "mythic", cost: 7,
-    scalar: { dmg: 2, goldOnClear: 1 }, desc: "+2% урона и +1 золота после каждой зачистки." },
-
-  // ===== ХУКИ (триггерная система, kind: "upgrade") =====
+    scalar: { winMilestoneGold: 3 },
+    levels: [{ desc: "Каждая 5-я зачистка за забег: +3 золота." }, { desc: "Каждая 5-я зачистка за забег: +6 золота (эффект ×2, цена ×2)." }],
+    desc: "Каждая 5-я зачистка за забег: +3 золота." }, // #72
+  { id: "svobodnaya_kletka", name: "Свободная клетка", emoji: "⬜", rarity: "uncommon", cost: 3,
+    ability: { name: "Свободная клетка", event: "FIGHT_SCORING",
+      when: { type: "PLAYED_COUNT_ABOVE", value: 0 },
+      effects: [{ type: "ADD_POWER_PER_EMPTY_SLOT", value: 3 }] },
+    desc: "+3 силы за каждую пустую позицию. Билд «малым составом»." }, // #38
   { id: "iskra", name: "Искра", emoji: "⚡", rarity: "common", cost: 2,
     ability: { name: "Искра", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_RANDOM_CARD", value: 2 }] },
     desc: "Каждый бой случайный герой получает +2 силы." }, // #92
-  { id: "posl_shtrih", name: "Последний штрих", emoji: "🖌️", rarity: "common", cost: 2,
-    ability: { name: "Последний штрих", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_LAST_CARD", pct: 3 }] },
-    desc: "Последняя карта боя даёт +3% своей силы." }, // #5
-  { id: "pervaya_karta", name: "Первая карта", emoji: "🥇", rarity: "common", cost: 2,
-    ability: { name: "Первая карта", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_FIRST_CARD", pct: 3 }] },
-    desc: "Первая карта боя даёт +3% своей силы." }, // #6
-  { id: "podderzhka", name: "Поддержка", emoji: "🤲", rarity: "uncommon", cost: 3,
-    ability: { name: "Поддержка", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_WEAKEST", pct: 3 }] },
-    desc: "Слабейший герой отряда добавляет +3% своей силы." }, // #26
-  { id: "prochnyy_centr", name: "Прочный центр", emoji: "🗿", rarity: "uncommon", cost: 3,
-    ability: { name: "Прочный центр", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_CENTER", pct: 2 }] },
-    desc: "Центральная позиция отряда даёт +2% своей силы." }, // #32
-  { id: "krepkiy_kray", name: "Крепкий край", emoji: "🧱", rarity: "uncommon", cost: 3,
-    ability: { name: "Крепкий край", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_EDGES", pct: 2 }] },
-    desc: "Крайние позиции отряда дают +2% своей силы." }, // #33
-  { id: "svobodnaya_kletka", name: "Свободная клетка", emoji: "⬜", rarity: "uncommon", cost: 3,
-    ability: { name: "Свободная клетка", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 0 },
-      effects: [{ type: "ADD_POWER_PER_EMPTY_SLOT", value: 2 }] },
-    desc: "+2 силы за каждую пустую позицию." }, // #38
-  { id: "poslednij_udar", name: "Последний удар", emoji: "🩸", rarity: "common", cost: 2,
-    ability: { name: "Последний удар", event: "FIGHT_SCORING",
-      when: { type: "TOWER_HP_BELOW", pct: 10 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "Башня ниже 10% HP: +3% урона." }, // #13
-  { id: "vtoroe_dyhanie", name: "Второе дыхание", emoji: "💨", rarity: "uncommon", cost: 3,
-    ability: { name: "Второе дыхание", event: "FIGHT_SCORING",
-      when: { type: "TOWER_HP_BELOW", pct: 10 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Башня ниже 10% HP: ещё +2% урона. Копится с «Последним ударом»." }, // #97
-  { id: "ritm", name: "Ритм", emoji: "🥁", rarity: "uncommon", cost: 3,
-    ability: { name: "Ритм", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "3+ героя в отряде: +3% урона." }, // #15
-  { id: "polnyy_sostav", name: "Полный состав", emoji: "🎖️", rarity: "uncommon", cost: 3,
-    ability: { name: "Полный состав", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_IS", value: 5 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Полная пятёрка: +2% урона." },
-  { id: "plotnyy_stroy", name: "Плотный строй", emoji: "🛡️", rarity: "uncommon", cost: 3,
-    ability: { name: "Плотный строй", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 3 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 1 }] },
-    desc: "Отряд 4+ героя: +1% урона." }, // #39
-  { id: "universalnost", name: "Универсальность", emoji: "🌐", rarity: "uncommon", cost: 3,
-    ability: { name: "Универсальность", event: "FIGHT_SCORING",
-      when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "3+ разных атрибута в отряде: +2% урона." }, // #43
-  { id: "specializaciya", name: "Специализация", emoji: "🔱", rarity: "uncommon", cost: 3,
-    ability: { name: "Специализация", event: "FIGHT_SCORING",
-      when: { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 2 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "3+ героя одного атрибута: +2% урона." }, // #44
-  { id: "tochnaya_rasstanovka", name: "Точная расстановка", emoji: "🧩", rarity: "uncommon", cost: 3,
-    ability: { name: "Точная расстановка", event: "FIGHT_SCORING",
-      when: { type: "MODE_IS", value: "formation" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Режим формаций: +2% урона." }, // #31
-  { id: "nestandart", name: "Нестандартное мышление", emoji: "🧠", rarity: "uncommon", cost: 3,
-    ability: { name: "Нестандартное мышление", event: "FIGHT_SCORING",
-      when: { type: "COMBO_DIFFERENT_FROM_LAST" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "Комбо отличается от предыдущего боя: +2% урона." }, // #99
-  { id: "uporstvo", name: "Упорство", emoji: "🔥", rarity: "uncommon", cost: 3,
-    ability: { name: "Упорство", event: "FIGHT_SCORING",
-      when: { type: "AFTER_FAILURE" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 2 }] },
-    desc: "После проваленной волны: +2% урона до первой победы." }, // #78
-  { id: "ekonomnyy", name: "Экономный бой", emoji: "🪙", rarity: "common", cost: 2,
-    ability: { name: "Экономный бой", event: "FIGHT_SCORING", chance: 0.15,
-      when: { type: "FIGHTS_LEFT_ABOVE", value: 1 },
-      effects: [{ type: "GOLD", value: 1 }] },
-    desc: "15%: +1 золото, если победа взята малой кровью." }, // #19
   { id: "tochnyy_raschet", name: "Точный расчёт", emoji: "🎯", rarity: "rare", cost: 4,
     ability: { name: "Точный расчёт", event: "FIGHT_SCORING",
       effects: [{ type: "LAST_HIT_GOLD", value: 3 }] },
     desc: "Точный ласт-хит приносит +3 золота." }, // #18
-  { id: "bossslayer", name: "Боссобой", emoji: "👑", rarity: "rare", cost: 4,
-    ability: { name: "Боссобой", event: "FIGHT_SCORING",
-      when: { type: "IS_BOSS_WAVE" },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "На волне босса: +3% урона." },
-  { id: "odinokiy_volk", name: "Одинокий волк", emoji: "🐺", rarity: "uncommon", cost: 3,
-    ability: { name: "Одинокий волк", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_IS", value: 1 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 4 }] },
-    desc: "Соло-рейд: +4% урона, если в бою ровно один герой." },
-  { id: "perelom", name: "Перелом", emoji: "📉", rarity: "uncommon", cost: 3,
-    ability: { name: "Перелом", event: "FIGHT_SCORING",
-      when: { type: "TOWER_HP_BELOW", pct: 25 },
-      effects: [{ type: "ADD_DAMAGE_PCT", value: 3 }] },
-    desc: "Башня ниже четверти HP: +3% урона." }, // #20
+  { id: "trenzal", name: "Тренировочный зал", emoji: "🏋️", rarity: "uncommon", cost: 3,
+    scalar: { xpStartBonus: 3 },
+    levels: [{ desc: "Нанятые герои начинают с +3 опыта." }, { desc: "Нанятые герои начинают с +6 опыта (эффект ×2, цена ×2)." }],
+    desc: "Нанятые герои начинают с +3 опыта." }, // #23
+  { id: "vdohn", name: "Вдохновение", emoji: "🎭", rarity: "rare", cost: 4,
+    scalar: { inspireXp: 2 }, desc: "Близкая победа (точный ласт-хит или оверкилл <10%) даёт героям боя +2 опыта." }, // #30
+  { id: "assortiment", name: "Хороший ассортимент", emoji: "🛍️", rarity: "rare", cost: 4,
+    scalar: { itemRareBias: 2 }, desc: "Редкие товары в лавке выпадают заметно чаще." }, // #61
+  { id: "podkova", name: "Подкова", emoji: "🧲", rarity: "common", cost: 3,
+    scalar: { luck: 1 },
+    levels: [{ desc: "+1 удача: улучшения в лавках выпадают жирнее." }, { desc: "+2 удачи: улучшения в лавках выпадают жирнее (эффект ×2, цена ×2)." }],
+    desc: "+1 удача: улучшения в лавках выпадают жирнее." },
+  { id: "krolichya_lapka", name: "Кроличья лапка", emoji: "🐇", rarity: "rare", cost: 5,
+    scalar: { luck: 2 }, desc: "+2 удачи: редкие и эпические улучшения заметно чаще." },
+  { id: "klever", name: "Четырёхлистный клевер", emoji: "🍀", rarity: "mythic", cost: 8,
+    scalar: { luck: 3 }, desc: "+3 удачи. Топовые улучшения почти ваши." },
 
-  // Отложено с причинами: #21/24/25/27/28 (нужен учёт «стажа» героя) — ждут
-  // расширения фазы G; #23/#30 реализованы выше;
-  // Архив руки/Дубликатор/Запас/Замок/Продавец знакомых (#8/10/64/66/68) —
-  // UI-механики переноса и хранения; ослабления штрафов (#7/41/46/50/76/77) —
-  // у игрока пока нет негативных случайных эффектов; информационные
-  // (#80–90) — тип, HP и моды башни уже видны до боя в базовом UI.
+  // ===== АКТИВКИ — РАЗВИЛКА =====
+  { id: "kartograf", name: "Картограф", emoji: "🗺️", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "route", access: { act: 2 } },
+    effect: { type: "rerollRoute" },
+    desc: "Кнопка на развилке: перевыбросить все пути. 2 раза за акт." },
+  { id: "dezertir", name: "Дезертир", emoji: "🏃", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "route", access: { act: 1 }, target: "routeOption" },
+    effect: { type: "replaceRouteOption" },
+    desc: "Кнопка на карточке пути: заменить этот путь новым. 1 раз за акт." },
+  { id: "podsmotr", name: "Подсмотр", emoji: "👁️", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "route", access: { charges: 2 } },
+    effect: { type: "revealRoutes" },
+    desc: "Кнопка на развилке: вскрыть скрытые жребии — точные HP и будущие правила. 2 заряда за забег." },
+
+  // ===== АКТИВКИ — ЛАВКА =====
+  { id: "torgash", name: "Торгаш", emoji: "🤝", rarity: "common", cost: 2,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 }, target: "item" },
+    effect: { type: "discountItem", value: 30 },
+    desc: "Кнопка на товаре: −30% к его цене. 1 раз за акт." },
+  { id: "magnit", name: "Магнит", emoji: "🧲", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 } },
+    effect: { type: "guaranteeItemRarity", value: "rare" },
+    desc: "Кнопка в лавке: в следующей лавке гарантированно будет редкий товар. 1 раз за акт." },
+  { id: "insider", name: "Инсайдер", emoji: "🕵️", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "shop", access: { charges: 2 } },
+    effect: { type: "guaranteeUpgradeRarity", value: "rare" },
+    desc: "Кнопка в лавке: следующая полка улучшений гарантированно содержит rare+. 2 заряда за забег." },
+  { id: "surprise", name: "Сюрприз", emoji: "🎁", rarity: "uncommon", cost: 3,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 } },
+    effect: { type: "freeItemOffer" },
+    desc: "Кнопка в лавке: торговец выставляет бесплатный товар прямо сейчас. 1 раз за акт." },
+  { id: "v_dolg", name: "В долг", emoji: "💳", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 }, target: "item" },
+    effect: { type: "buyOnDebt" },
+    desc: "Кнопка на товаре: купить без золота — заплатишь +25% после следующей зачистки. 1 раз за акт." },
+  { id: "obhodchik", name: "Обходчик", emoji: "🏕️", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "shop", access: { act: 1 } },
+    effect: { type: "skipBattle" },
+    desc: "Кнопка в лавке: следующая волна пропускается без боя и без награды. 1 раз за акт." },
+
+  // ===== АКТИВКИ — БОЙ =====
+  { id: "vozvrat", name: "Второе дыхание", emoji: "♻️", rarity: "common", cost: 2,
+    type: "active",
+    activation: { context: "wave", access: { charges: 2 } },
+    effect: { type: "pickDiscard" },
+    desc: "Кнопка в бою: вернуть карту из сброса в руку. 2 заряда за забег." },
+  { id: "ignor", name: "Игнор", emoji: "🛡️", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "wave", access: { charges: 2 } },
+    effect: { type: "ignoreTowerMods" },
+    desc: "Кнопка в бою: следующий бой игнорирует правила башни (глиф, броня, проклятия). 2 заряда за забег." },
+  { id: "schastlivy", name: "Счастливый случай", emoji: "🎲", rarity: "rare", cost: 5,
+    type: "active",
+    activation: { context: "wave", access: { charges: 1 } },
+    effect: { type: "forceHeroTriggers" },
+    desc: "Кнопка в бою: в следующем бою способности героев срабатывают гарантированно. 1 заряд за забег." },
+  { id: "vabank", name: "Ва-банк", emoji: "🔥", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "wave", access: { act: 1 } },
+    effect: { type: "vaBank", value: 20 },
+    desc: "Кнопка в бою: следующий бой +20% урона. Провал волны отнимет вторую казарму. 1 раз за акт." },
+  { id: "peresdacha", name: "Пересдача", emoji: "🕯️", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "failed", access: { act: 1 } },
+    effect: { type: "freeRetry" },
+    desc: "Кнопка на экране провала: переиграть волну, не теряя казарму. 1 раз за акт." },
+
+  // ===== ENGINE — улучшения, играющие с другими улучшениями =====
+  { id: "kondensator", name: "Конденсатор", emoji: "🔋", rarity: "rare", cost: 5,
+    react: [{ event: "UPGRADE_ACTIVATED", effects: [{ type: "ENERGY", value: 1 }] }],
+    desc: "Каждая активация любого улучшения даёт +1⚡ энергии (кап 6)." },
+  { id: "peregruzka", name: "Перегрузка", emoji: "⚡", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "any", access: { energy: 2 } },
+    effect: { type: "doubleNext" },
+    desc: "Потратить 2⚡: следующая активация улучшения срабатывает дважды." },
+  { id: "katalizator", name: "Катализатор", emoji: "🧠", rarity: "epic", cost: 7,
+    type: "active",
+    activation: { context: "any", access: { act: 1 } },
+    effect: { type: "resetActLimits" },
+    desc: "Кнопка где угодно: все лимиты «за акт» у твоих активок сбрасываются. 1 раз за акт." },
+
+  // ===== РЕАКТИВКИ И МИФИКИ =====
+  { id: "optimist", name: "Оптимист", emoji: "🎲", rarity: "uncommon", cost: 3,
+    react: [{ event: "WAVE_FAILED", effects: [{ type: "GOLD_FLAT", value: 4 }] }],
+    desc: "Провал волны: +4 золота на восстановление." },
+  { id: "posledniy_bilet", name: "Последний билет", emoji: "☠️", rarity: "mythic", cost: 9,
+    onBuy: { flags: { extraLife: true }, log: "Последний билет: спасение забега заряжено. Один раз казарма не уйдёт в минус." },
+    desc: "Раз за забег провал, обнуляющий казармы, оставляет одну. Без штрафов." },
+  { id: "pakt_fortunes", name: "Пакт с Фортуны", emoji: "🎰", rarity: "mythic", cost: 9,
+    react: [{ event: "WAVE_FAILED", effects: [{ type: "FORTUNE" }] }],
+    desc: "Каждый провал: +1 удача (копится с Подковой). На 5-й удаче в лавке ждёт мифическое улучшение." },
 ];

@@ -104,6 +104,15 @@ const Cond = (function () {
         if (!ctx.playedCards) return false;
         const counts = {};
         for (const c of ctx.playedCards) for (const a of cardAttrs(c)) counts[a] = (counts[a] || 0) + 1;
+        // Скипетр «Starbreaker» (Dawnbreaker): Универсал — джокер атрибутов для
+        // условий, поэтому присоединяется к крупнейшему реальному бакету
+        // (паритет с attrIs: иначе Фаланга не видит джокера).
+        const uni = counts.uni || 0;
+        if (uniWildcard(ctx) && uni && Object.keys(counts).length > 1) {
+          delete counts.uni;
+          const best = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+          counts[best] += uni;
+        }
         return Object.values(counts).some((n) => n > condition.value);
       }
       case "SLOT_IS":
@@ -116,12 +125,6 @@ const Cond = (function () {
         return ctx.playedCards && ctx.playedCards.length > condition.value;
       case "PLAYED_COUNT_BELOW":
         return ctx.playedCards && ctx.playedCards.length < condition.value;
-      case "POWER_ABOVE":
-        return typeof ctx.power === "number" && ctx.power > condition.value;
-      case "HAS_ITEM":
-        return ctx.state && ctx.state.player.items.includes(condition.item);
-      case "TAG_IS":
-        return !!(ctx.hero && ctx.hero.tags && ctx.hero.tags.includes(condition.tag));
       case "EXISTS_ATTRIBUTE":
         // Any OTHER played card (self excluded by reference) with this attribute.
         return !!(ctx.playedCards && ctx.playedCards.some(
@@ -166,8 +169,6 @@ const Cond = (function () {
         return !!(ctx.combo && ctx.state && ctx.state.combat.lastComboType && ctx.state.combat.lastComboType !== ctx.combo.type);
       case "AFTER_FAILURE":
         return !!(ctx.state && ctx.state.run.failedLastWave);
-      case "FIGHTS_LEFT_ABOVE":
-        return !!(ctx.state && ctx.state.player.fightsLeft > condition.value);
       case "TOWER_HP_BELOW":
         // Улучшение «Перелом»: башня ниже pct% текущего максимума.
         return !!(ctx.state && ctx.state.combat.wave &&

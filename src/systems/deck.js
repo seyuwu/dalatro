@@ -24,8 +24,7 @@ const DeckSys = (function () {
   function handSize(state) {
     return Ranks.handSize(state)
       + (state.run.waveHandBonus || 0)
-      + (state.run.handSlots || 0)
-      + (typeof Upgrades !== "undefined" ? Upgrades.sum(state, "hand") : 0);
+      + (state.run.handSlots || 0);
   }
 
   function draw(state, rng) {

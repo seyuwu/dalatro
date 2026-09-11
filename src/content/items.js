@@ -39,6 +39,7 @@ const ITEMS_DATA = [
   },
   {
     id: "bkb", name: "Black King Bar", cost: 7, emoji: "🛡️", rarity: "common", category: "rule", slotClass: "def",
+    rule: ["disarmMines", "ignoreDisarm"],
     desc: "Игнорирует модификаторы башен (Armor, Glyph, мины Techies). На Рошана не действует.",
     ability: { name: "Avatar", event: "FIGHT_SCORING", effects: [{ type: "IGNORE_TOWER_MODS" }] },
   },
@@ -54,6 +55,7 @@ const ITEMS_DATA = [
   },
   {
     id: "sentry", name: "Sentry Ward", cost: 6, emoji: "👁️", rarity: "common", category: "rule", slotClass: "def",
+    rule: "disarmMines",
     desc: "Обезвреживает мины Techies: заминированные карты можно разыгрывать.",
   },
 
@@ -129,7 +131,8 @@ const ITEMS_DATA = [
   },
   {
     id: "ledger", name: "Trader's Ledger", cost: 6, emoji: "📒", rarity: "rare", category: "rule", slotClass: "util",
-    desc: "Живой ассортимент: после покупки улучшения его карточку можно обновить за 1G. Смена стратегии без ожидания.",
+    rule: "freeUpgradeReroll",
+    desc: "Живой ассортимент: первый реролл улучшений в каждой лавке бесплатный.",
   },
   {
     id: "refresher", name: "Refresher Orb", cost: 10, emoji: "♻️", rarity: "rare", category: "mult", slotClass: "util",
@@ -176,5 +179,19 @@ const ITEMS_DATA = [
     id: "octarine", name: "Octarine Core", cost: 12, emoji: "🔮", rarity: "epic", category: "mult", slotClass: "util",
     desc: "+1 к множителю за каждый твой предмет. Чем жирнее билд — тем сильнее ядро.",
     ability: { name: "Cooldown Reduction", event: "FIGHT_SCORING", effects: [{ type: "ADD_MULT_PER_ITEM", value: 1 }] },
+  },
+  {
+    id: "tempest_double", name: "Tempest Double", cost: 12, emoji: "👥", rarity: "epic", category: "mult", slotClass: "util",
+    desc: "Двойник: в первом бою каждой волны способности героев срабатывают дважды.",
+    ability: {
+      name: "Tempest Double", event: "FIGHT_SCORING",
+      when: { type: "FIGHT_FIRST" },
+      effects: [{ type: "REFRESH_HERO_TRIGGERS" }],
+    },
+  },
+  {
+    id: "misers_chest", name: "Miser's Chest", cost: 12, emoji: "💰", rarity: "epic", category: "economy", slotClass: "util",
+    desc: "Скупость вознаграждается: каждый бой приносит +1 золото за каждый неиспользованный ТП-сброс волны.",
+    ability: { name: "Hoard", event: "FIGHT_SCORING", effects: [{ type: "ADD_GOLD_PER_UNUSED_DISCARD", value: 1 }] },
   },
 ];

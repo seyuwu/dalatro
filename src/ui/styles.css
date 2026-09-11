@@ -292,6 +292,9 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .hero-hand .hero-card:nth-child(-n+2):hover .hero-tooltip { animation: tooltipInL .16s ease-out; }
 @keyframes tooltipInL { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .hero-hand .hero-card:nth-child(n+6) .hero-tooltip { left: auto; right: 0; transform: none; }
+/* правым крайним картам — анимация без translateX(-50%): общая tooltipIn
+   дёргала тултип в конце открытия (прыжок у двух последних героев). */
+.hero-hand .hero-card:nth-child(n+6):hover .hero-tooltip { animation: tooltipInL .16s ease-out; }
 .hero-hand .hero-card:nth-child(n+6) .hero-tooltip:after { left: auto; right: 26px; margin-left: 0; }
 
 /* универсальный мягкий тултип: контейнер с data-tip + вложенный .pop */
@@ -1111,6 +1114,10 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 @keyframes hitGlow { from { box-shadow: 0 0 6px #a5c17a14; } to { box-shadow: 0 0 16px #a5c17a30; } }
 .modal { animation: modalIn .18s ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: none; } }
+/* Ререндер открытой модалки (пикер отряда/ранга, поиск в коллекции):
+   без повторного появления — окно не мигает на каждый клик. */
+.modal-backdrop.no-anim,
+.modal-backdrop.no-anim .modal { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -1202,3 +1209,67 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .augh-mark { display: inline-block; font-size: 9px; margin-left: 3px; vertical-align: 1px; filter: drop-shadow(0 0 3px rgba(186,104,200,.75)); cursor: help; }
 .augh-lab { display: block; margin-top: 4px; padding: 6px 8px; border: 1px solid #6b4a78; border-radius: 7px; background: #221826; color: #cfa9dd; font-size: 10.5px; line-height: 1.5; }
 .augh-lab b { color: #e3c6ef; }
+
+/* аугменты в тултипе героя и на карточке лавки: серые — не куплены, свечение — куплены */
+.augh-tip { display: block; text-align: left; font-size: 10px; line-height: 1.5; color: #77836f; margin-top: 4px; }
+.augh-tip b { color: #87947e; font-weight: 700; }
+.augh-tip.owned { color: #e4c8ff; text-shadow: 0 0 9px rgba(186,104,200,.95), 0 0 3px rgba(219,146,255,.55); }
+.augh-tip.owned b { color: #f2dcff; }
+.augh-lab .augh-tip { margin-top: 3px; }
+.augh-kind { display: block; font-size: 9px; letter-spacing: .8px; text-transform: uppercase; color: #bb8fd4; margin-bottom: 2px; }
+
+/* аугменты в лавке: карточки на анатомии рекрутов, акцент по виду */
+.shop-aghanims { margin-top: 14px; }
+.shop-aghanims .recruit-row { margin-top: 10px; }
+.recruit-card.augh-card.scepter { border-color: #7a4a99; background: #231a2a; }
+.recruit-card.augh-card.scepter .augh-kind { color: #cf9fe8; }
+.recruit-card.augh-card.shard { border-color: #35608a; background: #16222e; }
+.recruit-card.augh-card.shard .augh-kind { color: #8fb8dd; }
+.augh-emoji { position: absolute; right: 3px; bottom: 2px; z-index: 2; font-size: 15px; font-style: normal; filter: drop-shadow(0 0 5px rgba(0,0,0,.9)); }
+.recruit-card.augh-card.scepter .augh-emoji { filter: drop-shadow(0 0 6px rgba(186,104,200,.95)); }
+
+/* инвентарь: честные 6 слотов в один ряд (раньше было 5 колонок при 6 слотах — шестой прыгал) */
+.inventory-slots { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .inventory-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* глоссарий в справочнике */
+.glossary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 8px 0 14px; }
+.glossary > div { border: 1px solid #33402c; border-radius: 7px; padding: 8px 10px; background: #1a231780; }
+.glossary strong { display: block; font-size: 11px; color: #cdd6b8; margin-bottom: 3px; }
+.glossary p { font-size: 10px; line-height: 1.55; color: #8d9b74; }
+
+/* аугменты в тултипе: шапка вида+имя, описание отдельной строкой */
+.augh-tip { margin-top: 7px; }
+.augh-tip + .augh-tip { margin-top: 6px; }
+.augh-tip b { display: block; }
+.augh-tip .augh-desc { display: block; font-size: 9px; line-height: 1.5; margin-top: 2px; opacity: .85; }
+
+/* ===== Улучшения v2: панель активок и контекстные кнопки ===== */
+.upgrades-panel { display: flex; flex-direction: column; gap: 5px; }
+.upg-row { display: flex; align-items: center; gap: 7px; font-size: 11.5px; padding: 3px 2px; border-bottom: 1px dashed #2c3a28; position: relative; cursor: help; }
+.upg-row:last-child { border-bottom: none; }
+.upg-emoji { font-size: 14px; filter: drop-shadow(0 0 4px rgba(0,0,0,.6)); }
+.upg-name { flex: 1; color: #dfe6cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upg-lvl { color: #d9b25f; margin-left: 2px; }
+.upg-status { font-size: 10px; color: #7fd4a0; background: #16241b; border: 1px solid #2c4a35; border-radius: 8px; padding: 1px 6px; white-space: nowrap; }
+.upg-status.empty { color: #66735f; background: transparent; border-color: #2c3a28; }
+.energy-badge { font-size: 11px; color: #ffd97a; background: #2b2413; border: 1px solid #4a3d1a; border-radius: 9px; padding: 1px 8px; white-space: nowrap; cursor: help; position: relative; }
+
+.upg-active-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; line-height: 1.2; padding: 6px 11px; border: 1px solid #40503a; border-radius: 8px; background: linear-gradient(180deg, #263122, #1c261a); color: #e8e4d8; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; position: relative; }
+.upg-active-btn small { color: #8a967f; font-size: 9.5px; }
+.upg-active-btn:hover:not(:disabled) { border-color: #d9b25f; box-shadow: 0 0 14px rgba(217,178,95,.18); transform: translateY(-1px); }
+.upg-active-btn:disabled { opacity: .4; cursor: not-allowed; }
+.upg-acc { color: #8a967f; font-size: 10px; }
+
+.route-actives, .wave-actives { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.route-actives { margin: 4px 0 10px; }
+.wave-actives { margin-top: 9px; justify-content: center; }
+.route-replace-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: center; }
+.route-replace { font-size: 10.5px; padding: 4px 9px; }
+
+.item-actives { display: inline-flex; gap: 4px; margin-right: auto; }
+.act-btn { position: relative; }
+.act-btn:not(:disabled) { border-color: #4a5f3e; color: #ffe9b0; }
+
+.upgrade-card.active-type .upgrade-emoji { text-shadow: 0 0 10px rgba(217,178,95,.55); }
+.upgrade-reroll.free-ledger { border-color: #4a5f3e; color: #b9e4c9; }

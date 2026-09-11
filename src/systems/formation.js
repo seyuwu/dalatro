@@ -74,15 +74,17 @@ const FormationSys = (function () {
     return ctx.n % 2 === 1 ? idx === mid : idx === mid || idx === mid + 1;
   }
 
-  // Кэрри в центре и заметно выше остальных — «4 protect 1».
+  // Кэрри в центре и заметно выше остальных — «4 protect 1». Порог — по
+  // СИЛЬНЕЙШЕМУ из остальных (не по среднему): иначе три слабых героя
+  // «разбавляют» планку и рядом с кэрри встаёт почти равный ему герой.
   function carryProtected(ctx, margin) {
     if (ctx.n < 5) return false;
     const center = Math.floor(ctx.n / 2);
     const carry = ctx.powers[center];
     if (carry !== ctx.maxPower) return false;
     const others = ctx.powers.filter((_, i) => i !== center);
-    const avgOthers = others.reduce((a, b) => a + b, 0) / others.length;
-    return carry >= avgOthers + margin;
+    const strongestOther = Math.max(...others);
+    return carry >= strongestOther + margin;
   }
 
   function frontIs(ctx, attr, minPower) {
@@ -108,8 +110,20 @@ const FormationSys = (function () {
       case "PLAYED_COUNT_ABOVE": return ctx.n > when.value;
       case "PLAYED_COUNT_BELOW": return ctx.n < when.value;
       case "DISTINCT_ATTRIBUTES_ABOVE": return new Set(ctx.attrs).size > when.value;
-      case "SAME_ATTRIBUTE_COUNT_ABOVE":
-        return Array.from(ctx.attrCounts.values()).some((n) => n > when.value);
+      case "SAME_ATTRIBUTE_COUNT_ABOVE": {
+        // Универсал — отдельный бакет; со скипетром Starbreaker (opts.uniWildcard)
+        // он — джокер: присоединяется к крупнейшему реальному бакету. Паритет с
+        // Cond.evaluate (conditions.js) — превью и бой считают одинаково.
+        const counts = {};
+        for (const [a, n] of ctx.attrCounts) counts[a] = n;
+        const uni = counts.uni || 0;
+        if (ctx.uniWildcard && uni && Object.keys(counts).length > 1) {
+          delete counts.uni;
+          const best = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+          counts[best] += uni;
+        }
+        return Object.values(counts).some((n) => n > when.value);
+      }
       case "FRONT_IS": return frontIs(ctx, when.attr, when.minPower || 0);
       case "BACK_IS": return backIs(ctx, when.attr, when.minPower || 0);
       case "PEAK_IN_CENTER": return peakInCenter(ctx);
@@ -118,8 +132,6 @@ const FormationSys = (function () {
       case "CARRY_PROTECTED": return carryProtected(ctx, when.margin || 0);
       case "COUNT_ATTR": return (ctx.attrCounts.get(when.attr) || 0) >= when.min;
       case "SAME_RANK_GROUP": return Array.from(ctx.rankCounts.values()).some((n) => n >= when.size);
-      case "ALL_RANKS_DISTINCT":
-        return ctx.n >= when.min && new Set(ctx.powers).size === ctx.n;
       default:
         // Делегируем в боевой Cond (COMBO_IS и пр. там уже умеют работать).
         if (typeof Cond !== "undefined") return Cond.evaluate(when, { playedCards: ctx.cards, card: null, slotIndex: -1 });
@@ -183,6 +195,9 @@ const FormationSys = (function () {
   function rankFormations(cards, opts = {}) {
     const withSlots = cards.map((c, i) => ({ ...c, slotIndex: c.slotIndex != null ? c.slotIndex : i }));
     const ctx = buildCtx(withSlots);
+    // Правило боя со скипетром Starbreaker (Dawnbreaker): Универсал — джокер
+    // условий. Бой передаёт флаг из scoring.flags, превью — так же, как бой.
+    ctx.uniWildcard = !!(opts && opts.uniWildcard);
     const list = [];
     for (const def of FORMATIONS_DATA) {
       if (!evalWhen(def.when, ctx)) continue;

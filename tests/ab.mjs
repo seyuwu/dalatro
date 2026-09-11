@@ -24,6 +24,7 @@ const SRC_FILES = [
   "src/content/world.js",
   "src/content/upgrades.js",
   "src/content/routes.js",
+  "src/content/aghanims.js",
   "src/content/content.js",
   "src/systems/ranks.js",
   "src/engine/events.js",
@@ -149,6 +150,29 @@ vm.runInContext(`
           if (state.run.gold >= price + 6) {
             Game.dispatch(state, { type: "BUY_RECRUIT", heroId });
             stats.recruits = (stats.recruits || 0) + 1;
+          }
+        }
+        // Улучшения лавки (слой v2): разумный игрок скупает всё, что может,
+        // начиная с самого дорогого (сила контроля растёт с редкостью).
+        let upGuard = 20;
+        while (upGuard-- > 0) {
+          const affordable = (state.shop.upgrades || [])
+            .map((o) => ({ id: o.id, tier: o.tier || 0, cost: (o.tier ? (Content.upgrades.byId[o.id]?.cost || 0) * o.tier : Content.upgrades.byId[o.id]?.cost) || 0 }))
+            .filter((u) => u.cost > 0 && u.cost <= state.run.gold)
+            .sort((a, b) => b.cost - a.cost);
+          if (!affordable.length) break;
+          const before = state.run.gold + state.run.upgradePurchases;
+          Game.dispatch(state, { type: "BUY_UPGRADE", upgradeId: affordable[0].id });
+          if (state.run.gold + state.run.upgradePurchases === before) break; // покупка не прошла — выходим
+          stats.upgrades = (stats.upgrades || 0) + 1;
+        }
+        // Аугменты Аганима: скипетр/осколок на любого своего героя — сила и
+        // правила растут вместе с забегом.
+        for (const o of (state.shop.aghanims || []).slice()) {
+          const aug = Content.aghanims.forHero(o.heroId, o.kind);
+          if (aug && state.run.gold >= aug.cost) {
+            Game.dispatch(state, { type: "BUY_AUGMENT", kind: o.kind, heroId: o.heroId });
+            stats.aghanims = (stats.aghanims || 0) + 1;
           }
         }
         // Разумный игрок тренирует героев остатками золота: главный источник

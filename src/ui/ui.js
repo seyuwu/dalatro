@@ -163,6 +163,13 @@
     return "Без способности — играет через ранг и атрибут.";
   }
 
+  // Скипетр «Starbreaker» (Dawnbreaker): Универсал — джокер атрибутов для
+  // условий способностей и формаций. Подсказки UI читают это состояние.
+  function uniWildcardOn(state) {
+    const augs = state && state.run && state.run.aghanims && state.run.aghanims.dawnbreaker;
+    return !!(augs && augs.scepter === "dawnbreaker_sc");
+  }
+
   function attrOf(state, uid) {
     return Game.heroAttr(state, Content.heroes.byId[state.cards[uid].heroId].id);
   }
@@ -275,10 +282,19 @@
     const lvl = Game.heroLevel(state, hero.id);
     const xp = (state.run.heroXp || {})[hero.id] || 0;
     const augs = (state.run.aghanims || {})[hero.id];
-    const augBadges = augs ? ["scepter", "shard"].filter((k) => augs[k]).map((k) => {
+    const augBadges = augs ? ["shard", "scepter"].filter((k) => augs[k]).map((k) => {
       const a = Content.aghanims.byId[augs[k]];
       return `<span class="augh-mark" data-tip>${a.emoji}<span class="pop"><strong>${a.emoji} ${a.name}</strong><p>${esc(a.desc)}</p><small>${k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима"}</small></span></span>`;
     }).join("") : "";
+    // Каталог аугментов героя в тултипе: сначала Осколок, потом Скипетр.
+    // Серым — не куплено, светящимся — куплено. Две строки: шапка + описание.
+    const augTipLines = ["shard", "scepter"].map((k) => {
+      const a = Content.aghanims.forHero(hero.id, k);
+      if (!a) return "";
+      const owned = !!(augs && augs[k]);
+      const label = k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
+      return `<div class="augh-tip ${owned ? "owned" : ""}">${a.emoji} <b>${label} · ${a.name}</b><span class="augh-desc">${esc(a.desc)}</span></div>`;
+    }).join("");
     const trained = rank !== hero.power;
     const fatigue = Ranks.fatiguePenalty((state.run.heroUses || {})[hero.id]);
     const fav = Ranks.mostUsedHero(state) === hero.id && Ranks.has(state, "antihero");
@@ -301,7 +317,10 @@
       <span class="hero-tooltip">
         <strong>${hero.ability ? hero.ability.name : hero.name}</strong>
         <p>${esc(heroDesc(hero))}</p>
-        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${ATTR_NAMES[effAttr]} — 5 карт одного цвета = флеш</small>
+        ${augTipLines}
+        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${effAttr === "uni"
+          ? `Универсал — четвёртый цвет: связки и «4+ одного атрибута» считают его только Универсалом${uniWildcardOn(state) ? " · Starbreaker: Универсал — джокер условий" : ""}`
+          : `${ATTR_NAMES[effAttr]} — 5 карт одного цвета = флеш`}</small>
       </span>
     </button>`;
   }
@@ -429,6 +448,55 @@
   }
 
   // mode: "wave" — с ресурсами боя; "meta" — только состояние забега (лавка/развилка).
+  // ---------- улучшения v2: панель и контекстные кнопки ----------
+
+  // Дескриптор уровня: defs с levels[] описывают мутации II/III словами.
+  function upDescOf(state, u) {
+    const inst = Upgrades.instanceOf(state, u.id);
+    return (u.levels && u.levels[inst.level - 1] && u.levels[inst.level - 1].desc) || u.desc;
+  }
+
+  // Кнопка активации: единый рендер для всех контекстов (route/shop/wave).
+  function activeBtnHtml(state, u) {
+    const check = Upgrades.canActivate(state, u.id);
+    return `<button class="upg-active-btn" ${check.ok ? "" : "disabled"} data-action="activate-upgrade" data-upgrade="${u.id}" data-tip>
+      <span>${u.emoji} ${u.name}</span><small>${Upgrades.accessLabel(u)}</small>
+      <span class="pop"><strong>${u.emoji} ${u.name}</strong><p>${esc(u.desc)}</p>${check.ok ? "" : `<small>Недоступно: ${check.reason}</small>`}</span>
+    </button>`;
+  }
+
+  function ownedActives(state, context, withTarget = false) {
+    return Upgrades.ownedDefs(state).filter((u) => u.type === "active" && u.activation
+      && u.activation.context === context && !!u.activation.target === withTarget);
+  }
+
+  // Мастер-панель в сайдбаре: что куплено, сколько зарядов/лимитов осталось.
+  function upgradesPanelHtml(state) {
+    const owned = Upgrades.ownedDefs(state);
+    const energy = state.run.energy || 0;
+    const fortune = state.run.fortune || 0;
+    const rows = owned.map((u) => {
+      const inst = Upgrades.instanceOf(state, u.id);
+      const lvl = inst.level > 1 ? ` <b class="upg-lvl">${Upgrades.roman(inst.level)}</b>` : "";
+      let status = "";
+      if (u.type === "active") {
+        const acc = u.activation.access || {};
+        if (acc.charges != null) status = `<span class="upg-status ${inst.charges ? "" : "empty"}">⚡${inst.charges}/${acc.charges}</span>`;
+        else if (acc.act != null) status = `<span class="upg-status ${inst.actUses < acc.act ? "" : "empty"}">${acc.act - inst.actUses}/${acc.act}</span>`;
+        else if (acc.energy != null) status = `<span class="upg-status">⚡${acc.energy}</span>`;
+      }
+      return `<div class="upg-row" data-tip><span class="upg-emoji">${u.emoji}</span>
+        <span class="upg-name">${u.name}${lvl}</span>${status}
+        <span class="pop"><strong>${u.emoji} ${u.name}${lvl}</strong><p>${esc(upDescOf(state, u))}</p>
+        <small>${u.type === "active" ? `Кнопка ${Upgrades.CONTEXT_LABELS[u.activation.context]} · ${Upgrades.accessLabel(u)}` : "Пассивное"}</small></span></div>`;
+    }).join("");
+    return `<section class="panel upgrades-panel">
+      <div class="section-label"><span>${icon("sparkles", 13)}УЛУЧШЕНИЯ</span>${energy ? `<span class="energy-badge" data-tip>⚡ ${energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за каждые активации. Тратится Перегрузкой.</p></span></span>` : ""}</div>
+      ${rows || '<div class="effect-row none">Пока ни одного — загляни в лавку</div>'}
+      ${fortune ? `<div class="effect-row momentum"><span>🎰 Фортуна: ${fortune}/5 провалов до мифика в лавке</span></div>` : ""}
+    </section>`;
+  }
+
   function sidebarHtml(state, mode) {
     const waveMode = mode === "wave";
     const { mom, mult } = momentumInfo(state);
@@ -455,6 +523,7 @@
       : `<div class="effect-row none">Серия не начата — зачищай волны подряд</div>`}
       ${rankEffectsHtml(state)}
     </section>
+    ${upgradesPanelHtml(state)}
     <section class="panel journal-panel ${UIState.journalOpen ? "open" : ""}">
       <div class="section-label"><span>${icon("history", 13)}ЖУРНАЛ</span>
         <span class="journal-tools">
@@ -496,6 +565,10 @@
 
   function commitInfoHtml(state, preview) {
     const chips = [];
+    // Активации «на следующий бой» — видны до клика «В бой».
+    if (state.run.pendingIgnoreMods) chips.push(`<span class="commit-chip momentum">🛡️ ИГНОР</span>`);
+    if (state.run.pendingForceTriggers) chips.push(`<span class="commit-chip momentum">🎯 ГАРАНТИЯ</span>`);
+    if (state.run.pendingDmgPct) chips.push(`<span class="commit-chip">🔥 ВА-БАНК +${state.run.pendingDmgPct}%</span>`);
     const n = preview ? preview.playedCount || state.combat.selectedUids.length : 0;
     const tier = Combat.COMMIT_TIERS[n];
     if (tier) {
@@ -589,6 +662,10 @@
               <button class="primary-button attack-button" ${canFight ? "" : "disabled"} data-action="fight">${icon("swords", 17)}В бой<kbd>↵</kbd></button>
               <button class="discard-button" ${canDiscard ? "" : "disabled"} data-action="discard">${icon("rotate", 14)}ТП-сброс<kbd>R</kbd></button>
             </div>
+            ${(() => {
+              const acts = ownedActives(state, "wave").map((u) => activeBtnHtml(state, u)).join("");
+              return acts ? `<div class="wave-actives">${acts}</div>` : "";
+            })()}
           </div>
         </div>
       </div>
@@ -613,6 +690,15 @@
   function formationContextHtml(state, preview) {
     const dtName = (dt) => Content.damageTypeNames[dt] || dt;
     const combo = preview ? preview.combo : null;
+    // Универсал в текущем отряде — поясняем, как он считается (задача «Dawnbreaker»).
+    const uniPlayed = state.combat.selectedUids.some((uid) => {
+      const c = state.cards[uid];
+      const hr = c ? Content.heroes.byId[c.heroId] : null;
+      return !!hr && Game.heroAttr(state, hr.id) === "uni";
+    });
+    const uniNote = uniPlayed
+      ? `<div class="combo-legend uni-note"><span>◈ Универсал — отдельный атрибут: связки и «4+ одного атрибута» считают его своим цветом${uniWildcardOn(state) ? " · Starbreaker: Универсал — джокер условий" : ""}</span></div>`
+      : "";
     let active;
     if (combo) {
       const bonds = (combo.bonds || []).map((b) => {
@@ -642,6 +728,7 @@
       <section class="panel context-inner">
         <div class="section-label"><span>${icon("target", 13)}ТВОЯ ФОРМАЦИЯ</span></div>
         ${active}
+        ${uniNote}
       </section>
       ${alts}
       <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Все формации ${icon("chevron", 13)}</button>
@@ -711,13 +798,13 @@
   function buildStripHtml(state) {
     const items = state.player.items;
     const slots = [];
-    for (let i = 0; i < Math.max(5, items.length); i++) {
+    for (let i = 0; i < Game.itemCapacity(state).total; i++) {
       const id = items[i];
       if (id) {
         const item = Content.items.byId[id];
         slots.push(`<button class="build-icon ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" data-tip>
           ${Art.itemIcon(item)}
-          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
+          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
         </button>`);
       } else {
         slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 13)}
@@ -739,7 +826,7 @@
         }).join("")
         : "";
       const slots = [];
-      for (let i = 0; i < Math.max(5, items.length); i++) {
+      for (let i = 0; i < Game.itemCapacity(state).total; i++) {
         const id = items[i];
         if (id) {
           const item = Content.items.byId[id];
@@ -747,7 +834,7 @@
             <div class="item-art">${Art.itemIcon(item)}</div>
             <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
             <span class="item-slot-dot"></span>
-            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(state, id)} G</small></span>
+            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
           </button>`);
         } else {
           slots.push(`<button class="item-slot empty-slot" data-action="item-hint" data-tip><span>${icon("plus", 18)}</span><span>Слот предмета</span>
@@ -1029,6 +1116,9 @@
     if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} тимфайт` : `−${-route.fights} тимфайт`);
     if (route.power) lines.push(`+${route.power} силы каждому бою`);
     if (route.itemRarity) lines.push(`В лавке ждёт ${route.itemRarity === "epic" ? "эпик" : "редкий"} товар`);
+    // «Подсмотр»: вскрытые жребии развилки показываются точно.
+    if (route.randomHp && opt.hpMultRoll != null) lines.push(`👁️ Точный HP: ${fmt(Math.round(nextHp * route.hp * opt.hpMultRoll))}`);
+    if (opt.pinnedMods) lines.push("👁️ Правила: " + opt.pinnedMods.map((id) => Content.modifiers.byId[id].name).join(", "));
     lines.push(route.desc);
     return lines;
   }
@@ -1042,6 +1132,17 @@
       const route = Content.routes.byId[opt.id];
       return routeCardHtml(state, opt, route, routeCardLines(opt, route, nextDef, nextHp, baseRules), i);
     }).join("");
+    const routeBtns = ownedActives(state, "route").map((u) => activeBtnHtml(state, u)).join("");
+    const dezerterOk = Upgrades.canActivate(state, "dezertir").ok;
+    const replaceRow = ownedActives(state, "route", true).length ? `<div class="route-replace-row">${(state.combat.routeOptions || [])
+      .filter((o) => o.id !== "normal")
+      .map((o) => {
+        const route = Content.routes.byId[o.id];
+        return `<button class="upg-active-btn route-replace" ${dezerterOk ? "" : "disabled"} data-action="activate-upgrade" data-upgrade="dezertir" data-target="${o.id}" data-tip>
+          <span>🔄 ${route.emoji} ${route.name}</span><small>заменить</small>
+          <span class="pop"><strong>🏃 Дезертир</strong><p>Заменить «${route.name}» новым путём.</p>${dezerterOk ? "" : "<small>Лимит на акт исчерпан</small>"}</span>
+        </button>`;
+      }).join("")}</div>` : "";
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -1052,7 +1153,9 @@
               <span class="section-label mint">${icon("target", 15)}РАЗВИЛКА · ВОЛНА ${nextIndex + 1} ИЗ ${Content.waves.order.length}</span>
               <h2>Куда двинемся?</h2>
               <p class="route-sub">Следующая цель: <b>${nextDef.name}</b> · ${fmt(nextHp)} HP · ${baseRules}</p>
+              ${routeBtns ? `<div class="route-actives">${routeBtns}</div>` : ""}
               <div class="route-cards ${UIState.animRoute ? "" : "no-anim"}">${cards}</div>
+              ${replaceRow}
             </section>
           </div>
         </div>
@@ -1102,9 +1205,17 @@
       const blockedLabel = blocked === "full"
         ? `Слоты ${state.player.items.length}/${cap.total}`
         : blocked === "class" ? `Нет слота ${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}` : "";
+      const itemActs = ownedActives(state, "shop", true).map((u) => {
+        const ok = Upgrades.canActivate(state, u.id).ok
+          && (u.effect.type !== "buyOnDebt" || !blocked);
+        return `<button class="icon-button small act-btn" ${ok ? "" : "disabled"} data-action="activate-upgrade" data-upgrade="${u.id}" data-target="${item.id}" data-tip>${u.emoji}
+          <span class="pop side"><strong>${u.emoji} ${u.name}</strong><p>${esc(u.desc)}</p>${ok ? "" : `<small>Недоступно: ${Upgrades.canActivate(state, u.id).reason}</small>`}</span>
+        </button>`;
+      }).join("");
       return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
+          <span class="item-actives">${itemActs}</span>
           <button class="icon-button small lock-btn ${o.locked ? "locked" : ""}" data-action="lock" data-id="${item.id}" data-tip>${o.locked ? "🔒" : "🔓"}
             <span class="pop side"><strong>${o.locked ? "Залочен" : "Свободен"}</strong><p>Зафиксируй товар — он сохранится при обновлении лавки, остальные слоты перевыбросятся.</p></span>
           </button>
@@ -1113,9 +1224,9 @@
         <h3>${item.name}</h3>
         <p>${esc(item.desc)}</p>
         <span class="slot-class-tag">${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}</span>
-        ${cost !== item.cost ? `<span class="price-note">${cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
+        ${cost !== item.cost ? `<span class="price-note">${o.free ? "🎁 Сюрприз: бесплатно" : cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
         <button class="buy-button" ${afford && !blocked ? "" : "disabled"} data-action="buy" data-id="${item.id}">
-          <span>${blocked && blockedLabel ? blockedLabel : afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
+          <span>${o.free ? "Забрать" : blocked && blockedLabel ? blockedLabel : afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
         </button>
       </div>`;
     }).join("");
@@ -1135,57 +1246,79 @@
             <div class="shop-section-title"><h3>Предметы торговца</h3>
               <button class="secondary-button" data-action="reroll" ${state.run.gold >= Game.rerollCost(state) ? "" : "disabled"}>${icon("rotate", 13)}Обновить <span>${Game.rerollCost(state)} ${icon("coins", 12)}</span></button></div>
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
-            ${(state.shop.aghanims || []).length ? `<div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">герой-персональные · не занимают слоты предметов · 1+1 на героя</small></h3></div>
-            <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">${state.shop.aghanims.map((o) => {
-    const aug = Content.aghanims.forHero(o.heroId, o.kind);
-    const hero = Content.heroes.byId[o.heroId];
-    const afford = state.run.gold >= aug.cost;
-    return `<div class="upgrade-card ${o.kind === "scepter" ? "mythic" : "rare"}" data-tip>
-                <span class="upgrade-emoji">${aug.emoji}</span>
-                <div class="upgrade-info"><strong>${aug.name} <small>· ${hero.name}</small></strong><small>${esc(aug.desc)}</small></div>
-                <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-augh" data-hero="${o.heroId}" data-kind="${o.kind}">
-                  <span>${afford ? "Купить" : "Дорого"}</span><span>${aug.cost} ${icon("coins", 12)}</span>
-                </button>
-                <span class="pop"><strong>${aug.emoji} ${aug.name} — ${hero.name}</strong><p>${esc(aug.desc)}</p><small>${o.kind === "scepter" ? "Скипетр: меняет поведение героя" : "Осколок: малое изменение паттерна"} · остаётся до увольнения героя</small></span>
-              </div>`;
-  }).join("")}</div>` : ""}
             <div class="shop-upgrades">
-              <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов</small></h3>
-                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер). Жирнее редкости предложений: с удачи 3 — третья карточка, с 6 — четвёртая.</p></span></span>
+              <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов · кнопки активируются на своих экранах</small></h3>
+                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер) и Пактом с Фортуны. Жирнее редкости предложений: с удачи 3 — пятая карточка, с 6 — шестая.</p></span></span>
                 <span class="upgrade-owned">${(() => {
     const counts = {};
     for (const u of Upgrades.ownedDefs(state)) counts[u.id] = (counts[u.id] || 0) + 1;
     return Object.entries(counts).map(([id, n]) => {
       const u = Content.upgrades.byId[id];
       if (!u) return "";
-      return `<span class="upgrade-chip" data-tip>${u.emoji}${n > 1 ? `<b>×${n}</b>` : ""}<span class="pop"><strong>${u.name}${n > 1 ? " ×" + n : ""}</strong><p>${esc(u.desc)}</p></span></span>`;
+      const inst = Upgrades.instanceOf(state, id);
+      const lvl = inst.level > 1 ? ` ${Upgrades.roman(inst.level)}` : "";
+      const acc = u.type === "active"
+        ? ` · осталось: ${u.activation.access.charges != null ? `⚡${inst.charges}` : `${u.activation.access.act - inst.actUses}/${u.activation.access.act}`}`
+        : "";
+      return `<span class="upgrade-chip" data-tip>${u.emoji}${lvl}${n > 1 ? `<b>×${n}</b>` : ""}<span class="pop"><strong>${u.emoji} ${u.name}${lvl}${n > 1 ? " ×" + n : ""}</strong><p>${esc(upDescOf(state, u))}</p><small>${acc || "пассивное"}</small></span></span>`;
     }).join("");
-  })()}
+  })()}</span>
                   ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}
-                  ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}</span>
-                <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
+                  ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}
+                ${ownedActives(state, "shop").filter((u) => !u.activation.target).map((u) => activeBtnHtml(state, u)).join("")}
+                ${(state.run.energy || 0) ? `<span class="energy-badge" data-tip>⚡ ${state.run.energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за активации. Тратится Перегрузкой.</p></span></span>` : ""}
+                <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST || (Game.hasItemRule(state, "freeUpgradeReroll") && !state.run.ledgerRerollUsed) ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Game.hasItemRule(state, "freeUpgradeReroll") && !state.run.ledgerRerollUsed ? "0" : Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
                 ${(state.shop.upgrades || []).map((o) => {
     const up = o.id === Upgrades.HAND_SLOT_ID ? Upgrades.handSlotDef(state)
       : o.id === Upgrades.ATTR_POTION_ID ? Upgrades.attrPotionDef(state)
+      : o.id === Upgrades.RECHARGE_ID ? Upgrades.rechargeDef(state)
       : Content.upgrades.byId[o.id];
-    const afford = state.run.gold >= up.cost;
+    const isTier = !!o.tier;
     const lvl = up.repeatable ? ` ×${(state.run.handSlots || 0) + 1}` : "";
-    const canRefresh = state.player.items.includes("ledger") && o.justBought;
+    // Ступень уровневого дефа стоит кратно уровню (II = ×2 к цене и эффекту).
+    const cost = isTier ? up.cost * o.tier : up.cost;
+    const afford = state.run.gold >= cost;
+    const name = isTier ? `${up.name} ${Upgrades.roman(o.tier)}` : `${up.name}${lvl}`;
+    const upDesc = isTier
+      ? (up.levels && up.levels[o.tier - 1] ? up.levels[o.tier - 1].desc : up.desc)
+      : upDescOf(state, up);
+    const accLine = up.type === "active"
+      ? `<small class="upg-acc">🔘 Кнопка ${Upgrades.CONTEXT_LABELS[up.activation.context]} · ${Upgrades.accessLabel(up)}${up.activation.target === "item" ? " (на товаре)" : up.activation.target === "routeOption" ? " (на пути)" : ""}</small>`
+      : "";
     return `<div class="upgrade-card ${up.rarity}" data-tip>
                   <span class="upgrade-emoji">${up.emoji}</span>
-                  <div class="upgrade-info"><strong>${up.name}${lvl}</strong><small>${esc(up.desc)}</small>
-                    ${canRefresh ? `<button class="upgrade-refresh" data-action="refresh-upgrade" data-id="${up.id}">↻ Обновить · ${Upgrades.REROLL_COST} ${icon("coins", 11)}</button>` : ""}
-                  </div>
+                  <div class="upgrade-info"><strong>${name}</strong><small>${esc(upDesc)}</small>${accLine}</div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
-                    <span>${afford ? "Купить" : "Дорого"}</span><span>${up.cost} ${icon("coins", 12)}</span>
+                    <span>${afford ? (isTier ? "Усилить" : "Купить") : "Дорого"}</span><span>${cost} ${icon("coins", 12)}</span>
                   </button>
-                  <span class="pop"><strong>${up.name}${lvl}</strong><p>${esc(up.desc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]} · покупается многократно, эффекты складываются</small></span>
+                  <span class="pop"><strong>${up.emoji} ${name}</strong><p>${esc(upDesc)}</p><small>${UPGRADE_RARITY_NAMES[up.rarity]}${up.type === "active" ? ` · кнопка ${Upgrades.CONTEXT_LABELS[up.activation.context]}` : " · пассивное"} · покупается один раз за забег</small></span>
                 </div>`;
   }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке или обнови.</span>'}
               </div>
             </div>
+            ${(state.shop.aghanims || []).length ? `<div class="shop-aghanims">
+              <div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">осколок — 55% в каждой лавке · скипетр — гарантия после босса акта · не занимают слоты предметов</small></h3></div>
+              <div class="recruit-row ${UIState.animShop ? "" : "no-anim"}">${state.shop.aghanims.map((o) => {
+    const aug = Content.aghanims.forHero(o.heroId, o.kind);
+    const hero = Content.heroes.byId[o.heroId];
+    const afford = state.run.gold >= aug.cost;
+    const kindLabel = o.kind === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
+    return `<div class="recruit-card augh-card ${o.kind}" data-tip>
+                  <div class="recruit-portrait">${Art.heroArt(hero)}<i class="augh-emoji">${aug.emoji}</i></div>
+                  <div class="recruit-info">
+                    <small class="augh-kind">${kindLabel} · ${hero.name}</small>
+                    <strong>${aug.name}</strong>
+                    <small>${esc(aug.desc)}</small>
+                  </div>
+                  <button class="buy-button recruit-buy" ${afford ? "" : "disabled"} data-action="buy-augh" data-hero="${o.heroId}" data-kind="${o.kind}">
+                    <span>${afford ? "Купить" : "Дорого"}</span><span>${aug.cost} ${icon("coins", 13)}</span>
+                  </button>
+                  <span class="pop"><strong>${aug.emoji} ${aug.name} — ${hero.name}</strong><p>${esc(aug.desc)}</p><small>${kindLabel}: ${o.kind === "scepter" ? "меняет поведение героя" : "малое изменение паттерна"} · при увольнении героя возвращается половина цены</small></span>
+                </div>`;
+  }).join("")}</div>
+            </div>` : ""}
             <div class="shop-lab">
               <div class="shop-lab-head">
                 <h3>${icon("layers", 14)} Лаборатория колоды</h3>
@@ -1376,6 +1509,10 @@
       ? `<div><span>Divine Rapier</span><b class="lose-text">у врага: урон ×0.5</b></div>` : ""}
       </div>
       <button class="primary-button full-width" data-action="retry">Новая попытка ${icon("rotate", 15)}</button>
+      ${(() => {
+        const ok = (state.run.upgrades || []).includes("peresdacha") && Upgrades.canActivate(state, "peresdacha").ok;
+        return ok ? `<button class="secondary-button full-width" data-action="retry-free" data-upgrade="peresdacha" data-tip>🕯️ Пересдача — казарма цела<span class="pop"><strong>🕯️ Пересдача</strong><p>Переиграть волну, не теряя казарму и смерть в зачёте.</p></span></button>` : "";
+      })()}
     </section></div>`;
   }
 
@@ -1411,7 +1548,11 @@
     if (!UIState.modal && !UIState.detail) return "";
     const wide = UIState.modal === "collection" || UIState.modal === "help" ? "wide-modal" : "";
     const focusCls = UIState.labFocus === "train" ? "focus-train" : UIState.labFocus === "exile" ? "focus-exile" : "";
-    return `<div class="modal-backdrop" data-action="modal-backdrop"><section class="modal ${wide} ${focusCls}" role="dialog" aria-modal="true">
+    // Модалка уже открыта (смена отряда/ранга в «Ещё один забег» и т.п.):
+    // полный ререндер пересоздаёт DOM — не проигрывать появление заново,
+    // иначе окно мигает при каждом клике.
+    const keep = document.querySelector(".modal-backdrop") ? " no-anim" : "";
+    return `<div class="modal-backdrop${keep}" data-action="modal-backdrop"><section class="modal ${wide} ${focusCls}" role="dialog" aria-modal="true">
       <button class="modal-close icon-button" data-action="close-modal">${icon("x", 20)}</button>
       ${modalBodyHtml(state)}
     </section></div>`;
@@ -1537,6 +1678,20 @@
         ${comboRows}
       </div>
       <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> ТП-сброс (R) заменит выбранных героев, не расходуя тимфайт. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>
+      <span class="section-label mint">${icon("book", 15)}СЛОВАРЬ</span>
+      <div class="glossary">
+        <div><strong>Кэрри</strong><p>Главный герой отряда — самый сильный. В «4 Protect 1» он стоит в центре, а четыре героя-свиты его прикрывают.</p></div>
+        <div><strong>Свита</strong><p>Четыре героя вокруг кэрри. Им не нужно быть сильными — они дают формацию, связки и свои способности.</p></div>
+        <div><strong>Слот / позиция</strong><p>Порядок, в котором ты выбрал героев: первый выбранный — слот 1. Часть формаций и способностей читает позицию: «Фронт» — слоты 1–2, «Тыл» — два последних, «Клин» — центр строя.</p></div>
+        <div><strong>Фронт / Тыл</strong><p>Связки: «Фронт» — два Силовика в первых слотах (+сила), «Тыл» — два Интеллекта в последних (+множитель).</p></div>
+        <div><strong>Ганг</strong><p>Связка за пару героев одинакового ранга: сходили вдвоём на одного — получи +силы.</p></div>
+        <div><strong>Цепочка</strong><p>Связка за три ранга подряд (например 4-5-6) в любой позиции строя.</p></div>
+        <div><strong>Флеш («Тимфайт атрибута»)</strong><p>Пять героев одного цвета-атрибута. Даёт большой бонус и тип урона по доминирующему атрибуту отряда.</p></div>
+        <div><strong>Тимвайп</strong><p>«Убийство всей команды». Формация-топ: полная пятёрка с пятью рангами подряд и тремя атрибутами.</p></div>
+        <div><strong>Тип урона</strong><p>Физический — режется бронёй, магический — сопротивлением, чистый — игнорирует всё. Смотри «Следующую цель»: против брони бери чистый или магический, против сопротивления — физический.</p></div>
+        <div><strong>Ставка</strong><p>Сколько героев отправил в бой: 1 — харас (+1 золото), 4 — ×1.1 к урону, 5 — ×1.25. Больше героев — больше урона, но рука пустеет.</p></div>
+        <div><strong>Импульс</strong><p>Серия зачищенных волн подряд: +5% урона за каждую. Провал сбрасывает серию.</p></div>
+      </div>
       <span class="section-label mint">${icon("crown", 15)}ЛИГА DALATRO · РАНГИ</span>
       <p class="modal-description">Ранг задаётся перед забегом. Правила наслаиваются: ранг N держит всё, что дали ранги 1..N. Победа на ранге открывает следующий.</p>
       <div class="combo-table rank-table">
@@ -1580,10 +1735,13 @@
             <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hr.id)]} ${ATTR_NAMES[Game.heroAttr(state, hr.id)]}${Game.heroAttr(state, hr.id) !== hr.attr ? " (зелье)" : ""} · сила ${rank}${(state.run.heroXp || {})[hr.id] ? ` · опыт ${(state.run.heroXp || {})[hr.id]} (ур. ${Game.heroLevel(state, hr.id)})` : ""}</span>
             <p>${heroDesc(hr)}</p>
             <small class="gold">${where}</small>
-            ${(state.run.aghanims || {})[hr.id] ? `<small class="augh-lab">${["scepter", "shard"].filter((k) => state.run.aghanims[hr.id][k]).map((k) => {
-      const a = Content.aghanims.byId[state.run.aghanims[hr.id][k]];
-      return `${a.emoji} <b>${a.name}</b> — ${esc(a.desc)}`;
-    }).join("<br>")}</small>` : ""}
+            <small class="augh-lab">${["shard", "scepter"].map((k) => {
+      const a = Content.aghanims.forHero(hr.id, k);
+      if (!a) return "";
+      const owned = !!((state.run.aghanims || {})[hr.id] || {})[k];
+      const label = k === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";
+      return `<span class="augh-tip ${owned ? "owned" : ""}">${a.emoji} <b>${label} · ${a.name}</b><span class="augh-desc">${esc(a.desc)}</span></span>`;
+    }).filter(Boolean).join("")}</small>
             ${labMode ? `<div class="attr-change-row">${["str", "agi", "int", "uni"].map((a) => {
       const cur = Game.heroAttr(state, hr.id);
       const has = (state.run.attrCharges || 0) > 0;
@@ -1687,7 +1845,7 @@
     const synergies = Advisor.itemSynergy(item.id, state);
     const owned = state.player.items.includes(item.id);
     const inShop = state.phase === "shop";
-    const sellValue = Economy.sellValue(state, item.id);
+    const sellValue = Economy.sellValue(item.id);
     return `<div class="item-detail-image">${Art.itemIcon(item)}</div>
       <span class="section-label gold">${RARITY_NAMES[item.rarity]} предмет · ${item.cost} G</span>
       <h2>${item.name}</h2>
@@ -1700,6 +1858,23 @@
       : owned ? '<div class="muted-note">Продажа доступна в лавке между волнами.</div>' : ""}`;
   }
 
+  // Пикер сброса «Второго дыхания»: клик по карте возвращает её в руку.
+  function discardPickerHtml(state) {
+    const uids = (state.player.discardUids || []).filter((uid) => state.cards[uid]);
+    return `<span class="section-label mint">♻️ ВТОРОЕ ДЫХАНИЕ</span>
+      <h2>Кого вернуть в руку?</h2>
+      <p class="modal-description">Карта вернётся из сброса — спишется один заряд.</p>
+      ${uids.length ? `<div class="recruit-row">${uids.map((uid) => {
+        const hero = Content.heroes.byId[state.cards[uid].heroId];
+        return `<div class="recruit-card ${Game.heroAttr(state, hero.id) !== hero.attr ? Game.heroAttr(state, hero.id) : hero.attr}" data-action="pick-discard" data-uid="${uid}" role="button" data-tip>
+          <div class="recruit-portrait">${Art.heroArt(hero)}<b>${hero.power}</b></div>
+          <div class="recruit-info"><strong>${hero.name}</strong>
+            <span class="hero-attribute">${ATTR_SYMBOLS[Game.heroAttr(state, hero.id)]} ${ATTR_NAMES[Game.heroAttr(state, hero.id)]}</span>
+            <small>${esc(heroDesc(hero))}</small></div>
+        </div>`;
+      }).join("")}</div>` : '<div class="muted-note">Сброс пуст — заряд останется при тебе.</div>'}`;
+  }
+
   function modalBodyHtml(state) {
     switch (UIState.modal) {
       case "help": return helpModalHtml(state);
@@ -1709,6 +1884,7 @@
       case "new": return newRunModalHtml();
       case "score": return scoreModalHtml(state);
       case "detail": return detailModalHtml(state);
+      case "discard-pick": return discardPickerHtml(state);
       default: return "";
     }
   }
@@ -1760,9 +1936,9 @@
         el.className = "preview-step appear";
         el.innerHTML = `<span class="step-icon">${step.icon}</span><span>${esc(step.label)}</span>`;
         stepsEl.appendChild(el);
-      }, 150 + i * 280));
+      }, 80 + i * 140));
     });
-    timers.push(setTimeout(finish, 500 + resolution.steps.length * 280 + 900));
+    timers.push(setTimeout(finish, 300 + resolution.steps.length * 140 + 500));
   }
 
   // ---------- entry ----------
