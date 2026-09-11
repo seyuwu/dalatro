@@ -631,3 +631,11 @@ test("Assault Cuirass и Blink Dagger усиливают бой", () => {
   assert(bfStep(res, "Assault Cuirass:"), "шаг Assault Cuirass в стеке");
   assert(bfStep(res, "Blink Dagger:"), "шаг Blink Dagger в стеке");
 });
+
+test("Арт предметов и улучшений: иконки CDN, эмодзи-фолбэк", () => {
+  assert(Art.itemIcon(Content.items.byId.battle_fury).includes("bfury"), "battle_fury → иконка CDN");
+  assert(Art.itemIcon(Content.items.byId.blink).includes("blink.png"), "blink → иконка CDN");
+  assert(Art.itemIcon(Content.items.byId.sentry).includes("ward_sentry"), "sentry → ward_sentry (не sentry_ward, тот 404)");
+  assert(Art.upgradeIcon(Content.upgrades.byId.ladon).includes("blades_of_attack"), "ladon → иконка CDN");
+  assert(Art.upgradeIcon({ id: "nema", name: "X", emoji: "❓" }).includes("❓"), "незамапленное → эмодзи-фолбэк");
+});

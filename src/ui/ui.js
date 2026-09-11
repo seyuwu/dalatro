@@ -1354,7 +1354,7 @@
       ? `<small class="upg-acc">🔘 Кнопка ${Upgrades.CONTEXT_LABELS[up.activation.context]} · ${Upgrades.accessLabel(up)}${up.activation.target === "item" ? " (на товаре)" : up.activation.target === "routeOption" ? " (на пути)" : ""}</small>`
       : "";
     return `<div class="upgrade-card ${up.rarity}" data-tip>
-                  <span class="upgrade-emoji">${up.emoji}</span>
+                  <span class="upgrade-emoji">${Art.upgradeIcon(up)}</span>
                   <div class="upgrade-info"><strong>${name}</strong><small>${esc(upDesc)}</small>${accLine}</div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
                     <span>${afford ? (isTier ? "Усилить" : "Купить") : "Дорого"}</span><span>${cost} ${icon("coins", 12)}</span>

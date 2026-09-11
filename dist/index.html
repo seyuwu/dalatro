@@ -1032,6 +1032,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upgrade-card.epic { border-left-color: #a678e0; }
 .upgrade-card.mythic { border-left-color: #ffb03a; border-color: #6b5a2e; background: #2d2818; }
 .upgrade-emoji { font-size: 22px; filter: drop-shadow(0 2px 6px #0006); }
+/* официальная иконка дота-предмета поверх эмодзи-фолбэка (как у портретов героев) */
+.upgrade-emoji img, .upg-art img { width: 30px; height: 30px; display: block; object-fit: contain; }
+.upg-art { display: block; position: relative; width: 30px; height: 30px; }
+.upg-fallback { font-size: 22px; line-height: 30px; display: block; text-align: center; }
+.upg-art img { position: absolute; inset: 0; }
 .upgrade-info { flex: 1; min-width: 0; }
 .upgrade-info strong { display: block; font-size: 12.5px; color: #dfe5d2; }
 .upgrade-info small { display: block; font-size: 9.5px; line-height: 1.55; color: #93a385; margin-top: 2px; }
@@ -8167,16 +8172,48 @@ const Art = (function () {
     </div>`;
   }
 
-  // itemId -> Steam internal name (legacy: invis_sword = Shadow Blade,
-  // ancient_janggo = Drum, manta = Manta Style).
+  // itemId -> Steam internal name (все имена проверены запросами к CDN;
+  // легаси-имена держатся: invis_sword = Shadow Blade, ancient_janggo = Drum,
+  // greater_crit = Daedalus, manta = Manta Style).
   const DOTA_ITEM_IMG = {
     battle_fury: "bfury", meteor_hammer: "meteor_hammer", drum: "ancient_janggo",
     midas: "hand_of_midas", bkb: "black_king_bar", kaya: "kaya_and_sange",
-    vladmir: "vladmir", sentry: "sentry_ward", daedalus: "greater_crit", satanic: "satanic",
+    vladmir: "vladmir", sentry: "ward_sentry", daedalus: "greater_crit", satanic: "satanic",
     shadow_blade: "invis_sword", heart: "heart", refresher: "refresher",
     bloodstone: "bloodstone", butterfly: "butterfly", manta: "manta", rapier: "rapier",
     radiance: "radiance", octarine: "octarine_core",
+    orb_corrosion: "orb_of_corrosion", dragon_lance: "dragon_lance",
+    ethereal_blade: "ethereal_blade", mkb: "monkey_king_bar", skadi: "skadi",
+    desolator: "desolator", pipe: "pipe", ledger: "enchanted_quiver",
+    bloodthorn: "bloodthorn", tempest_double: "cyclone", misers_chest: "gem",
+    assault: "assault", blink: "blink",
   };
+
+  // Улучшения лавки → официальные иконки той же дота-палитры (единый стиль
+  // с героями и предметами). Имена проверены запросами к CDN; при 404
+  // остаётся эмодзи-фолбэк, как у предметов.
+  const UPGRADE_IMG = {
+    chistyy_dabor: "magic_stick", koshelek: "sobi_mask", boyevoy_opyt: "tome_of_knowledge",
+    svobodnaya_kletka: "phase_boots", iskra: "energy_booster", tochnyy_raschet: "quelling_blade",
+    trenzal: "gloves_of_haste", vdohn: "aether_lens", assortiment: "guardian_greaves",
+    podkova: "wind_lace", krolichya_lapka: "magic_wand", klever: "cheese",
+    kartograf: "ward_observer", dezertir: "travel_boots", podsmotr: "ward_sentry",
+    torgash: "ring_of_aquila", magnit: "lotus_orb", insider: "shadow_amulet",
+    surprise: "spirit_vessel", v_dolg: "crown", obhodchik: "smoke_of_deceit",
+    vozvrat: "void_stone", ignor: "talisman_of_evasion", schastlivy: "moon_shard",
+    vabank: "silver_edge", peresdacha: "ghost", kondensator: "point_booster",
+    peregruzka: "mjollnir", katalizator: "kaya", optimist: "headdress",
+    posledniy_bilet: "voodoo_mask", pakt_fortunes: "phylactery", sakvoyazh: "hurricane_pike",
+    ladon: "blades_of_attack", askesis: "ring_of_health", talisman: "ultimate_orb",
+    nastavnik: "staff_of_wizardry",
+  };
+
+  function upgradeIcon(up) {
+    const key = UPGRADE_IMG[up.id];
+    if (!key) return `<span class="upg-fallback">${up.emoji}</span>`;
+    return `<span class="upg-art"><span class="upg-fallback">${up.emoji}</span>
+      <img src="${ITEM_CDN}/${key}.png" alt="${up.name}" loading="lazy" onerror="this.remove()"></span>`;
+  }
 
   // Item art: CDN icon over the emoji fallback (same pattern as heroArt).
   function itemIcon(item) {
@@ -8188,7 +8225,7 @@ const Art = (function () {
     </span>`;
   }
 
-  return { heroArt, sigilFor, itemIcon, hasCustomSigil: (id) => !!SIGILS[id] };
+  return { heroArt, sigilFor, itemIcon, upgradeIcon, hasCustomSigil: (id) => !!SIGILS[id] };
 })();
 
 </script>
@@ -9549,7 +9586,7 @@ const Art = (function () {
       ? `<small class="upg-acc">🔘 Кнопка ${Upgrades.CONTEXT_LABELS[up.activation.context]} · ${Upgrades.accessLabel(up)}${up.activation.target === "item" ? " (на товаре)" : up.activation.target === "routeOption" ? " (на пути)" : ""}</small>`
       : "";
     return `<div class="upgrade-card ${up.rarity}" data-tip>
-                  <span class="upgrade-emoji">${up.emoji}</span>
+                  <span class="upgrade-emoji">${Art.upgradeIcon(up)}</span>
                   <div class="upgrade-info"><strong>${name}</strong><small>${esc(upDesc)}</small>${accLine}</div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
                     <span>${afford ? (isTier ? "Усилить" : "Купить") : "Дорого"}</span><span>${cost} ${icon("coins", 12)}</span>
