@@ -1035,7 +1035,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upgrade-info { flex: 1; min-width: 0; }
 .upgrade-info strong { display: block; font-size: 12.5px; color: #dfe5d2; }
 .upgrade-info small { display: block; font-size: 9.5px; line-height: 1.55; color: #93a385; margin-top: 2px; }
-.upgrade-buy { width: 100%; display: inline-flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 10px; font-size: 11px; }
+.upgrade-buy { margin-top: auto; width: 100%; display: inline-flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 10px; font-size: 11px; }
 .luck-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #b8d48a; background: #26301f; border: 1px solid #4d5c42; border-radius: 5px; padding: 3px 8px; cursor: default; }
 .upgrade-title h3 { margin-right: auto; }
 .upgrade-reroll { padding: 5px 9px; font-size: 10.5px; }
