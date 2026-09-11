@@ -1,0 +1,8 @@
+// Cloudflare Workers: публикация статики. Вся игра собирается в dist/
+// (один index.html + images), серверного кода нет — ассеты раздаются как есть.
+// URL после деплоя: https://dota-game.<account>.workers.dev
+{
+  "name": "dota-game",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./dist" }
+}
