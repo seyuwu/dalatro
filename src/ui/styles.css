@@ -1273,3 +1273,10 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 
 .upgrade-card.active-type .upgrade-emoji { text-shadow: 0 0 10px rgba(217,178,95,.55); }
 .upgrade-reroll.free-ledger { border-color: #4a5f3e; color: #b9e4c9; }
+
+/* фидбек 11.09: подложки под текст карточек — выделялся только аганим-блок,
+   остальной текст висел на голом фоне. Одна нейтральная панель на все блоки. */
+.collection-hero p, .recruit-info small { background: #1b2317; border: 1px solid #333f2a; border-radius: 6px; padding: 6px 9px; }
+.collection-hero .hero-attribute, .recruit-info .hero-attribute { display: inline-block; background: #1b2317; border: 1px solid #333f2a; border-radius: 5px; padding: 2px 8px; }
+.collection-hero small:not(.augh-lab) { display: inline-block; background: #1b2317; border: 1px solid #333f2a; border-radius: 5px; padding: 2px 8px; }
+.end-note { display: block; text-align: center; font-size: 10.5px; color: #8fa085; margin-top: 2px; }

@@ -222,6 +222,7 @@ test("Акт-переход: босс акта даёт +10 золота и ка
   const def = Content.waves.byId["roshan"];
   s.combat.wave = { towerId: "roshan", name: def.name, emoji: def.emoji, isBoss: true, miniBoss: false, elite: false,
     hp: 100, maxHp: def.hp, gold: def.gold, modifiers: [], enemyItems: [], aegisUsed: false };
+  s.player.discardsLeft = 0; // бонус меткости за сбросы проверяется в bugfix.test.js
   ablPlay(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   assertEq(s.combat.outcome, "cleared");
   assertEq(s.run.gold, goldBefore + 10 + 10 + 5 + 3, "зачистка 10 + акт-премия 10 + оверкилл 5 (кап) + бонус скорости 3G");

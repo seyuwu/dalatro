@@ -193,6 +193,21 @@
     return clone ? clone.combat.lastResolution : null;
   }
 
+  // Доминирующий атрибут строя — подпись в формуле урона (раньше там всегда
+  // стояло «СИЛА», из-за чего универсалы вроде Dawnbreaker «считались силой»).
+  function dominantAttrName(state) {
+    const counts = {};
+    for (const uid of state.combat.selectedUids) {
+      const card = state.cards[uid];
+      const hr = card && Content.heroes.byId[card.heroId];
+      if (!hr) continue;
+      const a = Game.heroAttr(state, hr.id);
+      counts[a] = (counts[a] || 0) + 1;
+    }
+    const best = Object.keys(counts).sort((x, y) => counts[y] - counts[x])[0];
+    return best ? ATTR_NAMES[best] : "СИЛА";
+  }
+
   // Лучший харас из руки: какой урон нанесёт самая сильная одиночная карта.
   // Порог для состояния приговора «ЕЩЁ 1 УДАР» — только он, без субъективности.
   function computeHarass(state) {
@@ -647,7 +662,7 @@
             </button>
             <div class="scene-formula">
               <div class="score-formula">
-                <div class="score-block power"><strong>${power}</strong><span>СИЛА</span></div>
+                <div class="score-block power"><strong>${power}</strong><span title="Атрибут, которых в строю больше всего — он задаёт тип урона">${dominantAttrName(state)}</span></div>
                 <span class="times">${icon("x", 14)}</span>
                 <div class="score-block multiplier"><strong>${mult}</strong><span>МНОЖ.</span></div>
                 <span class="equals">=</span>
@@ -1448,6 +1463,7 @@
                 <div><strong>${state.stats.totalDamage.toLocaleString("ru")}</strong><span>Всего урона</span></div>
                 <div><strong>${state.stats.biggestHit.toLocaleString("ru")}</strong><span>Лучший тимфайт</span></div>
               </div>
+              ${(() => { const n = (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0; return n ? `<small class="end-note">Включая +${(n * 100).toLocaleString("ru")} очков за неиспользованные заряды «Второго дыхания»</small>` : ""; })()}
               ${leaderboardHtml()}
               <button class="primary-button" data-action="open-modal" data-modal="new">${icon("rotate", 16)}Ещё один забег</button>
             </section>

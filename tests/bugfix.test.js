@@ -559,3 +559,23 @@ test("дубликат героя на руках не ломает бой: ко
   assert(res && res.damage > 0, "бой отработал без ошибок");
   assertEq(bfStepCount(res, "Invoker: +3 к множителю"), 2, "Invoke с обеих копий");
 });
+
+suite("Фидбек: награды за неиспользованные ресурсы");
+
+test("Неиспользованные ТП-сбросы волны — +1G каждый при зачистке", () => {
+  const s = bfRun("BFD1", "formation");
+  s.player.discardsLeft = 3;
+  const goldBefore = s.run.gold;
+  s.combat.wave.hp = 1; // добиваем волну одним ударом
+  bfPlay(s, ["sven", "centaur"]);
+  assert(s.combat.outcome === "cleared", "волна зачищена");
+  assert(s.log.some((l) => l.includes("Бонус меткости: +3G")), "строка бонуса в журнале");
+  assert(s.run.gold > goldBefore, "золото пришло");
+});
+
+test("Неиспользованные заряды «Второго дыхания» — +100 очков за заряд", () => {
+  const s = bfRun("BFD2");
+  const base = Game.scoreOf(s);
+  s.run.upgradeState = Object.assign({}, s.run.upgradeState, { vozvrat: { level: 1, charges: 2, actUses: 0 } });
+  assertEq(Game.scoreOf(s) - base, 200, "2 заряда = +200 очков");
+});

@@ -220,6 +220,7 @@ test("Проклятие Кровотока: урон ×1.15, награда ×0
   const s = newRankedRun("BLD", 9);
   s.run.curses = ["blood"];
   bareWave(s, 40); // пара 40×1.15 = 46 урона убивает башню
+  s.player.discardsLeft = 0; // бонус меткости за сбросы проверяется в bugfix.test.js
   const r = play(s, ["axe", "zeus"]);
   assertEq(r.damage, 46, "урон ×1.15");
   assertEq(s.run.gold, 4 + Math.round(6 * (Ranks.goldMult(s) * Ranks.curseGoldMult(s))) - Ranks.taxPerWave(s) + 3, "зачистка с рангом, Кровотоком, налогом (+4G старта) и бонусом скорости (+3G за 3 тимфайта)");

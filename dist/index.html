@@ -1285,6 +1285,13 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .upgrade-card.active-type .upgrade-emoji { text-shadow: 0 0 10px rgba(217,178,95,.55); }
 .upgrade-reroll.free-ledger { border-color: #4a5f3e; color: #b9e4c9; }
 
+/* фидбек 11.09: подложки под текст карточек — выделялся только аганим-блок,
+   остальной текст висел на голом фоне. Одна нейтральная панель на все блоки. */
+.collection-hero p, .recruit-info small { background: #1b2317; border: 1px solid #333f2a; border-radius: 6px; padding: 6px 9px; }
+.collection-hero .hero-attribute, .recruit-info .hero-attribute { display: inline-block; background: #1b2317; border: 1px solid #333f2a; border-radius: 5px; padding: 2px 8px; }
+.collection-hero small:not(.augh-lab) { display: inline-block; background: #1b2317; border: 1px solid #333f2a; border-radius: 5px; padding: 2px 8px; }
+.end-note { display: block; text-align: center; font-size: 10.5px; color: #8fa085; margin-top: 2px; }
+
 </style>
 </head>
 <body>
@@ -5190,6 +5197,13 @@ const Game = (function () {
             clearGold += leftoverFights;
             log(s, `Бонус скорости: +${leftoverFights}G за ${leftoverFights} неиспользованн${leftoverFights === 1 ? "ый тимфайт" : "ых тимфайта"}`);
           }
+          // Бонус меткости: каждый неиспользованный ТП-сброс волны — +1 золото
+          // (фидбек: «надо чё-то за оставшиеся ТП-сбросы и тимфайты давать»).
+          const leftoverDiscards = s.player.discardsLeft;
+          if (leftoverDiscards > 0) {
+            clearGold += leftoverDiscards;
+            log(s, `Бонус меткости: +${leftoverDiscards}G за ${leftoverDiscards} неиспользованн${leftoverDiscards === 1 ? "ый" : "ых"} ТП-сброс${leftoverDiscards < 5 ? "а" : "ов"}`);
+          }
           s.run.winCount = (s.run.winCount || 0) + 1;
           const milestone = Upgrades.sum(s, "winMilestoneGold");
           if (milestone && s.run.winCount % 5 === 0) {
@@ -5934,15 +5948,18 @@ const Game = (function () {
     }
   }
 
-  // Счёт забега (спек §8.1): волны + ранг + казармы + лучший удар.
+  // Счёт забега (спек §8.1): волны + ранг + казармы + лучший удар
+  // + неиспользованные заряды «Второго дыхания» (ТП-сбросы за забег).
   function scoreOf(state) {
     const waves = Math.min(state.run.waveIndex + (state.phase === "victory" ? 1 : 0), Content.waves.order.length);
     const rank = state.run.rank || 1;
+    const spareResets = ((state.run.upgradeState || {}).vozvrat || {}).charges || 0;
     return Math.round(
       waves * 100
       + rank * 150
       + state.run.barracks * 200
       + Math.min(99999, state.stats.biggestHit) / 50
+      + spareResets * 100
     );
   }
 
@@ -8322,6 +8339,21 @@ const Art = (function () {
     return clone ? clone.combat.lastResolution : null;
   }
 
+  // Доминирующий атрибут строя — подпись в формуле урона (раньше там всегда
+  // стояло «СИЛА», из-за чего универсалы вроде Dawnbreaker «считались силой»).
+  function dominantAttrName(state) {
+    const counts = {};
+    for (const uid of state.combat.selectedUids) {
+      const card = state.cards[uid];
+      const hr = card && Content.heroes.byId[card.heroId];
+      if (!hr) continue;
+      const a = Game.heroAttr(state, hr.id);
+      counts[a] = (counts[a] || 0) + 1;
+    }
+    const best = Object.keys(counts).sort((x, y) => counts[y] - counts[x])[0];
+    return best ? ATTR_NAMES[best] : "СИЛА";
+  }
+
   // Лучший харас из руки: какой урон нанесёт самая сильная одиночная карта.
   // Порог для состояния приговора «ЕЩЁ 1 УДАР» — только он, без субъективности.
   function computeHarass(state) {
@@ -8776,7 +8808,7 @@ const Art = (function () {
             </button>
             <div class="scene-formula">
               <div class="score-formula">
-                <div class="score-block power"><strong>${power}</strong><span>СИЛА</span></div>
+                <div class="score-block power"><strong>${power}</strong><span title="Атрибут, которых в строю больше всего — он задаёт тип урона">${dominantAttrName(state)}</span></div>
                 <span class="times">${icon("x", 14)}</span>
                 <div class="score-block multiplier"><strong>${mult}</strong><span>МНОЖ.</span></div>
                 <span class="equals">=</span>
@@ -9577,6 +9609,7 @@ const Art = (function () {
                 <div><strong>${state.stats.totalDamage.toLocaleString("ru")}</strong><span>Всего урона</span></div>
                 <div><strong>${state.stats.biggestHit.toLocaleString("ru")}</strong><span>Лучший тимфайт</span></div>
               </div>
+              ${(() => { const n = (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0; return n ? `<small class="end-note">Включая +${(n * 100).toLocaleString("ru")} очков за неиспользованные заряды «Второго дыхания»</small>` : ""; })()}
               ${leaderboardHtml()}
               <button class="primary-button" data-action="open-modal" data-modal="new">${icon("rotate", 16)}Ещё один забег</button>
             </section>

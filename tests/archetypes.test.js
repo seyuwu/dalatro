@@ -70,6 +70,7 @@ test("Перк «Крит» (lasthit2): точный ласт-хит даёт +5
   s.combat.selectedUids = uids.slice();
   s.combat.wave.hp = 48;
   s.combat.wave.maxHp = Math.max(s.combat.wave.maxHp, 48);
+  s.player.discardsLeft = 0; // бонус меткости за сбросы проверяется в bugfix.test.js
   const goldBefore = s.run.gold;
   Game.dispatch(s, { type: "CONFIRM_FIGHT" });
   assertEq(s.combat.lastResolution.damage, 48, "урон пары = 48, башня снята в ноль");

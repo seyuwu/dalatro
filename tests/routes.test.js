@@ -41,6 +41,7 @@ test("Примитивы hp/reward: Сильная башня толще и пл
   assertEq(s.combat.wave.maxHp, Math.round(def.hp * 1.35), "HP ×1.35");
   assertEq(s.combat.wave.rewardMult, 1.6, "награда ×1.6");
   s.combat.wave.hp = 1;
+  s.player.discardsLeft = 0; // бонус меткости за сбросы проверяется в bugfix.test.js
   const goldBefore = s.run.gold;
   forceHandPlay(s, ["tusk"]);
   // 6 × 1.6 = 9.6 → 10, плюс 1 золото хараса (играл один герой)
@@ -159,6 +160,7 @@ test("Лихва: заём +12G, возврат −15G после зачистк
   assertEq(s.run.debtGold, 15, "долг записан");
   s.combat.wave.hp = 1;
   s.player.fightsLeft = 4;
+  s.player.discardsLeft = 0; // бонус меткости за сбросы проверяется в bugfix.test.js
   forceHandPlay(s, ["tusk"]);
   // Зачистка харасом даёт 6G — долг гасится частично, остаток висит
   assert(s.run.debtGold === 15 - 9, "долг погашен с учётом бонуса скорости: " + s.run.debtGold);

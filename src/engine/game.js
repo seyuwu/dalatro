@@ -611,6 +611,13 @@ const Game = (function () {
             clearGold += leftoverFights;
             log(s, `Бонус скорости: +${leftoverFights}G за ${leftoverFights} неиспользованн${leftoverFights === 1 ? "ый тимфайт" : "ых тимфайта"}`);
           }
+          // Бонус меткости: каждый неиспользованный ТП-сброс волны — +1 золото
+          // (фидбек: «надо чё-то за оставшиеся ТП-сбросы и тимфайты давать»).
+          const leftoverDiscards = s.player.discardsLeft;
+          if (leftoverDiscards > 0) {
+            clearGold += leftoverDiscards;
+            log(s, `Бонус меткости: +${leftoverDiscards}G за ${leftoverDiscards} неиспользованн${leftoverDiscards === 1 ? "ый" : "ых"} ТП-сброс${leftoverDiscards < 5 ? "а" : "ов"}`);
+          }
           s.run.winCount = (s.run.winCount || 0) + 1;
           const milestone = Upgrades.sum(s, "winMilestoneGold");
           if (milestone && s.run.winCount % 5 === 0) {
@@ -1355,15 +1362,18 @@ const Game = (function () {
     }
   }
 
-  // Счёт забега (спек §8.1): волны + ранг + казармы + лучший удар.
+  // Счёт забега (спек §8.1): волны + ранг + казармы + лучший удар
+  // + неиспользованные заряды «Второго дыхания» (ТП-сбросы за забег).
   function scoreOf(state) {
     const waves = Math.min(state.run.waveIndex + (state.phase === "victory" ? 1 : 0), Content.waves.order.length);
     const rank = state.run.rank || 1;
+    const spareResets = ((state.run.upgradeState || {}).vozvrat || {}).charges || 0;
     return Math.round(
       waves * 100
       + rank * 150
       + state.run.barracks * 200
       + Math.min(99999, state.stats.biggestHit) / 50
+      + spareResets * 100
     );
   }
 

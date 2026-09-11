@@ -85,3 +85,12 @@ test("Победа и поражение забега рендерятся бе�
   renderHtml(s);
   assert(true, "оба экрана конца не упали");
 });
+
+test("Формула урона: подпись атрибута по доминанте строя (не всегда «СИЛА»)", () => {
+  const s = uiRun("UIT7");
+  s.phase = "wave";
+  const uni = ["dawnbreaker", "primal"].map((h) => Object.values(s.cards).find((c) => c.heroId === h).uid);
+  s.combat.selectedUids = uni;
+  const html = renderHtml(s);
+  assert(html.includes(">Универсал</span>"), "универсалы в строю — подпись «Универсал», а не «СИЛА»");
+});
