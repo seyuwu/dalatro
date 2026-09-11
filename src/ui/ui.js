@@ -1354,8 +1354,10 @@
       ? `<small class="upg-acc">🔘 Кнопка ${Upgrades.CONTEXT_LABELS[up.activation.context]} · ${Upgrades.accessLabel(up)}${up.activation.target === "item" ? " (на товаре)" : up.activation.target === "routeOption" ? " (на пути)" : ""}</small>`
       : "";
     return `<div class="upgrade-card ${up.rarity}" data-tip>
-                  <span class="upgrade-emoji">${Art.upgradeIcon(up)}</span>
-                  <div class="upgrade-info"><strong>${name}</strong><small>${esc(upDesc)}</small>${accLine}</div>
+                  <div class="upgrade-head">
+                    <span class="upgrade-emoji">${Art.upgradeIcon(up)}</span>
+                    <div class="upgrade-info"><strong>${name}</strong><small>${esc(upDesc)}</small>${accLine}</div>
+                  </div>
                   <button class="buy-button upgrade-buy" ${afford ? "" : "disabled"} data-action="buy-upgrade" data-id="${up.id}">
                     <span>${afford ? (isTier ? "Усилить" : "Купить") : "Дорого"}</span><span>${cost} ${icon("coins", 12)}</span>
                   </button>
@@ -2038,6 +2040,7 @@
     if (shop && shopScroll) shop.scrollTop = shopScroll;
     const modal = document.querySelector(".modal");
     if (modal && modalScroll) modal.scrollTop = modalScroll;
+    if (window.Tutorial) Tutorial.observe(state); // TUTORIAL: интерактивный онбординг
   }
 
   return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
