@@ -1,4 +1,4 @@
-// Dalatro — UI v4 ("decision" edition). Reads state, renders DOM, dispatches
+// dotora — UI v4 ("decision" edition). Reads state, renders DOM, dispatches
 // actions via data-attributes. Never a source of truth: State -> Render.
 // Layout: topbar (with run meta) → [sidebar | battle scene | context] →
 // bottom band (hand full-width / build) → footer.
@@ -891,7 +891,7 @@
     </section>`;
   }
 
-  // ---------- пикер рангов (лига DALATRO) ----------
+  // ---------- пикер рангов (лига dotora) ----------
 
   // Все активные правила лиги для ранга N: союз добавок 1..N в человеческих подписях.
   function rankNotes(rankId) {
@@ -973,7 +973,7 @@
     const inRun = state.phase !== "title";
     const formation = state.rules === "formation";
     return `<header class="topbar">
-      <a class="brand" data-action="nav-play">${brandMark()}<span>DALATRO<span class="brand-dot">.</span></span></a>
+      <a class="brand" data-action="nav-play">${brandMark()}<span>dotora<span class="brand-dot">.</span></span></a>
       <div class="brand-divider"></div>
       <span class="brand-caption">DOTA В КАРТАХ.<br/>ВЕЗЕНИЕ — В ТВОИХ РУКАХ.</span>
       <nav class="main-nav">
@@ -1006,7 +1006,7 @@
     <div class="title-screen">
       <div class="title-bg"></div>
       <div class="title-inner">
-        <a class="brand big">${brandMark()}<span>DALATRO<span class="brand-dot">.</span></span></a>
+        <a class="brand big">${brandMark()}<span>dotora<span class="brand-dot">.</span></span></a>
         <p class="title-caption">DOTA В КАРТАХ.<br/>ВЕЗЕНИЕ — В ТВОИХ РУКАХ.</p>
         <div class="title-formula">
           <div class="score-block power"><strong>69</strong><span>СИЛА</span></div>
@@ -1018,7 +1018,7 @@
         ${rulesBlockHtml()}
         <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
         ${starterPickerHtml()}
-        <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
+        <span class="section-label">ЛИГА dotora · РАНГ СЛОЖНОСТИ</span>
         ${rankPickerHtml()}
         <div class="seed-row">
           <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
@@ -1708,7 +1708,7 @@
         <div><strong>Ставка</strong><p>Сколько героев отправил в бой: 1 — харас (+1 золото), 4 — ×1.1 к урону, 5 — ×1.25. Больше героев — больше урона, но рука пустеет.</p></div>
         <div><strong>Импульс</strong><p>Серия зачищенных волн подряд: +5% урона за каждую. Провал сбрасывает серию.</p></div>
       </div>
-      <span class="section-label mint">${icon("crown", 15)}ЛИГА DALATRO · РАНГИ</span>
+      <span class="section-label mint">${icon("crown", 15)}ЛИГА dotora · РАНГИ</span>
       <p class="modal-description">Ранг задаётся перед забегом. Правила наслаиваются: ранг N держит всё, что дали ранги 1..N. Победа на ранге открывает следующий.</p>
       <div class="combo-table rank-table">
         <div class="table-head"><span>РАНГ</span><span>ПРАВИЛА ЛИГИ</span><span>HP ✕ НАГРАДА</span></div>

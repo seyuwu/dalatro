@@ -1,4 +1,4 @@
-// Dalatro — main: app state holder + event delegation. UI events become actions.
+// dotora — main: app state holder + event delegation. UI events become actions.
 // UI prefs (sound/motion/onboarding) live here, game state in Game.dispatch.
 (function () {
   const SAVE_KEY = "dalatro_save_v3"; // v3: архетипы старта + слоты предметов (старые сейвы не подхватываются)

@@ -1,4 +1,4 @@
-// Dalatro — conditions.
+// dotora — conditions.
 // A condition is a plain data object evaluated against a context:
 //   ctx = { state, combo, playedCards, slotIndex, card, hero, source }
 // Content never touches state directly — it declares conditions, engine evaluates them.

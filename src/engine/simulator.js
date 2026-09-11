@@ -1,4 +1,4 @@
-// Dalatro — simulator. Preview = the SAME dispatch on a cloned state.
+// dotora — simulator. Preview = the SAME dispatch on a cloned state.
 // No separate preview logic, ever. RNG is suppressed so a preview never
 // consumes draws or rolls from the real run.
 const Sim = (function () {

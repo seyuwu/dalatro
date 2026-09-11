@@ -34,5 +34,5 @@ createServer(async (req, res) => {
     res.end("404");
   }
 }).listen(port, () => {
-  console.log(`DALATRO dev server → http://localhost:${port}`);
+  console.log(`dotora dev server → http://localhost:${port}`);
 });

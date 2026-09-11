@@ -1,4 +1,4 @@
-// Dalatro content — heroes.
+// dotora content — heroes.
 // Card = hero + a mechanical rule (trigger), never just a skin.
 // The full 40-slot grid (10 ranks × 4 attributes) exists here: heroes with
 // inDeck:true form the starting 12; the rest are recruited in the shop.

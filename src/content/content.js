@@ -1,4 +1,4 @@
-// Dalatro — content registry. The engine only ever talks to Content.
+// dotora — content registry. The engine only ever talks to Content.
 const Content = (function () {
   function byId(list) {
     const map = {};

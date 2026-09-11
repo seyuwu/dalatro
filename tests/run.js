@@ -1,4 +1,4 @@
-// Dalatro test runner. Loads the same script files the browser loads (same
+// dotora test runner. Loads the same script files the browser loads (same
 // order as index.html) into a vm context, then runs tests/*.test.js inside it.
 // No dependencies, no build step.
 import { readFileSync, readdirSync } from "node:fs";

@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#141a16">
-  <meta name="description" content="Dalatro — Dota в картах. Собирай тимфайты, находи синергии, усиливай билд и побеждай Рошана в карточном рогалике.">
-  <title>DALATRO — Твой следующий тимфайт</title>
+  <meta name="description" content="dotora — Dota в картах. Собирай тимфайты, находи синергии, усиливай билд и побеждай Рошана в карточном рогалике.">
+  <title>dotora — Твой следующий тимфайт</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-/* DALATRO v3 — "lane" visual language, перенесён из React-прототипа:
+/* dotora v3 — "lane" visual language, перенесён из React-прототипа:
    оливково-зелёная военная палитра, Manrope/Oswald, панели-карточки,
    большое поле боя с формацией, комбинации постоянной правой колонкой. */
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;450;500;550;600;650;700;750;800&family=Oswald:wght@500;600;700&display=swap');
@@ -1158,7 +1158,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .rule-beta { opacity: 0.65; font-size: 12px; margin-left: 6px; border: 1px solid currentColor; border-radius: 6px; padding: 0 5px; }
 .act-pill.rules-formation { color: #7ad6a0; border-color: rgba(110, 210, 160, 0.5); }
 
-/* --- лига DALATRO: пикер рангов, медали, проклятия забега --- */
+/* --- лига dotora: пикер рангов, медали, проклятия забега --- */
 .rank-picker { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 620px; }
 .modal .rank-picker { justify-content: flex-start; }
 .rank-medal {
@@ -1414,7 +1414,7 @@ const Rng = (function () {
 
 </script>
   <script>
-// Dalatro content — heroes.
+// dotora content — heroes.
 // Card = hero + a mechanical rule (trigger), never just a skin.
 // The full 40-slot grid (10 ranks × 4 attributes) exists here: heroes with
 // inDeck:true form the starting 12; the rest are recruited in the shop.
@@ -1722,7 +1722,7 @@ const HEROES_DATA = [
 
 </script>
   <script>
-// Dalatro content — items.
+// dotora content — items.
 // Rarity: common | rare | epic (weights and prices in BALANCE.md).
 // Category: power (left axis) | mult (right axis) | rule (changes the rules) |
 //           economy (gold engine).
@@ -1922,7 +1922,7 @@ const ITEMS_DATA = [
 
 </script>
   <script>
-// Dalatro content — combos (poker hand -> Dota event), waves (towers + boss),
+// dotora content — combos (poker hand -> Dota event), waves (towers + boss),
 // and boss/wave modifiers. One modifier format for everything.
 // damageType у покерных комбо — только ярлык для условий предметов
 // (DAMAGE_TYPE_IS); классика не митигирует. Формации митигируют по-настоящему.
@@ -2066,7 +2066,7 @@ const TOWER_DEFENSE = {
 
 const DAMAGE_TYPE_NAMES = { physical: "физический", magical: "магический", pure: "чистый" };
 
-// --- Ранги сложности (лига DALATRO): Рекрут → ... → Титаны → Папочка.
+// --- Ранги сложности (лига dotora): Рекрут → ... → Титаны → Папочка.
 // Ранг N = союз добавок рангов 1..N (правила наслаиваются). hpMult/goldMult —
 // абсолютные множители ранга (не накапливаются): HP башен и награда за зачистку.
 const RANKS_DATA = [
@@ -2138,7 +2138,7 @@ const ARCHETYPES_DATA = [
 
 </script>
   <script>
-// Dalatro content — улучшения лавки v2. Отдельный слой прогресса: НЕ занимают
+// dotora content — улучшения лавки v2. Отдельный слой прогресса: НЕ занимают
 // слоты предметов. Правило пула: карточка проходит, если её эффект игрок
 // ЧУВСТВУЕТ за один акт — гарантированное событие, кнопка или правило.
 // Никаких лотерей до ~25% и никаких голых «+1–2%».
@@ -2304,7 +2304,7 @@ const UPGRADES_DATA = [
 
 </script>
   <script>
-// Dalatro content — развилки после лавки (спек §4, фаза E+). Реализовано 92/100
+// dotora content — развилки после лавки (спек §4, фаза E+). Реализовано 92/100
 // вариантов на расширенном наборе примитивов. Отложены с причинами:
 //   #61 Свободная перестройка — перестановка в бою и так бесплатна;
 //   #65 Перевёрнутая формация — требует инверсии всех позиционных правил;
@@ -2517,7 +2517,7 @@ const ROUTES_DATA = [
 
 </script>
   <script>
-// Dalatro content — Aghanim's Scepter & Shard (docs/AGHANIMS.md).
+// dotora content — Aghanim's Scepter & Shard (docs/AGHANIMS.md).
 // Герой-персональные аугменты: shard 🔹 — маленькое изменение паттерна,
 // scepter 🔮 — изменение поведения героя. Не занимают слоты предметов,
 // покупаются в лавке на конкретного героя ростера (1+1 на героя).
@@ -3364,7 +3364,7 @@ const AGHANIMS_DATA = [
 
 </script>
   <script>
-// Dalatro — content registry. The engine only ever talks to Content.
+// dotora — content registry. The engine only ever talks to Content.
 const Content = (function () {
   function byId(list) {
     const map = {};
@@ -3408,7 +3408,7 @@ const Content = (function () {
 
 </script>
   <script>
-// Dalatro — ranks: лига сложности (Рекрут → ... → Титаны → Папочка).
+// dotora — ranks: лига сложности (Рекрут → ... → Титаны → Папочка).
 // Ранг N = союз добавок рангов 1..N (правила наслаиваются). Здесь только
 // чтение конфига и вычисления; мутации state — game.js/combat.js.
 const Ranks = (function () {
@@ -3585,7 +3585,7 @@ const Ranks = (function () {
 })();
 </script>
   <script>
-// Dalatro — event bus.
+// dotora — event bus.
 // Actions produce events; triggers listen to events. The bus is synchronous and
 // every emitted event is appended to the state log (used by UI + debug inspector).
 const Events = (function () {
@@ -3614,7 +3614,7 @@ const Events = (function () {
 
 </script>
   <script>
-// Dalatro — conditions.
+// dotora — conditions.
 // A condition is a plain data object evaluated against a context:
 //   ctx = { state, combo, playedCards, slotIndex, card, hero, source }
 // Content never touches state directly — it declares conditions, engine evaluates them.
@@ -3858,7 +3858,7 @@ const Cond = (function () {
 
 </script>
   <script>
-// Dalatro — effects.
+// dotora — effects.
 // Content declares effects; ONLY this module (and the detection pipeline in
 // combat.js for PRE_DETECT effects) applies them to state/scoring.
 // Golden rule: content never mutates GameState directly.
@@ -4369,7 +4369,7 @@ const Effects = (function () {
 
 </script>
   <script>
-// Dalatro — trigger resolution.
+// dotora — trigger resolution.
 // Runs every trigger registered for an event, checks its conditions,
 // applies its effects and records each application as a resolution step.
 //
@@ -4554,7 +4554,7 @@ const Triggers = (function () {
 
 </script>
   <script>
-// Dalatro — resolution stack.
+// dotora — resolution stack.
 // One object that serves four consumers: calculation, UI preview, fight
 // animation and debugging. Everything the engine does during a fight is
 // recorded here as ordered steps.
@@ -4588,7 +4588,7 @@ const Resolver = (function () {
 
 </script>
   <script>
-// Dalatro — game state + action dispatch.
+// dotora — game state + action dispatch.
 // EVERYTHING that mutates state goes through dispatch(). UI never edits state,
 // content never edits state: State -> Action -> Engine -> Events/Effects -> State.
 const Game = (function () {
@@ -5143,7 +5143,7 @@ const Game = (function () {
         // Перк «Штурм»: +1G начального золота.
         if (starter.perk === "gold1") fresh.run.gold += 1;
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»${starter.id !== "standard" ? ` · отряд «${starter.name}»` : ""}`);
+        log(fresh, `Забег начат. Seed: dotora-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»${starter.id !== "standard" ? ` · отряд «${starter.name}»` : ""}`);
         return fresh;
       }
 
@@ -5980,7 +5980,7 @@ const Game = (function () {
 
 </script>
   <script>
-// Dalatro — simulator. Preview = the SAME dispatch on a cloned state.
+// dotora — simulator. Preview = the SAME dispatch on a cloned state.
 // No separate preview logic, ever. RNG is suppressed so a preview never
 // consumes draws or rolls from the real run.
 const Sim = (function () {
@@ -6008,7 +6008,7 @@ const Sim = (function () {
 
 </script>
   <script>
-// Dalatro — poker module. Knows nothing about Dota: takes cards with
+// dotora — poker module. Knows nothing about Dota: takes cards with
 // { power, attr } and returns the best combination contained in the set.
 // All played cards still contribute their power; the combo only sets the type
 // and its base power / multiplier.
@@ -6344,7 +6344,7 @@ const FormationSys = (function () {
 
 </script>
   <script>
-// Dalatro — deck system: deck / hand / discard as uid arrays + card registry.
+// dotora — deck system: deck / hand / discard as uid arrays + card registry.
 const DeckSys = (function () {
   let uidCounter = 0;
   // Hand of 7 vs deck of 12: after playing 5 the refill exactly drains the deck,
@@ -6417,7 +6417,7 @@ const DeckSys = (function () {
 
 </script>
   <script>
-// Dalatro — улучшения лавки v2. Отдельный слой прогресса, НЕ занимает слоты
+// dotora — улучшения лавки v2. Отдельный слой прогресса, НЕ занимает слоты
 // предметов. Улучшения продают КОНТРОЛЬ (кнопки, заряды, гарантии, правила),
 // а не проценты — сила остаётся у героев и предметов.
 //
@@ -6703,7 +6703,7 @@ const Upgrades = (function () {
 
 </script>
   <script>
-// Dalatro — combat orchestration. The heart of the vertical slice.
+// dotora — combat orchestration. The heart of the vertical slice.
 //
 // Resolution order (fixed, documented in ARCHITECTURE.md):
 //   1. PRE_DETECT   — heroes (slot order) + items mutate what the detector sees
@@ -7606,7 +7606,7 @@ const Combat = (function () {
 
 </script>
   <script>
-// Dalatro — economy: shop offers with rarity weights and lock support.
+// dotora — economy: shop offers with rarity weights and lock support.
 // Offers are objects: { id, locked }. Buy/sell/reroll math lives in game.js.
 const Economy = (function () {
   const REROLL_COST = 2;
@@ -7675,7 +7675,7 @@ const Economy = (function () {
 
 </script>
   <script>
-// Dalatro — build advisor. Turns the run's deck + items into visible build
+// dotora — build advisor. Turns the run's deck + items into visible build
 // directions (progress bars) and per-item synergy explanations for the shop.
 // Pure analysis: reads state, mutates nothing.
 const Advisor = (function () {
@@ -7903,7 +7903,7 @@ const Advisor = (function () {
 
 </script>
   <script>
-// Dalatro — inline icon set (lucide-artwork paths, ISC). No dependency:
+// dotora — inline icon set (lucide-artwork paths, ISC). No dependency:
 // icon(name, size) returns a stroke SVG in the current color.
 const Icons = (function () {
   const P = {
@@ -7949,7 +7949,7 @@ const Icons = (function () {
 
 </script>
   <script>
-// Dalatro — мини-синтезатор звуков на WebAudio (порт из add1). Никаких файлов.
+// dotora — мини-синтезатор звуков на WebAudio (порт из add1). Никаких файлов.
 // Все вызовы безопасны: нет AudioContext / muted / приватный режим — тишина.
 const Sfx = (function () {
   let ctx = null;
@@ -8022,7 +8022,7 @@ const Sfx = (function () {
 
 </script>
   <script>
-// Dalatro — art pool.
+// dotora — art pool.
 // Hero portraits come from Valve's public Dota 2 CDN (the canonical look).
 // The hand-drawn SVG sigils stay as an automatic fallback when the CDN is
 // unreachable — and as the original- art path for a public release, see
@@ -8148,7 +8148,7 @@ const Art = (function () {
 
 </script>
   <script>
-// Dalatro — UI v4 ("decision" edition). Reads state, renders DOM, dispatches
+// dotora — UI v4 ("decision" edition). Reads state, renders DOM, dispatches
 // actions via data-attributes. Never a source of truth: State -> Render.
 // Layout: topbar (with run meta) → [sidebar | battle scene | context] →
 // bottom band (hand full-width / build) → footer.
@@ -9041,7 +9041,7 @@ const Art = (function () {
     </section>`;
   }
 
-  // ---------- пикер рангов (лига DALATRO) ----------
+  // ---------- пикер рангов (лига dotora) ----------
 
   // Все активные правила лиги для ранга N: союз добавок 1..N в человеческих подписях.
   function rankNotes(rankId) {
@@ -9123,7 +9123,7 @@ const Art = (function () {
     const inRun = state.phase !== "title";
     const formation = state.rules === "formation";
     return `<header class="topbar">
-      <a class="brand" data-action="nav-play">${brandMark()}<span>DALATRO<span class="brand-dot">.</span></span></a>
+      <a class="brand" data-action="nav-play">${brandMark()}<span>dotora<span class="brand-dot">.</span></span></a>
       <div class="brand-divider"></div>
       <span class="brand-caption">DOTA В КАРТАХ.<br/>ВЕЗЕНИЕ — В ТВОИХ РУКАХ.</span>
       <nav class="main-nav">
@@ -9156,7 +9156,7 @@ const Art = (function () {
     <div class="title-screen">
       <div class="title-bg"></div>
       <div class="title-inner">
-        <a class="brand big">${brandMark()}<span>DALATRO<span class="brand-dot">.</span></span></a>
+        <a class="brand big">${brandMark()}<span>dotora<span class="brand-dot">.</span></span></a>
         <p class="title-caption">DOTA В КАРТАХ.<br/>ВЕЗЕНИЕ — В ТВОИХ РУКАХ.</p>
         <div class="title-formula">
           <div class="score-block power"><strong>69</strong><span>СИЛА</span></div>
@@ -9168,7 +9168,7 @@ const Art = (function () {
         ${rulesBlockHtml()}
         <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
         ${starterPickerHtml()}
-        <span class="section-label">ЛИГА DALATRO · РАНГ СЛОЖНОСТИ</span>
+        <span class="section-label">ЛИГА dotora · РАНГ СЛОЖНОСТИ</span>
         ${rankPickerHtml()}
         <div class="seed-row">
           <input id="seed-input" placeholder="Seed (пусто = случайный)" maxlength="12">
@@ -9858,7 +9858,7 @@ const Art = (function () {
         <div><strong>Ставка</strong><p>Сколько героев отправил в бой: 1 — харас (+1 золото), 4 — ×1.1 к урону, 5 — ×1.25. Больше героев — больше урона, но рука пустеет.</p></div>
         <div><strong>Импульс</strong><p>Серия зачищенных волн подряд: +5% урона за каждую. Провал сбрасывает серию.</p></div>
       </div>
-      <span class="section-label mint">${icon("crown", 15)}ЛИГА DALATRO · РАНГИ</span>
+      <span class="section-label mint">${icon("crown", 15)}ЛИГА dotora · РАНГИ</span>
       <p class="modal-description">Ранг задаётся перед забегом. Правила наслаиваются: ранг N держит всё, что дали ранги 1..N. Победа на ранге открывает следующий.</p>
       <div class="combo-table rank-table">
         <div class="table-head"><span>РАНГ</span><span>ПРАВИЛА ЛИГИ</span><span>HP ✕ НАГРАДА</span></div>
@@ -10140,7 +10140,7 @@ const Art = (function () {
 
 </script>
   <script>
-// Dalatro — main: app state holder + event delegation. UI events become actions.
+// dotora — main: app state holder + event delegation. UI events become actions.
 // UI prefs (sound/motion/onboarding) live here, game state in Game.dispatch.
 (function () {
   const SAVE_KEY = "dalatro_save_v3"; // v3: архетипы старта + слоты предметов (старые сейвы не подхватываются)

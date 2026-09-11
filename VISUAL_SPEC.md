@@ -1,4 +1,4 @@
-# DALATRO — Visual Spec v4 («decision» edition)
+# dotora — Visual Spec v4 («decision» edition)
 
 **Направление:** React-прототип (`test/`) как эталон. Оливково-зелёная
 «военная» палитра линии, Manrope (текст) + Oswald (цифры/логотип), панели-

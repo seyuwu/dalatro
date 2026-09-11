@@ -1,4 +1,4 @@
-# DALATRO — Content Catalog v0.4
+# dotora — Content Catalog v0.4
 
 Все таблицы контента. Правка контента не требует правок движка.
 Форматы триггеров — GAME_SPEC.md §13–15.

@@ -1,4 +1,4 @@
-// Dalatro — effects.
+// dotora — effects.
 // Content declares effects; ONLY this module (and the detection pipeline in
 // combat.js for PRE_DETECT effects) applies them to state/scoring.
 // Golden rule: content never mutates GameState directly.

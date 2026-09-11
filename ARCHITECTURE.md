@@ -1,4 +1,4 @@
-# DALATRO — Architecture
+# dotora — Architecture
 
 > **Golden rule: Content never mutates GameState directly.**
 > Content produces conditions and effects. The Engine resolves them.

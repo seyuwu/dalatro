@@ -1,4 +1,4 @@
-// Dalatro — resolution stack.
+// dotora — resolution stack.
 // One object that serves four consumers: calculation, UI preview, fight
 // animation and debugging. Everything the engine does during a fight is
 // recorded here as ordered steps.

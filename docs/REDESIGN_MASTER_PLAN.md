@@ -1,4 +1,4 @@
-# DALATRO — Master Redesign Plan (зафиксирован 2026-09-10)
+# dotora — Master Redesign Plan (зафиксирован 2026-09-10)
 
 План внедрения `DALATRO_Design_Changes_Master_Document.docx` (мастер-спек редизайна).
 Источник требований: спек + обсуждение. Этот документ — единственный источник правды по порядку работ.

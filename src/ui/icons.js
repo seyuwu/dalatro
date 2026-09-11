@@ -1,4 +1,4 @@
-// Dalatro — inline icon set (lucide-artwork paths, ISC). No dependency:
+// dotora — inline icon set (lucide-artwork paths, ISC). No dependency:
 // icon(name, size) returns a stroke SVG in the current color.
 const Icons = (function () {
   const P = {

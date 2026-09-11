@@ -1,4 +1,4 @@
-/* DALATRO v3 — "lane" visual language, перенесён из React-прототипа:
+/* dotora v3 — "lane" visual language, перенесён из React-прототипа:
    оливково-зелёная военная палитра, Manrope/Oswald, панели-карточки,
    большое поле боя с формацией, комбинации постоянной правой колонкой. */
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;450;500;550;600;650;700;750;800&family=Oswald:wght@500;600;700&display=swap');
@@ -1147,7 +1147,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .rule-beta { opacity: 0.65; font-size: 12px; margin-left: 6px; border: 1px solid currentColor; border-radius: 6px; padding: 0 5px; }
 .act-pill.rules-formation { color: #7ad6a0; border-color: rgba(110, 210, 160, 0.5); }
 
-/* --- лига DALATRO: пикер рангов, медали, проклятия забега --- */
+/* --- лига dotora: пикер рангов, медали, проклятия забега --- */
 .rank-picker { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 620px; }
 .modal .rank-picker { justify-content: flex-start; }
 .rank-medal {

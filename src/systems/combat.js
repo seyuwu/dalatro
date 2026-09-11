@@ -1,4 +1,4 @@
-// Dalatro — combat orchestration. The heart of the vertical slice.
+// dotora — combat orchestration. The heart of the vertical slice.
 //
 // Resolution order (fixed, documented in ARCHITECTURE.md):
 //   1. PRE_DETECT   — heroes (slot order) + items mutate what the detector sees

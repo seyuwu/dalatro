@@ -1,4 +1,4 @@
-// Dalatro — art pool.
+// dotora — art pool.
 // Hero portraits come from Valve's public Dota 2 CDN (the canonical look).
 // The hand-drawn SVG sigils stay as an automatic fallback when the CDN is
 // unreachable — and as the original- art path for a public release, see

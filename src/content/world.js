@@ -1,4 +1,4 @@
-// Dalatro content — combos (poker hand -> Dota event), waves (towers + boss),
+// dotora content — combos (poker hand -> Dota event), waves (towers + boss),
 // and boss/wave modifiers. One modifier format for everything.
 // damageType у покерных комбо — только ярлык для условий предметов
 // (DAMAGE_TYPE_IS); классика не митигирует. Формации митигируют по-настоящему.
@@ -142,7 +142,7 @@ const TOWER_DEFENSE = {
 
 const DAMAGE_TYPE_NAMES = { physical: "физический", magical: "магический", pure: "чистый" };
 
-// --- Ранги сложности (лига DALATRO): Рекрут → ... → Титаны → Папочка.
+// --- Ранги сложности (лига dotora): Рекрут → ... → Титаны → Папочка.
 // Ранг N = союз добавок рангов 1..N (правила наслаиваются). hpMult/goldMult —
 // абсолютные множители ранга (не накапливаются): HP башен и награда за зачистку.
 const RANKS_DATA = [

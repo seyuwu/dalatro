@@ -1,4 +1,4 @@
-// Dalatro content — Aghanim's Scepter & Shard (docs/AGHANIMS.md).
+// dotora content — Aghanim's Scepter & Shard (docs/AGHANIMS.md).
 // Герой-персональные аугменты: shard 🔹 — маленькое изменение паттерна,
 // scepter 🔮 — изменение поведения героя. Не занимают слоты предметов,
 // покупаются в лавке на конкретного героя ростера (1+1 на героя).

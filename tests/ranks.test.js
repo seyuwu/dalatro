@@ -1,4 +1,4 @@
-suite("Ranks — лига DALATRO (Рекрут → Папочка)");
+suite("Ranks — лига dotora (Рекрут → Папочка)");
 
 function newRankedRun(seed, rank, rules) {
   const s = Game.dispatch(Game.createInitialState(""), { type: "START_RUN", seedCode: seed, rank, rules });

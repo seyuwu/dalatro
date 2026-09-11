@@ -1,4 +1,4 @@
-// Dalatro — мини-синтезатор звуков на WebAudio (порт из add1). Никаких файлов.
+// dotora — мини-синтезатор звуков на WebAudio (порт из add1). Никаких файлов.
 // Все вызовы безопасны: нет AudioContext / muted / приватный режим — тишина.
 const Sfx = (function () {
   let ctx = null;

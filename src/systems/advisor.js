@@ -1,4 +1,4 @@
-// Dalatro — build advisor. Turns the run's deck + items into visible build
+// dotora — build advisor. Turns the run's deck + items into visible build
 // directions (progress bars) and per-item synergy explanations for the shop.
 // Pure analysis: reads state, mutates nothing.
 const Advisor = (function () {

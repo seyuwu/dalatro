@@ -1,4 +1,4 @@
-// Dalatro content — items.
+// dotora content — items.
 // Rarity: common | rare | epic (weights and prices in BALANCE.md).
 // Category: power (left axis) | mult (right axis) | rule (changes the rules) |
 //           economy (gold engine).

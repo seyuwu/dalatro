@@ -1,4 +1,4 @@
-// Dalatro — event bus.
+// dotora — event bus.
 // Actions produce events; triggers listen to events. The bus is synchronous and
 // every emitted event is appended to the state log (used by UI + debug inspector).
 const Events = (function () {

@@ -1,4 +1,4 @@
-// Dalatro — economy: shop offers with rarity weights and lock support.
+// dotora — economy: shop offers with rarity weights and lock support.
 // Offers are objects: { id, locked }. Buy/sell/reroll math lives in game.js.
 const Economy = (function () {
   const REROLL_COST = 2;

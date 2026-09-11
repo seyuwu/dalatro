@@ -1,4 +1,4 @@
-// Dalatro — trigger resolution.
+// dotora — trigger resolution.
 // Runs every trigger registered for an event, checks its conditions,
 // applies its effects and records each application as a resolution step.
 //

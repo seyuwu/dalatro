@@ -1,4 +1,4 @@
-// Dalatro — poker module. Knows nothing about Dota: takes cards with
+// dotora — poker module. Knows nothing about Dota: takes cards with
 // { power, attr } and returns the best combination contained in the set.
 // All played cards still contribute their power; the combo only sets the type
 // and its base power / multiplier.

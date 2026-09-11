@@ -1,4 +1,4 @@
-// Dalatro — game state + action dispatch.
+// dotora — game state + action dispatch.
 // EVERYTHING that mutates state goes through dispatch(). UI never edits state,
 // content never edits state: State -> Action -> Engine -> Events/Effects -> State.
 const Game = (function () {
@@ -553,7 +553,7 @@ const Game = (function () {
         // Перк «Штурм»: +1G начального золота.
         if (starter.perk === "gold1") fresh.run.gold += 1;
         setupWave(fresh, 0);
-        log(fresh, `Забег начат. Seed: DALATRO-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»${starter.id !== "standard" ? ` · отряд «${starter.name}»` : ""}`);
+        log(fresh, `Забег начат. Seed: dotora-${code}${fresh.rules === "formation" ? " · режим формаций" : ""} · ранг «${Ranks.rankOf(fresh).name}»${starter.id !== "standard" ? ` · отряд «${starter.name}»` : ""}`);
         return fresh;
       }
 

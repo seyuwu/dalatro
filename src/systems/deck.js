@@ -1,4 +1,4 @@
-// Dalatro — deck system: deck / hand / discard as uid arrays + card registry.
+// dotora — deck system: deck / hand / discard as uid arrays + card registry.
 const DeckSys = (function () {
   let uidCounter = 0;
   // Hand of 7 vs deck of 12: after playing 5 the refill exactly drains the deck,
