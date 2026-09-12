@@ -58,6 +58,12 @@
       spareResets: (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0,
       startedAt: state.run.startedAt || 0,
     }).then((res) => {
+      if (res && res.player && res.player.unlockedRank > UI.UIState.unlockedRank) {
+        // Победа учтена на сервере: подтягиваем прогресс лиги (например,
+        // открытый на другом устройстве), не дожидаясь следующего входа.
+        UI.UIState.unlockedRank = res.player.unlockedRank;
+        saveUnlockedRank(res.player.unlockedRank);
+      }
       if (res && res.personalBest) {
         UI.UIState.toast = `🏆 Личный рекорд на сервере: ${res.score.toLocaleString("ru")}`;
         rerender();
@@ -691,13 +697,15 @@
   rerender();
 
   // Онлайн: проверяем API в фоне. Сессия с другого устройства подтягивает
-  // прогресс лиги (unlockedRank), титул/модалки перерисуются с аккаунтом.
+  // прогресс лиги (unlockedRank), титул/модалки/экран конца забега
+  // перерисуются с аккаунтом и онлайн-вкладками «Зала славы».
   Net.ping().then(() => {
     if (Net.state.me && Net.state.me.unlockedRank > UI.UIState.unlockedRank) {
       UI.UIState.unlockedRank = Net.state.me.unlockedRank;
       saveUnlockedRank(Net.state.me.unlockedRank);
     }
-    if (state.phase === "title" || UI.UIState.modal === "account" || UI.UIState.modal === "leaders") rerender();
+    const p = state.phase;
+    if (p === "title" || p === "victory" || p === "gameover" || UI.UIState.modal === "account" || UI.UIState.modal === "leaders") rerender();
   });
 
   // Debug handle for sandbox/testing (used by docs screenshots and console).
