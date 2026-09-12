@@ -1,0 +1,22 @@
+# dotora — прод-контейнер. Снаружи только nginx хоста: порт прижат к loopback.
+# Подъём: docker compose up -d --build   Обновление: ./deploy/deploy.sh
+services:
+  server:
+    container_name: dotora-prod
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8891:8787"   # 8888 logITika, 8889/8890 opinia — 8891 наш
+    volumes:
+      - ./data:/app/data        # аккаунты/забеги/аналитика переживают пересборку
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/api/leaderboard?limit=1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

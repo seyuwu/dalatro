@@ -13,11 +13,12 @@
 файлом (фон `dist/images/battlefield.jpg` рядом), работает без сервера
 (портреты подгружаются с CDN Valve, офлайн включаются SVG-сигилы).
 
-**Вариант 2 — разработка:**
+**Вариант 2 — разработка:** Docker не нужен вообще — только чистый Node.
 
 ```bash
 node serve.js     # http://localhost:8000 — только статика
-npm test          # 418 тестов (движок + бэкенд)
+node server.js    # http://localhost:8787 — статика + API + админка
+npm test          # 428 тестов (движок + бэкенд)
 npm run build     # пересборка dist/index.html
 ```
 
@@ -43,6 +44,10 @@ npm start         # node server.js → http://localhost:8787
 журнал событий. При первом запуске пароль генерируется и печатается в
 консоль (хранится в `data/admin.json`); свой — `DOTORA_ADMIN_PASSWORD` при
 первом запуске.
+
+**Прод:** Selectel VDS рядом с logITika/opinia, Docker, порт 8891 на
+loopback, nginx + certbot на хосте. Полный ранбук —
+[deploy/DEPLOY.md](deploy/DEPLOY.md).
 
 ## Как играть
 

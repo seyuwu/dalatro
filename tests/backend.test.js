@@ -15,7 +15,7 @@ function tokenOf(res) {
 }
 
 function login(name) {
-  const res = req("POST", "/login", { name, password: "1234" });
+  const res = req("POST", "/login", { name, password: "123456" });
   assertEq(res.status, 200, "login " + name);
   const token = tokenOf(res);
   assert(token.length > 0, "сессия не выдана");
@@ -29,7 +29,7 @@ function winRun(over) {
 }
 
 test("register: аккаунт создаётся, сессия выдаётся, стартовый прогресс — ранг 1", () => {
-  const res = req("POST", "/register", { name: "Pudge", password: "1234" });
+  const res = req("POST", "/register", { name: "Pudge", password: "123456" });
   assertEq(res.status, 200);
   assertEq(res.json.player.name, "Pudge");
   assertEq(res.json.player.unlockedRank, 1);
@@ -38,19 +38,40 @@ test("register: аккаунт создаётся, сессия выдаётся
 });
 
 test("register: дубликат имени отклоняется без учёта регистра", () => {
-  assertEq(req("POST", "/register", { name: "pudge", password: "1234" }).status, 400);
+  assertEq(req("POST", "/register", { name: "pudge", password: "123456" }).status, 400);
 });
 
 test("register: валидация имени и пароля", () => {
-  assertEq(req("POST", "/register", { name: "x", password: "1234" }).status, 400, "короткое имя");
-  assertEq(req("POST", "/register", { name: "плохое имя!", password: "1234" }).status, 400, "кириллица/пробел");
+  assertEq(req("POST", "/register", { name: "x", password: "123456" }).status, 400, "короткое имя");
+  assertEq(req("POST", "/register", { name: "плохое имя!", password: "123456" }).status, 400, "кириллица/пробел");
   assertEq(req("POST", "/register", { name: "ok-name", password: "123" }).status, 400, "короткий пароль");
 });
 
 test("login: неверный пароль — 401, верный — 200 (регистр имени не важен)", () => {
   assertEq(req("POST", "/login", { name: "pudge", password: "неверный" }).status, 401);
-  assertEq(req("POST", "/login", { name: "PUDGE", password: "1234" }).status, 200);
-  assertEq(req("POST", "/login", { name: "ghost", password: "1234" }).status, 401, "нет аккаунта");
+  assertEq(req("POST", "/login", { name: "PUDGE", password: "123456" }).status, 200);
+  assertEq(req("POST", "/login", { name: "ghost", password: "123456" }).status, 401, "нет аккаунта");
+});
+
+test("login: брутфорс ограничен — 10 неудач блокируют вход даже с верным паролем", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+  assertEq(b.call("POST", "/register", { body: { name: "Brutus", password: "123456" } }).status, 200);
+  for (let i = 0; i < 10; i++) {
+    assertEq(b.call("POST", "/login", { body: { name: "brutus", password: "не-" + i }, ip: "7.7.7.7" }).status, 401);
+  }
+  assertEq(b.call("POST", "/login", { body: { name: "brutus", password: "123456" }, ip: "7.7.7.7" }).status, 429, "верный пароль под блоком");
+  assertEq(b.call("POST", "/login", { body: { name: "brutus", password: "123456" }, ip: "9.9.9.9" }).status, 200, "другой IP не тронут");
+  // Успешный вход с чистого IP сбрасывает счётчик неудач этой пары.
+  assertEq(b.call("POST", "/login", { body: { name: "brutus", password: "не-" }, ip: "8.8.8.8" }).status, 401);
+  assertEq(b.call("POST", "/login", { body: { name: "brutus", password: "123456" }, ip: "8.8.8.8" }).status, 200);
+  for (let i = 0; i < 10; i++) {
+    b.call("POST", "/login", { body: { name: "brutus", password: "не-" + i }, ip: "8.8.8.8" });
+  }
+  assertEq(b.call("POST", "/login", { body: { name: "brutus", password: "123456" }, ip: "8.8.8.8" }).status, 429, "счётчик снова набран");
+});
+
+test("register: пароль короче 6 символов отклоняется", () => {
+  assertEq(req("POST", "/register", { name: "ShortPass", password: "1234" }).status, 400);
 });
 
 test("me: без сессии — 401, с сессией — профиль", () => {
@@ -107,7 +128,7 @@ test("runs: поражение тоже пишется, статистика р�
 
 test("leaderboard: дедуп по игроку, сортировки всех четырёх видов", () => {
   const token = login("pudge");
-  assertEq(req("POST", "/register", { name: "kekw", password: "1234" }).status, 200, "второй игрок");
+  assertEq(req("POST", "/register", { name: "kekw", password: "123456" }).status, 200, "второй игрок");
   const token2 = login("kekw");
   // kekw: победа быстрее и счётом выше, но рангом ниже (2 против 3 у pudge).
   assertEq(req("POST", "/runs", winRun({ rank: 2, timeMs: 200000, biggestHit: 20000 }), token2).status, 200);

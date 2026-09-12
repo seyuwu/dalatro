@@ -55,9 +55,9 @@ function validName(name) {
   return typeof name === "string" && /^[A-Za-z0-9_.-]{2,20}$/.test(name);
 }
 
-function validPassword(password) {
-  return typeof password === "string" && password.length >= 4 && password.length <= 128;
-}
+  function validPassword(password) {
+    return typeof password === "string" && password.length >= 6 && password.length <= 128;
+  }
 
 function intIn(v, min, max) {
   return Number.isInteger(v) && v >= min && v <= max;
@@ -144,8 +144,29 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     return null;
   }
 
+  // Троттлинг брутфорса логина: 10 неудач на пару «имя + IP» за 15 минут
+  // блокируют вход (верный пароль тоже), успех сбрасывает счётчик. В памяти
+  // процесса: рестарт снимает блокировки — для игры это приемлемо.
+  const LOGIN_FAILS_MAX = 10;
+  const LOGIN_WINDOW = 15 * 60 * 1000;
+  const loginFails = new Map();
+  function loginThrottled(key) {
+    const fresh = (loginFails.get(key) || []).filter((t) => t > Date.now() - LOGIN_WINDOW);
+    loginFails.set(key, fresh);
+    return fresh.length >= LOGIN_FAILS_MAX;
+  }
+  function loginFail(key) {
+    if (!loginFails.has(key) && loginFails.size > 5000) loginFails.clear();
+    const arr = loginFails.get(key) || [];
+    arr.push(Date.now());
+    loginFails.set(key, arr);
+  }
+  function loginOk(key) {
+    loginFails.delete(key);
+  }
+
   // ---- роут ----
-  function call(method, path, { body = undefined, cookie = "", bearer = "" } = {}) {
+  function call(method, path, { body = undefined, cookie = "", bearer = "", ip = "-" } = {}) {
     const send = (status, json, setCookie) => ({ status, json, setCookie });
     const token = bearer || cookieToken(cookie);
     const me = accountByToken(token);
@@ -154,7 +175,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       const name = body && body.name;
       const password = body && body.password;
       if (!validName(name)) return send(400, { error: "Имя: 2–20 символов, латиница/цифры/._-" });
-      if (!validPassword(password)) return send(400, { error: "Пароль: минимум 4 символа" });
+      if (!validPassword(password)) return send(400, { error: "Пароль: минимум 6 символов" });
       const key = name.toLowerCase();
       if (accounts[key]) return send(400, { error: "Такое имя уже занято" });
       const salt = randomBytes(16).toString("hex");
@@ -174,11 +195,17 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     }
 
     if (method === "POST" && path === "/login") {
+      const throttleKey = `${String((body && body.name) || "").toLowerCase()}|${ip}`;
+      if (loginThrottled(throttleKey)) {
+        return send(429, { error: "слишком много неудачных попыток — подождите 15 минут" });
+      }
       const acc = findAccount(body && body.name);
       const password = body && body.password;
       if (!acc || !validPassword(password) || !checkPassword(password, acc.salt, acc.hash)) {
+        loginFail(throttleKey);
         return send(401, { error: "Неверное имя или пароль" });
       }
+      loginOk(throttleKey);
       const t = newSession(acc);
       saveAccounts();
       onEvent({ type: "login", name: acc.name });
@@ -496,6 +523,7 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         body: input,
         cookie: req.headers.cookie || "",
         bearer: auth.startsWith("Bearer ") ? auth.slice(7) : "",
+        ip,
       });
       if (result.setCookie) headers["Set-Cookie"] = result.setCookie;
       res.writeHead(result.status, headers).end(JSON.stringify(result.json));
@@ -521,8 +549,11 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
     }
     throw err;
   });
-  server.listen(port, "localhost", () => {
-    console.log(`dotora server (API + статика) → http://localhost:${port}`);
+  // Адрес: по умолчанию localhost (запуск на сервере напрямую — наружу только
+  // nginx). В контейнере HOST=0.0.0.0 — иначе проброс порта Docker не достанется.
+  const host = process.env.HOST || "localhost";
+  server.listen(port, host, () => {
+    console.log(`dotora server (API + статика) → http://${host}:${port}`);
   });
   return server;
 }

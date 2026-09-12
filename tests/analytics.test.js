@@ -93,9 +93,9 @@ test("admin auth: envPassword только при создании, файл п�
 test("backend: события register/login/run уходят в хук аналитики", () => {
   const events = [];
   const b = Backend.createBackend({ dataDir: Backend.tmpDataDir(), onEvent: (e) => events.push(e) });
-  b.call("POST", "/register", { body: { name: "Pudge", password: "1234" } });
-  b.call("POST", "/login", { body: { name: "Pudge", password: "1234" } });
-  const token = b.call("POST", "/login", { body: { name: "pudge", password: "1234" } }).setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
+  b.call("POST", "/register", { body: { name: "Pudge", password: "123456" } });
+  b.call("POST", "/login", { body: { name: "Pudge", password: "123456" } });
+  const token = b.call("POST", "/login", { body: { name: "pudge", password: "123456" } }).setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
   b.call("POST", "/runs", { body: { seed: "EVT", rank: 2, won: true, waves: 15, deaths: 0, timeMs: 300000, barracks: 1, biggestHit: 500, spareResets: 0, startedAt: 1700000000000 }, cookie: "dalatro_sess=" + token });
   b.call("POST", "/runs", { body: { seed: "EVT", rank: 2, won: true, waves: 15, deaths: 0, timeMs: 300000, barracks: 1, biggestHit: 500, spareResets: 0, startedAt: 1700000000000 }, cookie: "dalatro_sess=" + token });
   assertEq(events.length, 4, "register + 2 логина + забег; дубль не порождает событие");
@@ -110,8 +110,8 @@ test("backend: counts отдаёт живые счётчики для админ
   const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
   assertEq(b.counts().accounts, 0);
   assertEq(b.counts().runs, 0);
-  b.call("POST", "/register", { body: { name: "Pudge", password: "1234" } });
-  const token = b.call("POST", "/login", { body: { name: "pudge", password: "1234" } }).setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
+  b.call("POST", "/register", { body: { name: "Pudge", password: "123456" } });
+  const token = b.call("POST", "/login", { body: { name: "pudge", password: "123456" } }).setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
   b.call("POST", "/runs", { body: { seed: "C1", rank: 1, won: false, waves: 5, deaths: 1, timeMs: 120000, barracks: 0, biggestHit: 0, spareResets: 0, startedAt: 1700000000000 }, cookie: "dalatro_sess=" + token });
   assertEq(b.counts().accounts, 1);
   assertEq(b.counts().runs, 1);

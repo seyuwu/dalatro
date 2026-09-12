@@ -1734,7 +1734,7 @@
       <label class="auth-field"><span>Имя</span>
         <input id="auth-name" maxlength="20" placeholder="2–20 символов: латиница, цифры" autocomplete="username"></label>
       <label class="auth-field"><span>Пароль</span>
-        <input id="auth-pass" type="password" placeholder="от 4 символов" autocomplete="current-password"></label>
+        <input id="auth-pass" type="password" placeholder="от 6 символов" autocomplete="current-password"></label>
       ${Net.state.error ? `<div class="auth-error">${esc(Net.state.error)}</div>` : ""}
       <button class="primary-button" data-action="auth-submit" ${Net.state.busy ? "disabled" : ""}>${mode === "register" ? "Создать аккаунт" : "Войти"} ${icon("arrow", 15)}</button>
       <small class="auth-note">Аккаунт хранит забеги и прогресс лиги на сервере: таблица лидеров и профиль будут с любого устройства.</small>
