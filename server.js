@@ -12,6 +12,12 @@ import { join, dirname, extname, normalize } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createAnalytics } from "./analytics.js";
+import { createAdminAuth, adminPageHtml, ADMIN_COOKIE } from "./admin.js";
+
+// Ре-экспорт для тестов: vm-раннер инжектит только server.js (как Backend).
+export { createAnalytics } from "./analytics.js";
+export { createAdminAuth, ADMIN_COOKIE } from "./admin.js";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const SESSION_TTL = 30 * 24 * 3600 * 1000; // 30 дней
@@ -59,7 +65,8 @@ function intIn(v, min, max) {
 
 // ---------- API-ядро (синхронное) ----------
 // call(method, path, { body, cookie, bearer }) → { status, json, setCookie? }
-export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15 } = {}) {
+// onEvent — крючок аналитики: register/login/run уходят в analytics.js.
+export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, onEvent = () => {} } = {}) {
   const store = makeStore(dataDir);
   const accounts = store.load("accounts.json", {}); // ключ — имя в нижнем регистре
   const runs = store.load("runs.json", { list: [], counter: 0 });
@@ -162,6 +169,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15 } =
       accounts[key] = acc;
       const t = newSession(acc);
       saveAccounts();
+      onEvent({ type: "register", name: acc.name });
       return send(200, { player: publicPlayer(acc) }, sessionCookie(t));
     }
 
@@ -173,6 +181,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15 } =
       }
       const t = newSession(acc);
       saveAccounts();
+      onEvent({ type: "login", name: acc.name });
       return send(200, { player: publicPlayer(acc) }, sessionCookie(t));
     }
 
@@ -225,6 +234,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15 } =
       s.bestWaves = Math.max(s.bestWaves, run.waves);
       saveRuns();
       saveAccounts();
+      onEvent({ type: "run", name: me.name, won: run.won, rank: run.rank, score: run.score });
       return send(200, { ok: true, score: run.score, personalBest, player: publicPlayer(me) });
     }
 
@@ -306,7 +316,20 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15 } =
     rmSync(store.dir, { recursive: true, force: true });
   }
 
-  return { call, leaderboard, wipe };
+  // Живые счётчики для админки.
+  function counts() {
+    return { accounts: Object.keys(accounts).length, runs: runs.list.length };
+  }
+
+  // Сводка по игрокам для админки (активнейшие вперёд).
+  function players(limit = 100) {
+    return Object.values(accounts)
+      .map((a) => ({ name: a.name, runs: a.stats.runs, wins: a.stats.wins, bestScore: a.stats.bestScore, bestRank: a.stats.bestRankWon, createdAt: a.createdAt }))
+      .sort((x, y) => y.runs - x.runs || y.bestScore - x.bestScore)
+      .slice(0, limit);
+  }
+
+  return { call, leaderboard, wipe, counts, players };
 }
 
 function cookieToken(cookie) {
@@ -348,6 +371,26 @@ function rateLimited(ip) {
   return bucket.count > RATE_LIMIT;
 }
 
+// Отдельное жёсткое окно для логина админки: брутфорс тут дороже всего.
+const ADMIN_RATE_LIMIT = 15;
+const adminBuckets = new Map();
+function adminRateLimited(ip) {
+  const now = Date.now();
+  let bucket = adminBuckets.get(ip);
+  if (!bucket || now - bucket.start > 60000) { bucket = { start: now, count: 0 }; adminBuckets.set(ip, bucket); }
+  bucket.count += 1;
+  return bucket.count > ADMIN_RATE_LIMIT;
+}
+
+function adminCookie(token, maxAge) {
+  return `${ADMIN_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+}
+
+function adminCookieToken(cookie) {
+  const m = String(cookie || "").match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([a-f0-9]+)`));
+  return m ? m[1] : "";
+}
+
 function readBody(req, cap = 65536) {
   return new Promise((resolve, reject) => {
     let size = 0;
@@ -362,11 +405,74 @@ function readBody(req, cap = 65536) {
   });
 }
 
-export function startServer({ port = 8787, backend = createBackend() } = {}) {
+export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) {
+  const analytics = createAnalytics({ dataFile: join(dataDir, "analytics.json") });
+  const backend = createBackend({ dataDir, onEvent: (e) => analytics.event(e) });
+  const admin = createAdminAuth({
+    dataFile: join(dataDir, "admin.json"),
+    envPassword: process.env.DOTORA_ADMIN_PASSWORD,
+    onCreated: (password) => {
+      console.log(`Админка: http://localhost:${port}/admin · пароль: ${password}`);
+      console.log(`(пароль сохранён в ${join(dataDir, "admin.json")}; свой — DOTORA_ADMIN_PASSWORD при первом запуске, либо удалите файл)`);
+    },
+  });
+
+  // Буфер аналитики сбрасываем на диск раз в 30 c и на выходе процесса.
+  const saveAnalytics = () => analytics.save();
+  const flushTimer = setInterval(saveAnalytics, 30000);
+  flushTimer.unref();
+  process.on("exit", saveAnalytics);
+  process.on("SIGINT", () => process.exit(0));
+  process.on("SIGTERM", () => process.exit(0));
+
   const server = createServer(async (req, res) => {
+    const t0 = performance.now();
     const url = new URL(req.url, "http://x");
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket.remoteAddress || "?";
+    res.on("finish", () => {
+      // админку из трафика игры исключаем
+      if (url.pathname === "/admin" || url.pathname.startsWith("/api/admin")) return;
+      analytics.record({ method: req.method, path: url.pathname, status: res.statusCode, ms: performance.now() - t0, ip });
+    });
+
+    // ---- админка ----
+    if (url.pathname === "/admin") {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", "X-Robots-Tag": "noindex" });
+      res.end(adminPageHtml());
+      return;
+    }
+    if (url.pathname === "/api/admin/login" && req.method === "POST") {
+      const headers = { "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      if (adminRateLimited(ip)) {
+        res.writeHead(429, headers).end(JSON.stringify({ error: "слишком много попыток входа" }));
+        return;
+      }
+      let body = {};
+      try { body = JSON.parse((await readBody(req)) || "{}"); } catch { /* битый JSON = неверный пароль */ }
+      const token = admin.login(typeof body.password === "string" ? body.password : "");
+      if (!token) {
+        res.writeHead(401, headers).end(JSON.stringify({ error: "неверный пароль" }));
+        return;
+      }
+      res.writeHead(200, { ...headers, "Set-Cookie": adminCookie(token, 24 * 3600) }).end(JSON.stringify({ ok: true }));
+      return;
+    }
+    if (url.pathname === "/api/admin/logout" && req.method === "POST") {
+      admin.logout(adminCookieToken(req.headers.cookie || ""));
+      res.writeHead(200, { "Content-Type": "application/json", "Set-Cookie": adminCookie("", 0) }).end(JSON.stringify({ ok: true }));
+      return;
+    }
+    if (url.pathname === "/api/admin/stats") {
+      const headers = { "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      if (!admin.validate(adminCookieToken(req.headers.cookie || ""))) {
+        res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
+        return;
+      }
+      res.writeHead(200, headers).end(JSON.stringify({ ...analytics.snapshot(), store: backend.counts(), players: backend.players() }));
+      return;
+    }
+
     if (url.pathname.startsWith("/api/")) {
-      const ip = req.socket.remoteAddress || "?";
       const headers = { "Content-Type": "application/json", "Cache-Control": "no-cache" };
       if (rateLimited(ip)) {
         res.writeHead(429, headers).end(JSON.stringify({ error: "слишком много запросов" }));
