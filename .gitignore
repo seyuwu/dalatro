@@ -7,5 +7,5 @@ __pycache__/
 *.pyc
 # node_modules прототипов additions/ и test/ (собственные package.json)
 node_modules/
-# данные бэкенда (server.js): аккаунты и забеги игроков
-data/
+# данные бэкенда (server.js): аккаунты и забеги игроков (+ временные data-*)
+data*/
