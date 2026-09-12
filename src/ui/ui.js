@@ -147,6 +147,10 @@
     scores: [],
     scoreView: "score",
     newRecord: false,
+    // Источник «Зала славы»: локальный localStorage или серверный (Net).
+    // leadersRank — фильтр «топ на ранге N» для серверного вида счёта.
+    scoreSrc: "local",
+    leadersRank: "",
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -1205,6 +1209,8 @@
         <button class="subtle-button" data-action="open-modal" data-modal="new">${icon("rotate", 13)}Новый забег</button>
         <button class="icon-button" data-action="debug-toggle" title="Debug-песочница (клавиша D)">⚙</button>` : ""}
         <span class="version">BETA <span>0.8</span></span>
+        <button class="icon-button" data-action="open-modal" data-modal="leaders" title="Таблица лидеров">${icon("crown", 18)}</button>
+        <button class="icon-button" data-action="open-modal" data-modal="account" title="Аккаунт">${Net.state.me ? `<b class="topbar-avatar">${esc(Net.state.me.name.slice(0, 1).toUpperCase())}</b>` : icon("shield", 18)}</button>
         <button class="icon-button" data-action="toggle-sound" title="${Sfx.isMuted() ? "Включить звук" : "Выключить звук"}">${Sfx.isMuted() ? icon("mute", 18) : icon("volume", 18)}</button>
         <button class="icon-button" data-action="open-modal" data-modal="settings" title="Настройки">${icon("settings", 18)}</button>
       </div>
@@ -1239,8 +1245,11 @@
         <div class="title-links">
           <button class="subtle-button" data-action="onboard-start">${icon("book", 13)}Как играть — 5 шагов</button>
           <span class="keyboard-divider">·</span>
-          <span class="title-hint">Собирай формации из героев Dota: порядок слотов решает</span>
+          <button class="subtle-button" data-action="open-modal" data-modal="leaders">${icon("crown", 13)}Таблица лидеров</button>
+          <span class="keyboard-divider">·</span>
+          <button class="subtle-button" data-action="open-modal" data-modal="account">${icon("shield", 13)}${Net.state.me ? "Профиль: " + esc(Net.state.me.name) : "Аккаунт"}</button>
         </div>
+        <p class="title-hint">Собирай формации из героев Dota: порядок слотов решает</p>
       </div>
     </div>
     ${overlayHtml(state)}
@@ -1610,39 +1619,162 @@
   }
 
   // Лидерборд (фаза H): 4 вида из спека §8.1.
-  function leaderboardHtml() {
-    const list = UIState.scores || [];
+  // ---------- лидерборды: локальный «Зал славы» (§8.1) + серверные таблицы ----------
+
+  const BOARD_VIEWS = [
+    ["score", "Лучший счёт"],
+    ["rank", "Высший ранг"],
+    ["fastest", "Быстрейшая победа"],
+    ["nodeath", "Без смертей"],
+  ];
+
+  function fmtTimeMs(ms) {
+    const t = Math.round(ms / 1000);
+    return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+  }
+
+  function romanOf(rank) {
+    return (Content.ranks.byId[rank] || {}).roman || rank;
+  }
+
+  function boardTabsHtml(view) {
+    return BOARD_VIEWS.map(([key, label]) =>
+      `<button class="${view === key ? "active" : ""}" data-action="score-view" data-view="${key}">${label}</button>`).join("");
+  }
+
+  // Строка таблицы. opts.ladder — вид «Высший ранг» с сервера: там счёт и ранг
+  // означают лучший прогресс игрока, а не конкретный забег.
+  function boardRowHtml(i, e, opts = {}) {
+    const meta = opts.ladder
+      ? `${e.wins} побед из ${e.runs} забегов`
+      : `${e.waves}/${Content.waves.order.length} волн${e.won ? " 🏆" : ""} · ${fmtTimeMs(e.timeMs)}${e.deaths ? ` · ${e.deaths} ${e.deaths === 1 ? "смерть" : "смертей"}` : " · без смертей"}`;
+    const name = e.name ? `<span class="score-name">${esc(e.name)}</span>` : "";
+    return `<div class="score-row ${i === 0 ? "top" : ""}">
+      <span class="score-pos">${i + 1}</span>
+      <b class="score-num">${(e.score || 0).toLocaleString("ru")}</b>
+      <span class="score-rank">${e.rank ? romanOf(e.rank) : "—"}</span>
+      ${name}
+      <span class="score-waves">${meta}</span>
+      <span class="score-seed">${e.seed ? "#" + esc(e.seed) : ""}</span>
+    </div>`;
+  }
+
+  function emptyLocalText(view) {
+    return view === "fastest" || view === "nodeath" ? "Пока нет подходящих забегов — победи!" : "Пока пусто. Первый забег — уже рекорд.";
+  }
+
+  // Серверная таблица: данные уже в Net.state.boards (грузит main.js).
+  // Табы видов — общие с локальной доской, добавляет вызывающий.
+  function globalBoardHtml(state, { withFilter } = {}) {
     const view = UIState.scoreView || "score";
-    const views = [
-      ["score", "Лучший счёт"],
-      ["rank", "Высший ранг"],
-      ["fastest", "Быстрейшая победа"],
-      ["nodeath", "Без смертей"],
-    ];
-    const fmtTime = (ms) => {
-      const t = Math.round(ms / 1000);
-      return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
-    };
-    let rows = [];
-    if (view === "score") rows = list.slice().sort((a, b) => b.score - a.score).slice(0, 8);
-    else if (view === "rank") rows = list.slice().sort((a, b) => b.rank - a.rank || b.score - a.score).slice(0, 8);
-    else if (view === "fastest") rows = list.filter((e) => e.won).sort((a, b) => a.timeMs - b.timeMs).slice(0, 8);
-    else if (view === "nodeath") rows = list.filter((e) => e.won && !e.deaths).sort((a, b) => b.score - a.score).slice(0, 8);
-    const tabs = views.map(([key, label]) => `<button class="${view === key ? "active" : ""}" data-action="score-view" data-view="${key}">${label}</button>`).join("");
-    const body = rows.length ? rows.map((e, i) => `
-        <div class="score-row ${i === 0 ? "top" : ""}">
-          <span class="score-pos">${i + 1}</span>
-          <b class="score-num">${e.score.toLocaleString("ru")}</b>
-          <span class="score-rank">${(Content.ranks.byId[e.rank] || {}).roman || e.rank}</span>
-          <span class="score-waves">${e.waves}/15 волн${e.won ? " 🏆" : ""}</span>
-          <span class="score-time">${fmtTime(e.timeMs)}${e.deaths ? ` · ${e.deaths} ${e.deaths === 1 ? "смерть" : "смертей"}` : " · без смертей"}</span>
-          <span class="score-seed">#${esc(e.seed)}</span>
-        </div>`).join("") : `<div class="score-empty">${view === "fastest" || view === "nodeath" ? "Пока нет подходящих забегов — победи!" : "Пока пусто. Первый забег — уже рекорд."}</div>`;
+    const rank = UIState.leadersRank || "";
+    const board = Net.state.boards[view + "|" + (rank || "")];
+    let body;
+    if (!Net.state.online) body = `<div class="score-empty">Сервер недоступен — таблицы работают оффлайн от localStorage. Запусти <b>node server.js</b>, чтобы собрать онлайн-топ.</div>`;
+    else if (!board || Net.state.boardsLoading) body = `<div class="score-empty">Загружаем…</div>`;
+    else if (board.error) body = `<div class="score-empty">Сервер не ответил: ${esc(board.error)}</div>`;
+    else if (!board.rows.length) body = `<div class="score-empty">Пока пусто. Первый забег с аккаунта — уже строка в таблице.</div>`;
+    else body = board.rows.map((e, i) => boardRowHtml(i, e, { ladder: view === "rank" })).join("");
+    return `${withFilter ? rankFilterHtml(view, rank) : ""}
+      <div class="score-rows">${body}</div>`;
+  }
+
+  // Фильтр «топ на ранге N» — только для вида счёта.
+  function rankFilterHtml(view, rank) {
+    if (view !== "score") return "";
+    const options = [`<option value="">Все ранги</option>`]
+      .concat(Content.ranks.list.map((r) => `<option value="${r.id}" ${String(r.id) === String(rank) ? "selected" : ""}>Ранг ${r.roman} — ${esc(r.name)}</option>`))
+      .join("");
+    return `<div class="lb-filter"><select data-action-change="lb-rank">${options}</select></div>`;
+  }
+
+  function leaderboardHtml() {
+    const view = UIState.scoreView || "score";
+    const src = UIState.scoreSrc || "local";
+    const srcTabs = Net.state.online ? `
+        <span class="score-src">
+          <button class="${src === "local" ? "active" : ""}" data-action="score-src" data-src="local">Локально</button>
+          <button class="${src === "global" ? "active" : ""}" data-action="score-src" data-src="global">Онлайн</button>
+        </span>` : "";
+    let rowsHtml;
+    if (src === "global") {
+      rowsHtml = globalBoardHtml();
+    } else {
+      const list = UIState.scores || [];
+      let rows = [];
+      if (view === "score") rows = list.slice().sort((a, b) => b.score - a.score).slice(0, 8);
+      else if (view === "rank") rows = list.slice().sort((a, b) => b.rank - a.rank || b.score - a.score).slice(0, 8);
+      else if (view === "fastest") rows = list.filter((e) => e.won).sort((a, b) => a.timeMs - b.timeMs).slice(0, 8);
+      else if (view === "nodeath") rows = list.filter((e) => e.won && !e.deaths).sort((a, b) => b.score - a.score).slice(0, 8);
+      rowsHtml = `<div class="score-rows">${rows.length ? rows.map((e, i) => boardRowHtml(i, e)).join("") : `<div class="score-empty">${emptyLocalText(view)}</div>`}</div>`;
+    }
     return `<section class="score-board panel">
-      <div class="section-label"><span>${icon("crown", 13)}ЗАЛ СЛАВЫ</span></div>
-      <div class="score-tabs">${tabs}</div>
-      <div class="score-rows">${body}</div>
+      <div class="section-label"><span>${icon("crown", 13)}ЗАЛ СЛАВЫ</span>${srcTabs}</div>
+      <div class="score-tabs">${boardTabsHtml(view)}</div>
+      ${rowsHtml}
     </section>`;
+  }
+
+  // ---------- модалки: аккаунт и таблица лидеров ----------
+
+  function accountModalHtml(state) {
+    if (!Net.state.checked) return `<div class="muted-note">Проверяем сервер…</div>`;
+    if (!Net.state.online) return `<div class="muted-note">Сервер недоступен — играешь оффлайн, прогресс хранится в браузере. Аккаунты и онлайн-таблицы включаются запуском <b>node server.js</b>.</div>`;
+    if (Net.state.me) return profileHtml(Net.state.me);
+    return authFormHtml();
+  }
+
+  function authFormHtml() {
+    const mode = Net.state.authMode || "login";
+    return `<div class="auth-form">
+      <div class="score-tabs">
+        <button class="${mode === "login" ? "active" : ""}" data-action="auth-mode" data-mode="login">Вход</button>
+        <button class="${mode === "register" ? "active" : ""}" data-action="auth-mode" data-mode="register">Регистрация</button>
+      </div>
+      <label class="auth-field"><span>Имя</span>
+        <input id="auth-name" maxlength="20" placeholder="2–20 символов: латиница, цифры" autocomplete="username"></label>
+      <label class="auth-field"><span>Пароль</span>
+        <input id="auth-pass" type="password" placeholder="от 4 символов" autocomplete="current-password"></label>
+      ${Net.state.error ? `<div class="auth-error">${esc(Net.state.error)}</div>` : ""}
+      <button class="primary-button" data-action="auth-submit" ${Net.state.busy ? "disabled" : ""}>${mode === "register" ? "Создать аккаунт" : "Войти"} ${icon("arrow", 15)}</button>
+      <small class="auth-note">Аккаунт хранит забеги и прогресс лиги на сервере: таблица лидеров и профиль будут с любого устройства.</small>
+    </div>`;
+  }
+
+  function profileHtml(me) {
+    const s = me.stats || {};
+    const profile = Net.state.profiles[me.name];
+    const runs = (profile && profile.runs) || [];
+    const winrate = s.runs ? Math.round((s.wins / s.runs) * 100) : 0;
+    const rankDef = Content.ranks.byId[me.unlockedRank] || {};
+    const rows = runs.length
+      ? runs.map((e, i) => boardRowHtml(i, e)).join("")
+      : `<div class="score-empty">Забегов с аккаунта пока не было — финишируй первый.</div>`;
+    return `<div class="profile">
+      <div class="profile-head">
+        <span class="profile-avatar">${esc(me.name.slice(0, 1).toUpperCase())}</span>
+        <div class="profile-title"><strong>${esc(me.name)}</strong><small>на сервере с ${new Date(me.createdAt).toLocaleDateString("ru")}</small></div>
+        <span class="medal-gem" style="--medal:${rankDef.color || "#7a6437"}" title="Открытый ранг лиги">${romanOf(me.unlockedRank)}</span>
+      </div>
+      <div class="profile-stats">
+        <div><strong>${s.runs || 0}</strong><span>забегов</span></div>
+        <div><strong>${s.wins || 0}</strong><span>побед</span></div>
+        <div><strong>${winrate}%</strong><span>винрейт</span></div>
+        <div><strong>${(s.bestScore || 0).toLocaleString("ru")}</strong><span>лучший счёт</span></div>
+        <div><strong>${s.bestRankWon ? romanOf(s.bestRankWon) : "—"}</strong><span>высший взятый</span></div>
+      </div>
+      <div class="section-label"><span>${icon("history", 13)}ПОСЛЕДНИЕ ЗАБЕГИ</span></div>
+      <div class="score-rows">${rows}</div>
+      <button class="subtle-button" data-action="logout">${icon("rotate", 13)}Выйти из аккаунта</button>
+    </div>`;
+  }
+
+  function leadersModalHtml(state) {
+    return `<div class="leaders-wrap">
+      <p class="modal-description">Топ игроков сервера. Дедуп по игроку — одна строка на человека: лучший счёт, лестница рангов, самая быстрая победа и чистые забеги.</p>
+      <div class="score-tabs">${boardTabsHtml(UIState.scoreView || "score")}</div>
+      ${globalBoardHtml(state, { withFilter: true })}
+    </div>`;
   }
 
   function endScreen(state, won) {
@@ -2115,6 +2247,8 @@
       case "history": return historyModalHtml(state);
       case "new": return newRunModalHtml();
       case "score": return scoreModalHtml(state);
+      case "account": return accountModalHtml(state);
+      case "leaders": return leadersModalHtml(state);
       case "detail": return detailModalHtml(state);
       case "discard-pick": return discardPickerHtml(state);
       default: return "";

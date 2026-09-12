@@ -1404,6 +1404,37 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .abil-dot.off { background: #59644f; }
 .abil-hint { display: block; font-size: 8px; line-height: 1.5; color: #93a186; margin-top: 6px; padding-top: 5px; border-top: 1px solid #3a4738; }
 
+/* ── Аккаунты и онлайн-таблицы (server.js + net.js) ─────────────────────── */
+.score-src { margin-left: auto; display: inline-flex; gap: 4px; }
+.score-src button { font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: #93a385; border: 1px solid #3d4a35; background: transparent; border-radius: 4px; padding: 3px 8px; cursor: pointer; }
+.score-src button.active { color: #e9c98f; border-color: #7a6437; background: #3c331d; }
+.score-name { color: #d8e2cf; font-weight: 700; min-width: 64px; max-width: 34%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-avatar { font-family: 'Oswald', sans-serif; font-size: 14px; color: #e9c98f; line-height: 1; }
+.lb-filter { margin-bottom: 10px; }
+.lb-filter select { background: #151e15; border: 1px solid #3e5134; border-radius: 4px; padding: 7px 10px; color: #c6d0ba; font-size: 12px; outline: none; cursor: pointer; }
+.lb-filter select:focus { border-color: var(--gold); }
+
+.auth-form { display: flex; flex-direction: column; gap: 12px; max-width: 340px; margin: 0 auto; }
+.auth-field { display: flex; flex-direction: column; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #93a385; }
+.auth-field input { background: #151e15; border: 1px solid #3e5134; border-radius: 4px; padding: 11px 12px; color: #c6d0ba; font-size: 14px; letter-spacing: normal; text-transform: none; outline: none; }
+.auth-field input:focus { border-color: var(--gold); }
+.auth-error { font-size: 11px; color: #ff9a7a; background: #3a221a66; border: 1px solid #6b3a2a; border-radius: 4px; padding: 8px 10px; }
+.auth-note { font-size: 10px; line-height: 1.5; color: #74866b; text-align: center; }
+
+.profile { display: flex; flex-direction: column; gap: 12px; }
+.profile-head { display: flex; align-items: center; gap: 12px; }
+.profile-avatar { width: 40px; height: 40px; border-radius: 6px; background: #3c331d; border: 1px solid #7a6437; color: #e9c98f; font-family: 'Oswald', sans-serif; font-size: 19px; display: flex; align-items: center; justify-content: center; }
+.profile-title { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.profile-title strong { font-size: 15px; color: #e9efe4; }
+.profile-title small { font-size: 10px; color: #74866b; }
+.profile-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-stats div { flex: 1 1 64px; background: #1d261a; border: 1px solid #2e3c28; border-radius: 5px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.profile-stats strong { font-family: 'Oswald', sans-serif; font-size: 16px; color: #e9c98f; }
+.profile-stats span { font-size: 9px; letter-spacing: .5px; text-transform: uppercase; color: #7d8b72; }
+.profile .subtle-button { align-self: center; margin-top: 4px; }
+
+.leaders-wrap { display: flex; flex-direction: column; gap: 4px; }
+
 /* dotora — tutorial: слой интерактивного онбординга. Живёт вне #app,
    z-стек: под тостами (100), над модалками (50). Отдельный файл — чтобы
    не конфликтовать с параллельными правками styles.css. // TUTORIAL */
@@ -9280,6 +9311,114 @@ const Advisor = (function () {
 
 </script>
   <script>
+// dotora — net: клиент бэкенда (аккаунты, отправка забегов, лидерборды).
+// Тот же origin, что и страница: сервер отдаёт и статику, и /api/*. Игра
+// полностью работает оффлайн — каждый вызов гасит ошибку в state, UI читает
+// Net.state и показывает онлайн-блоки только когда API живой. Файл грузится
+// и в тестовый vm (см. tests/run.js), поэтому на верхнем уровне — только
+// определение модуля: fetch/localStorage трогаем лениво, внутри методов.
+const Net = (function () {
+  const state = {
+    checked: false,  // ping уже выполнялся
+    online: false,   // API отвечал хотя бы раз
+    me: null,        // { name, createdAt, unlockedRank, stats }
+    error: "",       // последняя ошибка для модалки аккаунта
+    authMode: "login",
+    busy: false,
+    boards: {},      // ключ "view|rank" → { rows } | { error }
+    boardsLoading: false,
+    profiles: {},    // имя → профиль (для модалки аккаунта)
+  };
+
+  function api(method, path, body) {
+    if (typeof fetch !== "function") return Promise.reject(new Error("offline"));
+    const opts = { method, headers: {} };
+    if (body !== undefined) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(path, opts).then((res) =>
+      res.json().catch(() => null).then((data) => {
+        if (!res.ok) {
+          const err = new Error((data && data.error) || "HTTP " + res.status);
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      })
+    );
+  }
+
+  // Кто я? 401 значит «API жив, но сессии нет» — это тоже онлайн.
+  function ping() {
+    return api("GET", "/api/me")
+      .then((d) => { state.online = true; state.checked = true; state.me = d.player || null; })
+      .catch((e) => {
+        state.checked = true;
+        if (e && e.status === 401) { state.online = true; state.me = null; }
+        else state.online = false;
+      });
+  }
+
+  function auth(mode, name, password) {
+    state.busy = true;
+    state.error = "";
+    return api("POST", "/api/" + mode, { name, password })
+      .then((d) => {
+        state.me = d.player;
+        state.busy = false;
+        return d.player;
+      })
+      .catch((e) => {
+        state.busy = false;
+        state.error = (e && e.message) || "не получилось";
+        throw e;
+      });
+  }
+
+  function logout() {
+    state.me = null;
+    return api("POST", "/api/logout", {}).catch(() => {});
+  }
+
+  // Отправка забега — fire-and-forget: игра не ждёт сеть. Оффлайн — тихий no-op.
+  function submitRun(payload) {
+    if (!state.online || !state.me) return Promise.resolve(null);
+    return api("POST", "/api/runs", payload)
+      .then((d) => {
+        if (d && d.player) state.me = d.player;
+        return d;
+      })
+      .catch(() => null);
+  }
+
+  function boardKey(view, rank) { return view + "|" + (rank || ""); }
+
+  function leaderboard(view, rank) {
+    state.boardsLoading = true;
+    const q = rank ? `&rank=${encodeURIComponent(rank)}` : "";
+    return api("GET", `/api/leaderboard?view=${encodeURIComponent(view)}${q}`)
+      .then((d) => {
+        state.boards[boardKey(view, rank)] = { rows: (d && d.rows) || [] };
+        state.boardsLoading = false;
+      })
+      .catch((e) => {
+        state.boards[boardKey(view, rank)] = { error: (e && e.message) || "нет связи" };
+        state.boardsLoading = false;
+      });
+  }
+
+  function fetchProfile(name) {
+    return api("GET", "/api/players/" + encodeURIComponent(name))
+      .then((d) => { if (d) state.profiles[name] = d; })
+      .catch(() => {});
+  }
+
+  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile };
+})();
+
+</script>
+  <script>
 // dotora — inline icon set (lucide-artwork paths, ISC). No dependency:
 // icon(name, size) returns a stroke SVG in the current color.
 const Icons = (function () {
@@ -9706,6 +9845,10 @@ const Art = (function () {
     scores: [],
     scoreView: "score",
     newRecord: false,
+    // Источник «Зала славы»: локальный localStorage или серверный (Net).
+    // leadersRank — фильтр «топ на ранге N» для серверного вида счёта.
+    scoreSrc: "local",
+    leadersRank: "",
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -10764,6 +10907,8 @@ const Art = (function () {
         <button class="subtle-button" data-action="open-modal" data-modal="new">${icon("rotate", 13)}Новый забег</button>
         <button class="icon-button" data-action="debug-toggle" title="Debug-песочница (клавиша D)">⚙</button>` : ""}
         <span class="version">BETA <span>0.8</span></span>
+        <button class="icon-button" data-action="open-modal" data-modal="leaders" title="Таблица лидеров">${icon("crown", 18)}</button>
+        <button class="icon-button" data-action="open-modal" data-modal="account" title="Аккаунт">${Net.state.me ? `<b class="topbar-avatar">${esc(Net.state.me.name.slice(0, 1).toUpperCase())}</b>` : icon("shield", 18)}</button>
         <button class="icon-button" data-action="toggle-sound" title="${Sfx.isMuted() ? "Включить звук" : "Выключить звук"}">${Sfx.isMuted() ? icon("mute", 18) : icon("volume", 18)}</button>
         <button class="icon-button" data-action="open-modal" data-modal="settings" title="Настройки">${icon("settings", 18)}</button>
       </div>
@@ -10798,8 +10943,11 @@ const Art = (function () {
         <div class="title-links">
           <button class="subtle-button" data-action="onboard-start">${icon("book", 13)}Как играть — 5 шагов</button>
           <span class="keyboard-divider">·</span>
-          <span class="title-hint">Собирай формации из героев Dota: порядок слотов решает</span>
+          <button class="subtle-button" data-action="open-modal" data-modal="leaders">${icon("crown", 13)}Таблица лидеров</button>
+          <span class="keyboard-divider">·</span>
+          <button class="subtle-button" data-action="open-modal" data-modal="account">${icon("shield", 13)}${Net.state.me ? "Профиль: " + esc(Net.state.me.name) : "Аккаунт"}</button>
         </div>
+        <p class="title-hint">Собирай формации из героев Dota: порядок слотов решает</p>
       </div>
     </div>
     ${overlayHtml(state)}
@@ -11169,39 +11317,162 @@ const Art = (function () {
   }
 
   // Лидерборд (фаза H): 4 вида из спека §8.1.
-  function leaderboardHtml() {
-    const list = UIState.scores || [];
+  // ---------- лидерборды: локальный «Зал славы» (§8.1) + серверные таблицы ----------
+
+  const BOARD_VIEWS = [
+    ["score", "Лучший счёт"],
+    ["rank", "Высший ранг"],
+    ["fastest", "Быстрейшая победа"],
+    ["nodeath", "Без смертей"],
+  ];
+
+  function fmtTimeMs(ms) {
+    const t = Math.round(ms / 1000);
+    return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+  }
+
+  function romanOf(rank) {
+    return (Content.ranks.byId[rank] || {}).roman || rank;
+  }
+
+  function boardTabsHtml(view) {
+    return BOARD_VIEWS.map(([key, label]) =>
+      `<button class="${view === key ? "active" : ""}" data-action="score-view" data-view="${key}">${label}</button>`).join("");
+  }
+
+  // Строка таблицы. opts.ladder — вид «Высший ранг» с сервера: там счёт и ранг
+  // означают лучший прогресс игрока, а не конкретный забег.
+  function boardRowHtml(i, e, opts = {}) {
+    const meta = opts.ladder
+      ? `${e.wins} побед из ${e.runs} забегов`
+      : `${e.waves}/${Content.waves.order.length} волн${e.won ? " 🏆" : ""} · ${fmtTimeMs(e.timeMs)}${e.deaths ? ` · ${e.deaths} ${e.deaths === 1 ? "смерть" : "смертей"}` : " · без смертей"}`;
+    const name = e.name ? `<span class="score-name">${esc(e.name)}</span>` : "";
+    return `<div class="score-row ${i === 0 ? "top" : ""}">
+      <span class="score-pos">${i + 1}</span>
+      <b class="score-num">${(e.score || 0).toLocaleString("ru")}</b>
+      <span class="score-rank">${e.rank ? romanOf(e.rank) : "—"}</span>
+      ${name}
+      <span class="score-waves">${meta}</span>
+      <span class="score-seed">${e.seed ? "#" + esc(e.seed) : ""}</span>
+    </div>`;
+  }
+
+  function emptyLocalText(view) {
+    return view === "fastest" || view === "nodeath" ? "Пока нет подходящих забегов — победи!" : "Пока пусто. Первый забег — уже рекорд.";
+  }
+
+  // Серверная таблица: данные уже в Net.state.boards (грузит main.js).
+  // Табы видов — общие с локальной доской, добавляет вызывающий.
+  function globalBoardHtml(state, { withFilter } = {}) {
     const view = UIState.scoreView || "score";
-    const views = [
-      ["score", "Лучший счёт"],
-      ["rank", "Высший ранг"],
-      ["fastest", "Быстрейшая победа"],
-      ["nodeath", "Без смертей"],
-    ];
-    const fmtTime = (ms) => {
-      const t = Math.round(ms / 1000);
-      return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
-    };
-    let rows = [];
-    if (view === "score") rows = list.slice().sort((a, b) => b.score - a.score).slice(0, 8);
-    else if (view === "rank") rows = list.slice().sort((a, b) => b.rank - a.rank || b.score - a.score).slice(0, 8);
-    else if (view === "fastest") rows = list.filter((e) => e.won).sort((a, b) => a.timeMs - b.timeMs).slice(0, 8);
-    else if (view === "nodeath") rows = list.filter((e) => e.won && !e.deaths).sort((a, b) => b.score - a.score).slice(0, 8);
-    const tabs = views.map(([key, label]) => `<button class="${view === key ? "active" : ""}" data-action="score-view" data-view="${key}">${label}</button>`).join("");
-    const body = rows.length ? rows.map((e, i) => `
-        <div class="score-row ${i === 0 ? "top" : ""}">
-          <span class="score-pos">${i + 1}</span>
-          <b class="score-num">${e.score.toLocaleString("ru")}</b>
-          <span class="score-rank">${(Content.ranks.byId[e.rank] || {}).roman || e.rank}</span>
-          <span class="score-waves">${e.waves}/15 волн${e.won ? " 🏆" : ""}</span>
-          <span class="score-time">${fmtTime(e.timeMs)}${e.deaths ? ` · ${e.deaths} ${e.deaths === 1 ? "смерть" : "смертей"}` : " · без смертей"}</span>
-          <span class="score-seed">#${esc(e.seed)}</span>
-        </div>`).join("") : `<div class="score-empty">${view === "fastest" || view === "nodeath" ? "Пока нет подходящих забегов — победи!" : "Пока пусто. Первый забег — уже рекорд."}</div>`;
+    const rank = UIState.leadersRank || "";
+    const board = Net.state.boards[view + "|" + (rank || "")];
+    let body;
+    if (!Net.state.online) body = `<div class="score-empty">Сервер недоступен — таблицы работают оффлайн от localStorage. Запусти <b>node server.js</b>, чтобы собрать онлайн-топ.</div>`;
+    else if (!board || Net.state.boardsLoading) body = `<div class="score-empty">Загружаем…</div>`;
+    else if (board.error) body = `<div class="score-empty">Сервер не ответил: ${esc(board.error)}</div>`;
+    else if (!board.rows.length) body = `<div class="score-empty">Пока пусто. Первый забег с аккаунта — уже строка в таблице.</div>`;
+    else body = board.rows.map((e, i) => boardRowHtml(i, e, { ladder: view === "rank" })).join("");
+    return `${withFilter ? rankFilterHtml(view, rank) : ""}
+      <div class="score-rows">${body}</div>`;
+  }
+
+  // Фильтр «топ на ранге N» — только для вида счёта.
+  function rankFilterHtml(view, rank) {
+    if (view !== "score") return "";
+    const options = [`<option value="">Все ранги</option>`]
+      .concat(Content.ranks.list.map((r) => `<option value="${r.id}" ${String(r.id) === String(rank) ? "selected" : ""}>Ранг ${r.roman} — ${esc(r.name)}</option>`))
+      .join("");
+    return `<div class="lb-filter"><select data-action-change="lb-rank">${options}</select></div>`;
+  }
+
+  function leaderboardHtml() {
+    const view = UIState.scoreView || "score";
+    const src = UIState.scoreSrc || "local";
+    const srcTabs = Net.state.online ? `
+        <span class="score-src">
+          <button class="${src === "local" ? "active" : ""}" data-action="score-src" data-src="local">Локально</button>
+          <button class="${src === "global" ? "active" : ""}" data-action="score-src" data-src="global">Онлайн</button>
+        </span>` : "";
+    let rowsHtml;
+    if (src === "global") {
+      rowsHtml = globalBoardHtml();
+    } else {
+      const list = UIState.scores || [];
+      let rows = [];
+      if (view === "score") rows = list.slice().sort((a, b) => b.score - a.score).slice(0, 8);
+      else if (view === "rank") rows = list.slice().sort((a, b) => b.rank - a.rank || b.score - a.score).slice(0, 8);
+      else if (view === "fastest") rows = list.filter((e) => e.won).sort((a, b) => a.timeMs - b.timeMs).slice(0, 8);
+      else if (view === "nodeath") rows = list.filter((e) => e.won && !e.deaths).sort((a, b) => b.score - a.score).slice(0, 8);
+      rowsHtml = `<div class="score-rows">${rows.length ? rows.map((e, i) => boardRowHtml(i, e)).join("") : `<div class="score-empty">${emptyLocalText(view)}</div>`}</div>`;
+    }
     return `<section class="score-board panel">
-      <div class="section-label"><span>${icon("crown", 13)}ЗАЛ СЛАВЫ</span></div>
-      <div class="score-tabs">${tabs}</div>
-      <div class="score-rows">${body}</div>
+      <div class="section-label"><span>${icon("crown", 13)}ЗАЛ СЛАВЫ</span>${srcTabs}</div>
+      <div class="score-tabs">${boardTabsHtml(view)}</div>
+      ${rowsHtml}
     </section>`;
+  }
+
+  // ---------- модалки: аккаунт и таблица лидеров ----------
+
+  function accountModalHtml(state) {
+    if (!Net.state.checked) return `<div class="muted-note">Проверяем сервер…</div>`;
+    if (!Net.state.online) return `<div class="muted-note">Сервер недоступен — играешь оффлайн, прогресс хранится в браузере. Аккаунты и онлайн-таблицы включаются запуском <b>node server.js</b>.</div>`;
+    if (Net.state.me) return profileHtml(Net.state.me);
+    return authFormHtml();
+  }
+
+  function authFormHtml() {
+    const mode = Net.state.authMode || "login";
+    return `<div class="auth-form">
+      <div class="score-tabs">
+        <button class="${mode === "login" ? "active" : ""}" data-action="auth-mode" data-mode="login">Вход</button>
+        <button class="${mode === "register" ? "active" : ""}" data-action="auth-mode" data-mode="register">Регистрация</button>
+      </div>
+      <label class="auth-field"><span>Имя</span>
+        <input id="auth-name" maxlength="20" placeholder="2–20 символов: латиница, цифры" autocomplete="username"></label>
+      <label class="auth-field"><span>Пароль</span>
+        <input id="auth-pass" type="password" placeholder="от 4 символов" autocomplete="current-password"></label>
+      ${Net.state.error ? `<div class="auth-error">${esc(Net.state.error)}</div>` : ""}
+      <button class="primary-button" data-action="auth-submit" ${Net.state.busy ? "disabled" : ""}>${mode === "register" ? "Создать аккаунт" : "Войти"} ${icon("arrow", 15)}</button>
+      <small class="auth-note">Аккаунт хранит забеги и прогресс лиги на сервере: таблица лидеров и профиль будут с любого устройства.</small>
+    </div>`;
+  }
+
+  function profileHtml(me) {
+    const s = me.stats || {};
+    const profile = Net.state.profiles[me.name];
+    const runs = (profile && profile.runs) || [];
+    const winrate = s.runs ? Math.round((s.wins / s.runs) * 100) : 0;
+    const rankDef = Content.ranks.byId[me.unlockedRank] || {};
+    const rows = runs.length
+      ? runs.map((e, i) => boardRowHtml(i, e)).join("")
+      : `<div class="score-empty">Забегов с аккаунта пока не было — финишируй первый.</div>`;
+    return `<div class="profile">
+      <div class="profile-head">
+        <span class="profile-avatar">${esc(me.name.slice(0, 1).toUpperCase())}</span>
+        <div class="profile-title"><strong>${esc(me.name)}</strong><small>на сервере с ${new Date(me.createdAt).toLocaleDateString("ru")}</small></div>
+        <span class="medal-gem" style="--medal:${rankDef.color || "#7a6437"}" title="Открытый ранг лиги">${romanOf(me.unlockedRank)}</span>
+      </div>
+      <div class="profile-stats">
+        <div><strong>${s.runs || 0}</strong><span>забегов</span></div>
+        <div><strong>${s.wins || 0}</strong><span>побед</span></div>
+        <div><strong>${winrate}%</strong><span>винрейт</span></div>
+        <div><strong>${(s.bestScore || 0).toLocaleString("ru")}</strong><span>лучший счёт</span></div>
+        <div><strong>${s.bestRankWon ? romanOf(s.bestRankWon) : "—"}</strong><span>высший взятый</span></div>
+      </div>
+      <div class="section-label"><span>${icon("history", 13)}ПОСЛЕДНИЕ ЗАБЕГИ</span></div>
+      <div class="score-rows">${rows}</div>
+      <button class="subtle-button" data-action="logout">${icon("rotate", 13)}Выйти из аккаунта</button>
+    </div>`;
+  }
+
+  function leadersModalHtml(state) {
+    return `<div class="leaders-wrap">
+      <p class="modal-description">Топ игроков сервера. Дедуп по игроку — одна строка на человека: лучший счёт, лестница рангов, самая быстрая победа и чистые забеги.</p>
+      <div class="score-tabs">${boardTabsHtml(UIState.scoreView || "score")}</div>
+      ${globalBoardHtml(state, { withFilter: true })}
+    </div>`;
   }
 
   function endScreen(state, won) {
@@ -11674,6 +11945,8 @@ const Art = (function () {
       case "history": return historyModalHtml(state);
       case "new": return newRunModalHtml();
       case "score": return scoreModalHtml(state);
+      case "account": return accountModalHtml(state);
+      case "leaders": return leadersModalHtml(state);
       case "detail": return detailModalHtml(state);
       case "discard-pick": return discardPickerHtml(state);
       default: return "";
@@ -12749,6 +13022,25 @@ const Art = (function () {
     list.push(entry);
     try { localStorage.setItem(SCORES_KEY, JSON.stringify(list.slice(-50))); } catch (e) { /* приватный режим */ }
     UI.UIState.scores = loadScores();
+    // Онлайн-синхронизация: компоненты шлём как есть, счёт сервер пересчитывает
+    // сам (зеркало scoreOf) — подменить очки с клиента нельзя. Оффлайн — no-op.
+    Net.submitRun({
+      seed: state.seedCode,
+      rank: state.run.rank || 1,
+      won: state.phase === "victory",
+      waves: entry.waves,
+      deaths: entry.deaths,
+      timeMs: entry.timeMs,
+      barracks: state.run.barracks || 0,
+      biggestHit: state.stats.biggestHit || 0,
+      spareResets: (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0,
+      startedAt: state.run.startedAt || 0,
+    }).then((res) => {
+      if (res && res.personalBest) {
+        UI.UIState.toast = `🏆 Личный рекорд на сервере: ${res.score.toLocaleString("ru")}`;
+        rerender();
+      }
+    });
   }
 
   function loadUnlockedRank() {
@@ -12870,6 +13162,36 @@ const Art = (function () {
       return;
     }
     rerender();
+  }
+
+  // Онлайн-борды: грузим текущий вид и перерисовываемся дважды — сразу
+  // (состояние загрузки) и по приходу данных.
+  function fetchLeaders() {
+    if (!Net.state.online) return;
+    Net.leaderboard(UI.UIState.scoreView || "score", UI.UIState.leadersRank || "")
+      .then(() => rerender());
+    rerender();
+  }
+
+  function submitAuth() {
+    const nameEl = document.getElementById("auth-name");
+    const passEl = document.getElementById("auth-pass");
+    const name = ((nameEl || {}).value || "").trim();
+    const password = (passEl || {}).value || "";
+    const mode = Net.state.authMode === "register" ? "register" : "login";
+    Net.auth(mode, name, password)
+      .then((player) => {
+        UI.UIState.toast = mode === "register" ? `Аккаунт создан. Привет, ${player.name}!` : `С возвращением, ${player.name}!`;
+        // Сервер знает о победах на других устройствах — берём его прогресс,
+        // если он дальше локального.
+        if (player.unlockedRank > UI.UIState.unlockedRank) {
+          UI.UIState.unlockedRank = player.unlockedRank;
+          saveUnlockedRank(player.unlockedRank);
+        }
+        if (UI.UIState.modal === "account") UI.UIState.modal = null;
+        rerender();
+      })
+      .catch(() => rerender()); // ошибка уже в Net.state.error — модалка покажет
   }
 
   function closeModal() {
@@ -13119,6 +13441,10 @@ const Art = (function () {
         if (el.dataset.modal === "new" && state.phase !== "title" && state.run && state.run.rank) {
           UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, state.run.rank));
         }
+        if (el.dataset.modal === "leaders") fetchLeaders();
+        if (el.dataset.modal === "account" && Net.state.me) {
+          Net.fetchProfile(Net.state.me.name).then(() => rerender());
+        }
         rerender();
         break;
       case "open-collection":
@@ -13136,7 +13462,26 @@ const Art = (function () {
         break;
       case "score-view":
         UI.UIState.scoreView = el.dataset.view;
+        if (UI.UIState.scoreSrc === "global" || UI.UIState.modal === "leaders") fetchLeaders();
+        else rerender();
+        break;
+      case "score-src":
+        UI.UIState.scoreSrc = el.dataset.src;
+        if (UI.UIState.scoreSrc === "global") fetchLeaders();
+        else rerender();
+        break;
+      case "lb-rank":
+        UI.UIState.leadersRank = el.dataset.rank || "";
+        fetchLeaders();
+        break;
+      case "auth-mode":
+        Net.state.authMode = el.dataset.mode;
+        Net.state.error = "";
         rerender();
+        break;
+      case "auth-submit": submitAuth(); break;
+      case "logout":
+        Net.logout().then(() => { UI.UIState.toast = "Вы вышли из аккаунта."; rerender(); });
         break;
       case "open-training":
         UI.UIState.modal = "collection";
@@ -13224,6 +13569,15 @@ const Art = (function () {
     }
   });
 
+  // Фильтр «топ на ранге N» в онлайн-таблице (select — событие change).
+  document.getElementById("app").addEventListener("change", (e) => {
+    const el = e.target.closest("[data-action-change=lb-rank]");
+    if (el) {
+      UI.UIState.leadersRank = el.value;
+      fetchLeaders();
+    }
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) {
       if (e.key === "Enter" && e.target.id === "seed-input") {
@@ -13231,6 +13585,9 @@ const Art = (function () {
       }
       if (e.key === "Enter" && e.target.id === "seed-input-modal") {
         startRun(e.target.value);
+      }
+      if (e.key === "Enter" && (e.target.id === "auth-name" || e.target.id === "auth-pass")) {
+        submitAuth();
       }
       return;
     }
@@ -13310,6 +13667,16 @@ const Art = (function () {
   });
 
   rerender();
+
+  // Онлайн: проверяем API в фоне. Сессия с другого устройства подтягивает
+  // прогресс лиги (unlockedRank), титул/модалки перерисуются с аккаунтом.
+  Net.ping().then(() => {
+    if (Net.state.me && Net.state.me.unlockedRank > UI.UIState.unlockedRank) {
+      UI.UIState.unlockedRank = Net.state.me.unlockedRank;
+      saveUnlockedRank(Net.state.me.unlockedRank);
+    }
+    if (state.phase === "title" || UI.UIState.modal === "account" || UI.UIState.modal === "leaders") rerender();
+  });
 
   // Debug handle for sandbox/testing (used by docs screenshots and console).
   window.__dalatro = {

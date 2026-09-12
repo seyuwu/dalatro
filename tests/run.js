@@ -62,6 +62,11 @@ const sandbox = {
 sandbox.window = sandbox;
 const ctx = vm.createContext(sandbox);
 
+// server.js — Node-ESM модуль бэкенда, в браузере он не живёт. Серверные тесты
+// (backend.test.js) идут тем же синхронным раннером: HTTP-обёртка не нужна,
+// гоняем API-ядро напрямую, фабрика инжектится в песочницу как Backend.
+sandbox.Backend = await import("../server.js");
+
 // Асинхронные отказы вне тестов не должны проходить незамеченными.
 let unhandled = 0;
 process.on("unhandledRejection", (e) => {

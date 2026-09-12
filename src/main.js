@@ -44,6 +44,25 @@
     list.push(entry);
     try { localStorage.setItem(SCORES_KEY, JSON.stringify(list.slice(-50))); } catch (e) { /* приватный режим */ }
     UI.UIState.scores = loadScores();
+    // Онлайн-синхронизация: компоненты шлём как есть, счёт сервер пересчитывает
+    // сам (зеркало scoreOf) — подменить очки с клиента нельзя. Оффлайн — no-op.
+    Net.submitRun({
+      seed: state.seedCode,
+      rank: state.run.rank || 1,
+      won: state.phase === "victory",
+      waves: entry.waves,
+      deaths: entry.deaths,
+      timeMs: entry.timeMs,
+      barracks: state.run.barracks || 0,
+      biggestHit: state.stats.biggestHit || 0,
+      spareResets: (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0,
+      startedAt: state.run.startedAt || 0,
+    }).then((res) => {
+      if (res && res.personalBest) {
+        UI.UIState.toast = `🏆 Личный рекорд на сервере: ${res.score.toLocaleString("ru")}`;
+        rerender();
+      }
+    });
   }
 
   function loadUnlockedRank() {
@@ -165,6 +184,36 @@
       return;
     }
     rerender();
+  }
+
+  // Онлайн-борды: грузим текущий вид и перерисовываемся дважды — сразу
+  // (состояние загрузки) и по приходу данных.
+  function fetchLeaders() {
+    if (!Net.state.online) return;
+    Net.leaderboard(UI.UIState.scoreView || "score", UI.UIState.leadersRank || "")
+      .then(() => rerender());
+    rerender();
+  }
+
+  function submitAuth() {
+    const nameEl = document.getElementById("auth-name");
+    const passEl = document.getElementById("auth-pass");
+    const name = ((nameEl || {}).value || "").trim();
+    const password = (passEl || {}).value || "";
+    const mode = Net.state.authMode === "register" ? "register" : "login";
+    Net.auth(mode, name, password)
+      .then((player) => {
+        UI.UIState.toast = mode === "register" ? `Аккаунт создан. Привет, ${player.name}!` : `С возвращением, ${player.name}!`;
+        // Сервер знает о победах на других устройствах — берём его прогресс,
+        // если он дальше локального.
+        if (player.unlockedRank > UI.UIState.unlockedRank) {
+          UI.UIState.unlockedRank = player.unlockedRank;
+          saveUnlockedRank(player.unlockedRank);
+        }
+        if (UI.UIState.modal === "account") UI.UIState.modal = null;
+        rerender();
+      })
+      .catch(() => rerender()); // ошибка уже в Net.state.error — модалка покажет
   }
 
   function closeModal() {
@@ -414,6 +463,10 @@
         if (el.dataset.modal === "new" && state.phase !== "title" && state.run && state.run.rank) {
           UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, state.run.rank));
         }
+        if (el.dataset.modal === "leaders") fetchLeaders();
+        if (el.dataset.modal === "account" && Net.state.me) {
+          Net.fetchProfile(Net.state.me.name).then(() => rerender());
+        }
         rerender();
         break;
       case "open-collection":
@@ -431,7 +484,26 @@
         break;
       case "score-view":
         UI.UIState.scoreView = el.dataset.view;
+        if (UI.UIState.scoreSrc === "global" || UI.UIState.modal === "leaders") fetchLeaders();
+        else rerender();
+        break;
+      case "score-src":
+        UI.UIState.scoreSrc = el.dataset.src;
+        if (UI.UIState.scoreSrc === "global") fetchLeaders();
+        else rerender();
+        break;
+      case "lb-rank":
+        UI.UIState.leadersRank = el.dataset.rank || "";
+        fetchLeaders();
+        break;
+      case "auth-mode":
+        Net.state.authMode = el.dataset.mode;
+        Net.state.error = "";
         rerender();
+        break;
+      case "auth-submit": submitAuth(); break;
+      case "logout":
+        Net.logout().then(() => { UI.UIState.toast = "Вы вышли из аккаунта."; rerender(); });
         break;
       case "open-training":
         UI.UIState.modal = "collection";
@@ -519,6 +591,15 @@
     }
   });
 
+  // Фильтр «топ на ранге N» в онлайн-таблице (select — событие change).
+  document.getElementById("app").addEventListener("change", (e) => {
+    const el = e.target.closest("[data-action-change=lb-rank]");
+    if (el) {
+      UI.UIState.leadersRank = el.value;
+      fetchLeaders();
+    }
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) {
       if (e.key === "Enter" && e.target.id === "seed-input") {
@@ -526,6 +607,9 @@
       }
       if (e.key === "Enter" && e.target.id === "seed-input-modal") {
         startRun(e.target.value);
+      }
+      if (e.key === "Enter" && (e.target.id === "auth-name" || e.target.id === "auth-pass")) {
+        submitAuth();
       }
       return;
     }
@@ -605,6 +689,16 @@
   });
 
   rerender();
+
+  // Онлайн: проверяем API в фоне. Сессия с другого устройства подтягивает
+  // прогресс лиги (unlockedRank), титул/модалки перерисуются с аккаунтом.
+  Net.ping().then(() => {
+    if (Net.state.me && Net.state.me.unlockedRank > UI.UIState.unlockedRank) {
+      UI.UIState.unlockedRank = Net.state.me.unlockedRank;
+      saveUnlockedRank(Net.state.me.unlockedRank);
+    }
+    if (state.phase === "title" || UI.UIState.modal === "account" || UI.UIState.modal === "leaders") rerender();
+  });
 
   // Debug handle for sandbox/testing (used by docs screenshots and console).
   window.__dalatro = {
