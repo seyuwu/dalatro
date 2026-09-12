@@ -82,8 +82,54 @@ test("me: без сессии — 401, с сессией — профиль", ()
   assertEq(res.json.player.name, "Pudge");
 });
 
-test("runs: без аккаунта отправка запрещена", () => {
-  assertEq(req("POST", "/runs", { body: winRun() }).status, 401);
+test("runs: без аккаунта и без гостевого токена отправка запрещена", () => {
+  assertEq(req("POST", "/runs", winRun()).status, 401);
+  assertEq(req("POST", "/runs", { ...winRun(), guest: "не-токен" }).status, 401);
+});
+
+test("runs: гостевой забег попадает в лидерборд как «Гость #XXXX»", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+  const token = "aabbccddeeff00112233445566778899";
+  const body = { ...winRun({ rank: 2, biggestHit: 1000 }), guest: token };
+  const res = b.call("POST", "/runs", { body });
+  assertEq(res.status, 200);
+  assertEq(res.json.guest, true, "пометка гостевого забега");
+  assertEq(res.json.score, 1820); // 1500 + 300 + 1000/50
+  const dup = b.call("POST", "/runs", { body });
+  assertEq(dup.json.duplicate, true, "идемпотентность работает и у гостя");
+  const lb = b.call("GET", "/leaderboard", { body: { view: "score" } }).json;
+  assertEq(lb.rows[0].name, "Гость #aabb");
+  assertEq(lb.rows.length, 1, "дедуп по токену гостя");
+  const ladder = b.call("GET", "/leaderboard", { body: { view: "rank" } }).json;
+  assertEq(ladder.rows[0].name, "Гость #aabb", "гость виден и в лестнице рангов");
+});
+
+test("runs: лимит гостевых забегов — 10 в час с одного IP", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+  const tok = (n) => (String(n) + "abcdef0123456789").padEnd(32, "0").slice(0, 32);
+  for (let i = 0; i < 10; i++) {
+    assertEq(b.call("POST", "/runs", { body: { ...winRun({ won: false, waves: 3, timeMs: 120000, rank: 1 }), guest: tok(i) }, ip: "6.6.6.6" }).status, 200, "гостевой " + i);
+  }
+  assertEq(b.call("POST", "/runs", { body: { ...winRun({ won: false, waves: 3, timeMs: 120000 }), guest: tok(99) }, ip: "6.6.6.6" }).status, 429);
+  assertEq(b.call("POST", "/runs", { body: { ...winRun({ won: false, waves: 3, timeMs: 120000 }), guest: tok(100) }, ip: "7.7.7.7" }).status, 200, "другой IP не ограничен");
+});
+
+test("register: гостевые забеги переезжают в аккаунт по токену браузера", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+  const token = "ff".repeat(16);
+  b.call("POST", "/runs", { body: { ...winRun({ rank: 3, barracks: 2, biggestHit: 5000, spareResets: 1, seed: "G1" }), guest: token } });
+  const reg = b.call("POST", "/register", { body: { name: "Claimer", password: "123456", guest: token } });
+  assertEq(reg.status, 200);
+  assertEq(reg.json.claimed, 1, "гостевой забег засчитан");
+  assertEq(reg.json.player.stats.runs, 1);
+  assertEq(reg.json.player.stats.bestScore, 2550);
+  assertEq(reg.json.player.unlockedRank, 4, "взят ранг 3 — открыт 4");
+  const prof = b.call("GET", "/players/Claimer").json;
+  assertEq(prof.runs.length, 1, "забег в профиле");
+  assertEq(prof.runs[0].name, "Claimer", "уже не гость");
+  // Повторный вход с тем же токеном ничего не переносит.
+  const login = b.call("POST", "/login", { body: { name: "claimer", password: "123456", guest: token } });
+  assertEq(login.json.claimed, 0);
 });
 
 test("runs: счёт пересчитывается на сервере по формуле scoreOf", () => {

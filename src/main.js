@@ -58,9 +58,15 @@
       spareResets: (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0,
       startedAt: state.run.startedAt || 0,
     }).then((res) => {
+      // Гостевой забег ушёл на сервер без аккаунта — на экране конца
+      // покажем предложение забрать его в аккаунт.
+      if (res && res.guest) {
+        UI.UIState.guestRunSaved = true;
+        rerender();
+      }
       if (res && res.player && res.player.unlockedRank > UI.UIState.unlockedRank) {
-        // Победа учтена на сервере: подтягиваем прогресс лиги (например,
-        // открытый на другом устройстве), не дожидаясь следующего входа.
+        // Победа, учтённая сервером, сразу открывает ранг лиги локально
+        // (раньше — только при следующем входе).
         UI.UIState.unlockedRank = res.player.unlockedRank;
         saveUnlockedRank(res.player.unlockedRank);
       }
@@ -208,14 +214,18 @@
     const password = (passEl || {}).value || "";
     const mode = Net.state.authMode === "register" ? "register" : "login";
     Net.auth(mode, name, password)
-      .then((player) => {
-        UI.UIState.toast = mode === "register" ? `Аккаунт создан. Привет, ${player.name}!` : `С возвращением, ${player.name}!`;
+      .then((res) => {
+        const player = res.player;
+        UI.UIState.toast = res.claimed
+          ? (res.claimed === 1 ? "Гостевой забег перенесён в твой аккаунт 🏆" : `В аккаунт перенесено забегов: ${res.claimed}`)
+          : (mode === "register" ? `Аккаунт создан. Привет, ${player.name}!` : `С возвращением, ${player.name}!`);
         // Сервер знает о победах на других устройствах — берём его прогресс,
         // если он дальше локального.
         if (player.unlockedRank > UI.UIState.unlockedRank) {
           UI.UIState.unlockedRank = player.unlockedRank;
           saveUnlockedRank(player.unlockedRank);
         }
+        UI.UIState.guestRunSaved = false;
         if (UI.UIState.modal === "account") UI.UIState.modal = null;
         rerender();
       })
@@ -470,6 +480,10 @@
           UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, state.run.rank));
         }
         if (el.dataset.modal === "leaders") fetchLeaders();
+        if (el.dataset.modal === "account" && !Net.state.me && UI.UIState.guestRunSaved) {
+          Net.state.authMode = "register"; // клик с плашки «забрать забег»
+          Net.state.error = "";
+        }
         if (el.dataset.modal === "account" && Net.state.me) {
           Net.fetchProfile(Net.state.me.name).then(() => rerender());
         }

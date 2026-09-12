@@ -191,7 +191,8 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       const t = newSession(acc);
       saveAccounts();
       onEvent({ type: "register", name: acc.name });
-      return send(200, { player: publicPlayer(acc) }, sessionCookie(t));
+      const claimed = typeof body.guest === "string" && GUEST_RE.test(body.guest) ? claimGuestRuns(body.guest, acc) : 0;
+      return send(200, { player: publicPlayer(acc), claimed }, sessionCookie(t));
     }
 
     if (method === "POST" && path === "/login") {
@@ -209,7 +210,8 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       const t = newSession(acc);
       saveAccounts();
       onEvent({ type: "login", name: acc.name });
-      return send(200, { player: publicPlayer(acc) }, sessionCookie(t));
+      const claimed = typeof body.guest === "string" && GUEST_RE.test(body.guest) ? claimGuestRuns(body.guest, acc) : 0;
+      return send(200, { player: publicPlayer(acc), claimed }, sessionCookie(t));
     }
 
     if (method === "POST" && path === "/logout") {
@@ -223,16 +225,29 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     }
 
     if (method === "POST" && path === "/runs") {
-      if (!me) return send(401, { error: "забег можно отправить только с аккаунта" });
       const err = validateRun(body);
       if (err) return send(400, { error: err });
-      const key = `${me.name}|${body.seed}|${body.startedAt}|${body.won ? 1 : 0}`;
+      // С аккаунта — обычный забег; без аккаунта — гостевой по токену браузера
+      // (виден в таблице как «Гость #XXXX», при регистрации переедет в аккаунт).
+      let player;
+      let isGuest = false;
+      if (me) {
+        player = me.name;
+      } else {
+        if (typeof (body && body.guest) !== "string" || !GUEST_RE.test(body.guest)) {
+          return send(401, { error: "забег отправляется с аккаунта или с гостевым токеном" });
+        }
+        if (guestLimited(ip)) return send(429, { error: "слишком много гостевых забегов с одного адреса — попробуйте через час" });
+        player = "guest:" + body.guest;
+        isGuest = true;
+      }
+      const key = `${player}|${body.seed}|${body.startedAt}|${body.won ? 1 : 0}`;
       const dup = runs.list.find((r) => r.key === key);
-      if (dup) return send(200, { ok: true, duplicate: true, score: dup.score, player: publicPlayer(me) });
+      if (dup) return send(200, { ok: true, duplicate: true, score: dup.score, ...(me ? { player: publicPlayer(me) } : { guest: true }) });
       const run = {
         id: ++runs.counter,
         key,
-        player: me.name,
+        player,
         date: Date.now(),
         seed: body.seed,
         rank: body.rank,
@@ -247,22 +262,32 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       };
       runs.list.push(run);
       if (runs.list.length > RUNS_TOTAL) runs.list = runs.list.slice(-RUNS_TOTAL);
-      const mine = runs.list.filter((r) => r.player === me.name);
+      const mine = runs.list.filter((r) => r.player === player);
       if (mine.length > RUNS_PER_PLAYER) {
         const drop = new Set(mine.slice(0, mine.length - RUNS_PER_PLAYER).map((r) => r.id));
         runs.list = runs.list.filter((r) => !drop.has(r.id));
       }
-      const s = me.stats;
-      const personalBest = run.score > s.bestScore;
-      s.runs += 1;
-      if (run.won) s.wins += 1;
-      s.bestScore = Math.max(s.bestScore, run.score);
-      if (run.won) s.bestRankWon = Math.max(s.bestRankWon, run.rank);
-      s.bestWaves = Math.max(s.bestWaves, run.waves);
+      const personalBest = !isGuest && run.score > me.stats.bestScore;
+      if (!isGuest) {
+        const s = me.stats;
+        s.runs += 1;
+        if (run.won) s.wins += 1;
+        s.bestScore = Math.max(s.bestScore, run.score);
+        if (run.won) s.bestRankWon = Math.max(s.bestRankWon, run.rank);
+        s.bestWaves = Math.max(s.bestWaves, run.waves);
+        saveAccounts();
+      } else {
+        guestRunAccepted(ip);
+      }
       saveRuns();
-      saveAccounts();
-      onEvent({ type: "run", name: me.name, won: run.won, rank: run.rank, score: run.score });
-      return send(200, { ok: true, score: run.score, personalBest, player: publicPlayer(me) });
+      onEvent({ type: "run", ...(isGuest ? {} : { name: me.name }), won: run.won, rank: run.rank, score: run.score });
+      const result = { ok: true, score: run.score };
+      if (isGuest) result.guest = true;
+      else {
+        result.personalBest = personalBest;
+        result.player = publicPlayer(me);
+      }
+      return send(200, result);
     }
 
     let m;
@@ -284,8 +309,59 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     return send(404, { error: "нет такого маршрута" });
   }
 
+  // Лимит гостевых забегов: 10 в час с одного IP — таблицу не заспамить.
+  const GUEST_RUNS_MAX = 10;
+  const GUEST_WINDOW = 3600 * 1000;
+  const guestRuns = new Map();
+  function guestLimited(ip) {
+    const fresh = (guestRuns.get(ip) || []).filter((t) => t > Date.now() - GUEST_WINDOW);
+    guestRuns.set(ip, fresh);
+    return fresh.length >= GUEST_RUNS_MAX;
+  }
+  function guestRunAccepted(ip) {
+    if (!guestRuns.has(ip) && guestRuns.size > 5000) guestRuns.clear();
+    const arr = guestRuns.get(ip) || [];
+    arr.push(Date.now());
+    guestRuns.set(ip, arr);
+  }
+
+  const GUEST_RE = /^[a-f0-9]{16,64}$/;
+
+  // Гостевые забеги переезжают в аккаунт при регистрации/входе с тем же
+  // токеном браузера; статистика аккаунта пересчитывается с нуля по его
+  // забегам — источник истины один, и это runs.json.
+  function claimGuestRuns(guestToken, acc) {
+    const key = "guest:" + guestToken;
+    let claimed = 0;
+    for (const r of runs.list) {
+      if (r.player === key) {
+        r.player = acc.name;
+        r.key = acc.name + r.key.slice(key.length);
+        claimed += 1;
+      }
+    }
+    if (claimed) {
+      const mine = runs.list.filter((r) => r.player === acc.name);
+      const s = acc.stats;
+      s.runs = mine.length;
+      s.wins = mine.filter((r) => r.won).length;
+      s.bestScore = mine.reduce((m, r) => Math.max(m, r.score), 0);
+      s.bestRankWon = mine.reduce((m, r) => Math.max(m, r.won ? r.rank : 0), 0);
+      s.bestWaves = mine.reduce((m, r) => Math.max(m, r.waves), 0);
+      saveRuns();
+      saveAccounts();
+    }
+    return claimed;
+  }
+
+  // Гость в лидерборде — не «guest:<токен>», а читаемое имя.
+  function displayName(player) {
+    const m = /^guest:([a-f0-9]+)/.exec(player);
+    return m ? "Гость #" + m[1].slice(0, 4) : player;
+  }
+
   function publicRun(r) {
-    return { name: r.player, score: r.score, rank: r.rank, waves: r.waves, won: r.won, deaths: r.deaths, timeMs: r.timeMs, date: r.date, seed: r.seed };
+    return { name: displayName(r.player), score: r.score, rank: r.rank, waves: r.waves, won: r.won, deaths: r.deaths, timeMs: r.timeMs, date: r.date, seed: r.seed };
   }
 
   // Лидерборды §8.1: счёт / лестница рангов / быстрая победа / без смертей.
@@ -314,7 +390,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
         .slice()
         .sort((a, b) => b.bestRankWon - a.bestRankWon || b.bestScore - a.bestScore)
         .slice(0, cap)
-        .map((p) => ({ name: p.name, rank: p.bestRankWon, score: p.bestScore, wins: p.wins, runs: p.runs }));
+        .map((p) => ({ name: displayName(p.name), rank: p.bestRankWon, score: p.bestScore, wins: p.wins, runs: p.runs }));
     } else if (view === "fastest") {
       rows = players
         .filter((p) => p.fastest)

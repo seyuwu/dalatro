@@ -151,6 +151,9 @@
     // leadersRank — фильтр «топ на ранге N» для серверного вида счёта.
     scoreSrc: "local",
     leadersRank: "",
+    // Гостевой забег ушёл на сервер без аккаунта: на экране конца показываем
+    // предложение «забрать забег в аккаунт». Сбрасывается при входе/регистрации.
+    guestRunSaved: false,
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -1782,6 +1785,13 @@
     const banner = won && UIState.unlockBanner
       ? `<div class="unlock-banner">${icon("crown", 18)}<span>ОТКРЫТ РАНГ <b>«${esc(UIState.unlockBanner)}»</b> — он ждёт тебя в новом забеге</span></div>`
       : "";
+    const guestOffer = !Net.state.me && Net.state.online && UIState.guestRunSaved
+      ? `<div class="guest-offer">
+          ${icon("shield", 18)}
+          <span>Этот забег уже в онлайн-таблице — пока как <b>Гость</b>. Зарегистрируйся, и он навсегда останется за тобой.</span>
+          <button class="primary-button" data-action="open-modal" data-modal="account">${icon("arrow", 14)}Забрать в аккаунт</button>
+        </div>`
+      : "";
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -1800,6 +1810,7 @@
                 <div><small>РАНГ ЗАБЕГА</small><strong>${esc(rank.name)}</strong><em>«${esc(rank.quote || "")}»</em></div>
               </div>
               ${banner}
+              ${guestOffer}
               <div class="end-stats">
                 <div><strong>${Game.scoreOf(state).toLocaleString("ru")}</strong><span>Счёт${UIState.newRecord ? ' <b class="record-badge">🏆 рекорд</b>' : ""}</span></div>
                 <div><strong>${state.run.waveIndex + (won ? 1 : 0)}</strong><span>Волн пройдено</span></div>

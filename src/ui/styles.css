@@ -1423,3 +1423,10 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .profile .subtle-button { align-self: center; margin-top: 4px; }
 
 .leaders-wrap { display: flex; flex-direction: column; gap: 4px; }
+
+/* Гостевой забег: предложение забрать его в аккаунт (экран конца забега) */
+.guest-offer { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 11px 14px; background: #2c241366; border: 1px solid #7a6437; border-radius: 6px; font-size: 11px; line-height: 1.5; color: #c9d3bd; text-align: left; }
+.guest-offer > svg { flex-shrink: 0; color: #e9c98f; }
+.guest-offer span { flex: 1; }
+.guest-offer b { color: #e9c98f; }
+.guest-offer .primary-button { padding: 8px 13px; font-size: 11px; white-space: nowrap; }

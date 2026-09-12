@@ -50,11 +50,14 @@ const Net = (function () {
   function auth(mode, name, password) {
     state.busy = true;
     state.error = "";
-    return api("POST", "/api/" + mode, { name, password })
+    const body = { name, password };
+    const guest = guestToken();
+    if (guest) body.guest = guest;
+    return api("POST", "/api/" + mode, body)
       .then((d) => {
         state.me = d.player;
         state.busy = false;
-        return d.player;
+        return d;
       })
       .catch((e) => {
         state.busy = false;
@@ -68,10 +71,36 @@ const Net = (function () {
     return api("POST", "/api/logout", {}).catch(() => {});
   }
 
-  // Отправка забега — fire-and-forget: игра не ждёт сеть. Оффлайн — тихий no-op.
+  // Токен браузера для гостевых забегов: без аккаунта забег всё равно уходит
+  // на сервер (в таблице — «Гость #XXXX»), а при регистрации/входе с этим же
+  // токеном все гостевые забеги переезжают в аккаунт.
+  function guestToken() {
+    try {
+      if (typeof crypto === "undefined" || !crypto.getRandomValues) return null;
+      let t = localStorage.getItem("dalatro_guest_v1");
+      if (!t || !/^[a-f0-9]{16,64}$/.test(t)) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        t = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+        localStorage.setItem("dalatro_guest_v1", t);
+      }
+      return t;
+    } catch (e) {
+      return null; // приватный режим — гостевые забеги не отправляем
+    }
+  }
+
+  // Отправка забега: с аккаунта — обычная, без аккаунта — гостевая. Игра
+  // сеть не ждёт; оффлайн — тихий no-op.
   function submitRun(payload) {
-    if (!state.online || !state.me) return Promise.resolve(null);
-    return api("POST", "/api/runs", payload)
+    if (!state.online) return Promise.resolve(null);
+    const body = { ...payload };
+    if (!state.me) {
+      const guest = guestToken();
+      if (!guest) return Promise.resolve(null);
+      body.guest = guest;
+    }
+    return api("POST", "/api/runs", body)
       .then((d) => {
         if (d && d.player) state.me = d.player;
         return d;

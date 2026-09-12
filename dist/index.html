@@ -1435,6 +1435,13 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 
 .leaders-wrap { display: flex; flex-direction: column; gap: 4px; }
 
+/* Гостевой забег: предложение забрать его в аккаунт (экран конца забега) */
+.guest-offer { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 11px 14px; background: #2c241366; border: 1px solid #7a6437; border-radius: 6px; font-size: 11px; line-height: 1.5; color: #c9d3bd; text-align: left; }
+.guest-offer > svg { flex-shrink: 0; color: #e9c98f; }
+.guest-offer span { flex: 1; }
+.guest-offer b { color: #e9c98f; }
+.guest-offer .primary-button { padding: 8px 13px; font-size: 11px; white-space: nowrap; }
+
 /* dotora — tutorial: слой интерактивного онбординга. Живёт вне #app,
    z-стек: под тостами (100), над модалками (50). Отдельный файл — чтобы
    не конфликтовать с параллельными правками styles.css. // TUTORIAL */
@@ -9363,11 +9370,14 @@ const Net = (function () {
   function auth(mode, name, password) {
     state.busy = true;
     state.error = "";
-    return api("POST", "/api/" + mode, { name, password })
+    const body = { name, password };
+    const guest = guestToken();
+    if (guest) body.guest = guest;
+    return api("POST", "/api/" + mode, body)
       .then((d) => {
         state.me = d.player;
         state.busy = false;
-        return d.player;
+        return d;
       })
       .catch((e) => {
         state.busy = false;
@@ -9381,10 +9391,36 @@ const Net = (function () {
     return api("POST", "/api/logout", {}).catch(() => {});
   }
 
-  // Отправка забега — fire-and-forget: игра не ждёт сеть. Оффлайн — тихий no-op.
+  // Токен браузера для гостевых забегов: без аккаунта забег всё равно уходит
+  // на сервер (в таблице — «Гость #XXXX»), а при регистрации/входе с этим же
+  // токеном все гостевые забеги переезжают в аккаунт.
+  function guestToken() {
+    try {
+      if (typeof crypto === "undefined" || !crypto.getRandomValues) return null;
+      let t = localStorage.getItem("dalatro_guest_v1");
+      if (!t || !/^[a-f0-9]{16,64}$/.test(t)) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        t = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+        localStorage.setItem("dalatro_guest_v1", t);
+      }
+      return t;
+    } catch (e) {
+      return null; // приватный режим — гостевые забеги не отправляем
+    }
+  }
+
+  // Отправка забега: с аккаунта — обычная, без аккаунта — гостевая. Игра
+  // сеть не ждёт; оффлайн — тихий no-op.
   function submitRun(payload) {
-    if (!state.online || !state.me) return Promise.resolve(null);
-    return api("POST", "/api/runs", payload)
+    if (!state.online) return Promise.resolve(null);
+    const body = { ...payload };
+    if (!state.me) {
+      const guest = guestToken();
+      if (!guest) return Promise.resolve(null);
+      body.guest = guest;
+    }
+    return api("POST", "/api/runs", body)
       .then((d) => {
         if (d && d.player) state.me = d.player;
         return d;
@@ -9849,6 +9885,9 @@ const Art = (function () {
     // leadersRank — фильтр «топ на ранге N» для серверного вида счёта.
     scoreSrc: "local",
     leadersRank: "",
+    // Гостевой забег ушёл на сервер без аккаунта: на экране конца показываем
+    // предложение «забрать забег в аккаунт». Сбрасывается при входе/регистрации.
+    guestRunSaved: false,
     // Входные анимации играют только когда коллекция реально обновилась
     // (новая раздача, реролл, найм). Выбор карты — без «всплытия всего».
     animHand: false,
@@ -11480,6 +11519,13 @@ const Art = (function () {
     const banner = won && UIState.unlockBanner
       ? `<div class="unlock-banner">${icon("crown", 18)}<span>ОТКРЫТ РАНГ <b>«${esc(UIState.unlockBanner)}»</b> — он ждёт тебя в новом забеге</span></div>`
       : "";
+    const guestOffer = !Net.state.me && Net.state.online && UIState.guestRunSaved
+      ? `<div class="guest-offer">
+          ${icon("shield", 18)}
+          <span>Этот забег уже в онлайн-таблице — пока как <b>Гость</b>. Зарегистрируйся, и он навсегда останется за тобой.</span>
+          <button class="primary-button" data-action="open-modal" data-modal="account">${icon("arrow", 14)}Забрать в аккаунт</button>
+        </div>`
+      : "";
     app().innerHTML = `
       ${topbarHtml(state)}
       <main class="page-shell">
@@ -11498,6 +11544,7 @@ const Art = (function () {
                 <div><small>РАНГ ЗАБЕГА</small><strong>${esc(rank.name)}</strong><em>«${esc(rank.quote || "")}»</em></div>
               </div>
               ${banner}
+              ${guestOffer}
               <div class="end-stats">
                 <div><strong>${Game.scoreOf(state).toLocaleString("ru")}</strong><span>Счёт${UIState.newRecord ? ' <b class="record-badge">🏆 рекорд</b>' : ""}</span></div>
                 <div><strong>${state.run.waveIndex + (won ? 1 : 0)}</strong><span>Волн пройдено</span></div>
@@ -13036,9 +13083,15 @@ const Art = (function () {
       spareResets: (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0,
       startedAt: state.run.startedAt || 0,
     }).then((res) => {
+      // Гостевой забег ушёл на сервер без аккаунта — на экране конца
+      // покажем предложение забрать его в аккаунт.
+      if (res && res.guest) {
+        UI.UIState.guestRunSaved = true;
+        rerender();
+      }
       if (res && res.player && res.player.unlockedRank > UI.UIState.unlockedRank) {
-        // Победа учтена на сервере: подтягиваем прогресс лиги (например,
-        // открытый на другом устройстве), не дожидаясь следующего входа.
+        // Победа, учтённая сервером, сразу открывает ранг лиги локально
+        // (раньше — только при следующем входе).
         UI.UIState.unlockedRank = res.player.unlockedRank;
         saveUnlockedRank(res.player.unlockedRank);
       }
@@ -13186,14 +13239,18 @@ const Art = (function () {
     const password = (passEl || {}).value || "";
     const mode = Net.state.authMode === "register" ? "register" : "login";
     Net.auth(mode, name, password)
-      .then((player) => {
-        UI.UIState.toast = mode === "register" ? `Аккаунт создан. Привет, ${player.name}!` : `С возвращением, ${player.name}!`;
+      .then((res) => {
+        const player = res.player;
+        UI.UIState.toast = res.claimed
+          ? (res.claimed === 1 ? "Гостевой забег перенесён в твой аккаунт 🏆" : `В аккаунт перенесено забегов: ${res.claimed}`)
+          : (mode === "register" ? `Аккаунт создан. Привет, ${player.name}!` : `С возвращением, ${player.name}!`);
         // Сервер знает о победах на других устройствах — берём его прогресс,
         // если он дальше локального.
         if (player.unlockedRank > UI.UIState.unlockedRank) {
           UI.UIState.unlockedRank = player.unlockedRank;
           saveUnlockedRank(player.unlockedRank);
         }
+        UI.UIState.guestRunSaved = false;
         if (UI.UIState.modal === "account") UI.UIState.modal = null;
         rerender();
       })
@@ -13448,6 +13505,10 @@ const Art = (function () {
           UI.UIState.rankDraft = Math.min(Ranks.MAX_RANK, Math.max(1, state.run.rank));
         }
         if (el.dataset.modal === "leaders") fetchLeaders();
+        if (el.dataset.modal === "account" && !Net.state.me && UI.UIState.guestRunSaved) {
+          Net.state.authMode = "register"; // клик с плашки «забрать забег»
+          Net.state.error = "";
+        }
         if (el.dataset.modal === "account" && Net.state.me) {
           Net.fetchProfile(Net.state.me.name).then(() => rerender());
         }
