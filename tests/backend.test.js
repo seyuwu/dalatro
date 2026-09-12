@@ -3,7 +3,7 @@
 // раннер инжектит в песочницу как Backend. Хранилище — временный каталог.
 suite("backend");
 
-const backend = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+const backend = Backend.createBackend({ dataDir: Backend.tmpDataDir(), runGapMs: 0 }); // гэп отключён: тесты шлют забеги подряд
 
 function req(method, path, body, token) {
   return backend.call(method, path, { body, cookie: token ? "dalatro_sess=" + token : "" });
@@ -148,7 +148,7 @@ test("runs: подменённый с клиента счёт игнорируе
   assertEq(res.json.score, 1650); // 15*100 + 1*150
 });
 
-test("runs: победа обязана быть на всех 15 волнах и не быстрее минуты", () => {
+test("runs: победа обязана быть на всех 15 волнах и не быстрее трёх минут", () => {
   const token = login("pudge");
   assertEq(req("POST", "/runs", winRun({ waves: 14 }), token).status, 400, "14/15 волн");
   assertEq(req("POST", "/runs", winRun({ timeMs: 1000 }), token).status, 400, "секундная победа");
@@ -225,4 +225,49 @@ test("logout: сессия закрывается, токен больше не 
 
 test("неизвестный маршрут API отдаёт 404, а не падение", () => {
   assertEq(req("GET", "/nope").status, 404);
+});
+
+test("runs: абуз-валидация — фейковые казармы/заряды/сид не проходят", () => {
+  const token = login("pudge");
+  assertEq(req("POST", "/runs", winRun({ barracks: 5 }), token).status, 400, "казарм не бывает 5");
+  assertEq(req("POST", "/runs", winRun({ spareResets: 50 }), token).status, 400, "зарядов не бывает 50");
+  assertEq(req("POST", "/runs", winRun({ seed: "<svg onload=alert(1)>" }), token).status, 400, "сид с HTML отклонён");
+  assertEq(req("POST", "/runs", winRun({ seed: "хороший-сид" }), token).status, 400, "кириллица в сиде отклонена");
+  assertEq(req("POST", "/runs", winRun({ timeMs: 120000 }), token).status, 400, "победа быстрее 3 минут");
+});
+
+test("runs: антифарм — больше 40 забегов в час от одного игрока не принять", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir(), runGapMs: 0 });
+  const token = (() => {
+    b.call("POST", "/register", { body: { name: "Farmer", password: "123456" } });
+    const res = b.call("POST", "/login", { body: { name: "farmer", password: "123456" } });
+    return res.setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
+  })();
+  let accepted = 0;
+  for (let i = 0; i < 42; i++) {
+    const res = b.call("POST", "/runs", { body: winRun({ won: false, waves: i % 15, seed: "F" + i, timeMs: 120000 + i * 1000, startedAt: 1700000000000 + i }), cookie: "dalatro_sess=" + token });
+    if (res.status === 200) accepted++;
+  }
+  assertEq(accepted, 40, "ровно 40 принято, дальше лимит");
+});
+
+test("register: не больше 5 в минуту с одного IP", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+  for (let i = 0; i < 5; i++) {
+    assertEq(b.call("POST", "/register", { body: { name: "Reg" + i, password: "123456" }, ip: "5.5.5.5" }).status, 200);
+  }
+  assertEq(b.call("POST", "/register", { body: { name: "Reg6", password: "123456" }, ip: "5.5.5.5" }).status, 429, "шестая — лимит");
+  assertEq(b.call("POST", "/register", { body: { name: "OtherIp", password: "123456" }, ip: "6.6.6.6" }).status, 200, "другой IP не тронут");
+});
+
+test("static: служебные каталоги и точечные пути не раздаются", () => {
+  assertEq(Backend.staticPathAllowed("/data/accounts.json"), false, "токены и хэши закрыты");
+  assertEq(Backend.staticPathAllowed("/data/admin.json"), false);
+  assertEq(Backend.staticPathAllowed("/.git/config"), false);
+  assertEq(Backend.staticPathAllowed("/deploy/deploy.sh"), false);
+  assertEq(Backend.staticPathAllowed("/tests/backend.test.js"), false);
+  assertEq(Backend.staticPathAllowed("/index.html"), true);
+  assertEq(Backend.staticPathAllowed("/src/ui/ui.js"), true);
+  assertEq(Backend.staticPathAllowed("/images/battlefield.jpg"), true);
+  assertEq(Backend.staticPathAllowed("/dist/index.html"), true);
 });

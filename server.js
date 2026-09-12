@@ -18,6 +18,7 @@ import { createAdminAuth, adminPageHtml, ADMIN_COOKIE } from "./admin.js";
 // Ре-экспорт для тестов: vm-раннер инжектит только server.js (как Backend).
 export { createAnalytics } from "./analytics.js";
 export { createAdminAuth, ADMIN_COOKIE } from "./admin.js";
+export { staticPathAllowed };
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const SESSION_TTL = 30 * 24 * 3600 * 1000; // 30 дней
@@ -66,7 +67,7 @@ function intIn(v, min, max) {
 // ---------- API-ядро (синхронное) ----------
 // call(method, path, { body, cookie, bearer }) → { status, json, setCookie? }
 // onEvent — крючок аналитики: register/login/run уходят в analytics.js.
-export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, onEvent = () => {} } = {}) {
+export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, onEvent = () => {}, runGapMs = 15 * 1000 } = {}) {
   const store = makeStore(dataDir);
   const accounts = store.load("accounts.json", {}); // ключ — имя в нижнем регистре
   const runs = store.load("runs.json", { list: [], counter: 0 });
@@ -135,13 +136,29 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     if (r.won && r.waves !== waveCount) return `победа — это все ${waveCount} волн`;
     if (!intIn(r.deaths, 0, 1000)) return "смерти 0..1000";
     if (!intIn(r.timeMs, 0, 7 * 24 * 3600 * 1000)) return "время забега слишком большое";
-    if (r.won && r.timeMs < 60000) return "победа быстрее минуты — ошибка или спидран из будущего";
-    if (!intIn(r.barracks, 0, 10)) return "казармы 0..10";
+    if (r.won && r.timeMs < 180000) return "победа быстрее трёх минут — так не бывает";
+    if (!intIn(r.barracks, 0, 2)) return "казармы 0..2";
     if (!intIn(r.biggestHit, 0, 1e9)) return "лучший удар 0..1e9";
-    if (!intIn(r.spareResets, 0, 99)) return "заряды 0..99";
-    if (typeof r.seed !== "string" || r.seed.length > 24) return "seed — строка до 24 символов";
+    if (!intIn(r.spareResets, 0, 10)) return "заряды 0..10";
+    if (typeof r.seed !== "string" || !/^[A-Za-z0-9_-]{0,24}$/.test(r.seed)) return "seed — до 24 символов латиницы/цифр";
     if (!intIn(r.startedAt, 0, Date.now() + 60000)) return "startedAt — время начала забега";
     return null;
+  }
+
+  // Регистрации: не больше 5 в минуту с одного IP — аккаунты не фармятся.
+  const registerTimes = new Map();
+  function registerMarked(ip) {
+    if (!registerTimes.has(ip) && registerTimes.size > 5000) registerTimes.clear();
+    const arr = registerTimes.get(ip) || [];
+    arr.push(Date.now());
+    registerTimes.set(ip, arr);
+  }
+
+  function registerLimited(ip) {
+    const now = Date.now();
+    const fresh = (registerTimes.get(ip) || []).filter((t) => now - t < 60000);
+    registerTimes.set(ip, fresh);
+    return fresh.length >= 5;
   }
 
   // Троттлинг брутфорса логина: 10 неудач на пару «имя + IP» за 15 минут
@@ -166,7 +183,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
   }
 
   // ---- роут ----
-  function call(method, path, { body = undefined, cookie = "", bearer = "", ip = "-" } = {}) {
+  function call(method, path, { body = undefined, cookie = "", bearer = "", ip = "-", secure = false } = {}) {
     const send = (status, json, setCookie) => ({ status, json, setCookie });
     const token = bearer || cookieToken(cookie);
     const me = accountByToken(token);
@@ -176,6 +193,8 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       const password = body && body.password;
       if (!validName(name)) return send(400, { error: "Имя: 2–20 символов, латиница/цифры/._-" });
       if (!validPassword(password)) return send(400, { error: "Пароль: минимум 6 символов" });
+      if (registerLimited(ip)) return send(429, { error: "слишком много регистраций с одного адреса — попробуйте позже" });
+      if (Object.keys(accounts).length >= 100000) return send(503, { error: "регистрация временно закрыта" });
       const key = name.toLowerCase();
       if (accounts[key]) return send(400, { error: "Такое имя уже занято" });
       const salt = randomBytes(16).toString("hex");
@@ -188,11 +207,12 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
         stats: { runs: 0, wins: 0, bestScore: 0, bestRankWon: 0, bestWaves: 0 },
       };
       accounts[key] = acc;
+      registerMarked(ip);
       const t = newSession(acc);
       saveAccounts();
       onEvent({ type: "register", name: acc.name });
       const claimed = typeof body.guest === "string" && GUEST_RE.test(body.guest) ? claimGuestRuns(body.guest, acc) : 0;
-      return send(200, { player: publicPlayer(acc), claimed }, sessionCookie(t));
+      return send(200, { player: publicPlayer(acc), claimed }, sessionCookie(t, undefined, secure));
     }
 
     if (method === "POST" && path === "/login") {
@@ -211,7 +231,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       saveAccounts();
       onEvent({ type: "login", name: acc.name });
       const claimed = typeof body.guest === "string" && GUEST_RE.test(body.guest) ? claimGuestRuns(body.guest, acc) : 0;
-      return send(200, { player: publicPlayer(acc), claimed }, sessionCookie(t));
+      return send(200, { player: publicPlayer(acc), claimed }, sessionCookie(t, undefined, secure));
     }
 
     if (method === "POST" && path === "/logout") {
@@ -241,9 +261,12 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
         player = "guest:" + body.guest;
         isGuest = true;
       }
+      // Сначала идемпотентность (повтор — не фарм), потом антифарм-лимит.
       const key = `${player}|${body.seed}|${body.startedAt}|${body.won ? 1 : 0}`;
       const dup = runs.list.find((r) => r.key === key);
       if (dup) return send(200, { ok: true, duplicate: true, score: dup.score, ...(me ? { player: publicPlayer(me) } : { guest: true }) });
+      if (runSubmitLimited(player)) return send(429, { error: "слишком много забегов подряд — отдохни пару минут" });
+      runSubmitMarked(player);
       const run = {
         id: ++runs.counter,
         key,
@@ -323,6 +346,24 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     const arr = guestRuns.get(ip) || [];
     arr.push(Date.now());
     guestRuns.set(ip, arr);
+  }
+
+  // Антифарм лидербордов: одному игроку не чаще раза в 15 c и не больше
+  // 40 забегов в час. Гости дополнительно ограничены по IP.
+  const RUN_SUBMIT_MIN_GAP = runGapMs;
+  const RUN_SUBMIT_HOURLY = 40;
+  const runSubmits = new Map();
+  function runSubmitLimited(key) {
+    const now = Date.now();
+    const fresh = (runSubmits.get(key) || []).filter((t) => now - t < 3600 * 1000);
+    runSubmits.set(key, fresh);
+    if (fresh.length && now - fresh[fresh.length - 1] < RUN_SUBMIT_MIN_GAP) return true;
+    return fresh.length >= RUN_SUBMIT_HOURLY;
+  }
+  function runSubmitMarked(key) {
+    const arr = runSubmits.get(key) || [];
+    arr.push(Date.now());
+    runSubmits.set(key, arr);
   }
 
   const GUEST_RE = /^[a-f0-9]{16,64}$/;
@@ -440,9 +481,9 @@ function cookieToken(cookie) {
   return m ? m[1] : "";
 }
 
-function sessionCookie(token, maxAge) {
+function sessionCookie(token, maxAge, secure = false) {
   const age = maxAge === undefined ? SESSION_TTL / 1000 : maxAge;
-  return `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${age}; SameSite=Lax`;
+  return `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${age}; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
 // Для тестов: уникальный каталог в tmp, чтобы прогон не трогал data/ живого сервера.
@@ -461,6 +502,48 @@ const MIME = {
   ".jpeg": "image/jpeg",
   ".svg": "image/svg+xml",
 };
+
+// Белый список статики: наружу отдаётся только то, что нужно браузеру.
+// Всё прочее (data/ с хэшами и токенами, .git, deploy, tests, docs…) — 404.
+const STATIC_ALLOWED = [/^\/index\.html$/, /^\/src\//, /^\/images\//, /^\/dist\//];
+const STATIC_BLOCKED = [/^\/(data|deploy|tests|test|additions|docs|node_modules|\.git)(\/|$)/, /\/\./];
+
+function staticPathAllowed(path) {
+  if (STATIC_BLOCKED.some((re) => re.test(path))) return false;
+  return STATIC_ALLOWED.some((re) => re.test(path));
+}
+
+// Базовые заголовки для всех ответов; HSTS только на HTTPS.
+function securityHeaders(secure) {
+  const headers = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+  };
+  if (secure) headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+  return headers;
+}
+
+// IP клиента. X-Forwarded-For доверяем ТОЛЬКО если запрос пришёл с локального
+// адреса (наш nginx): из интернета заголовок подделывается, и через него
+// обходятся лимиты и мусорится аналитика.
+function isHttpsReq(req) {
+  return (req.headers["x-forwarded-proto"] || "").includes("https");
+}
+
+function isLocalAddress(addr) {
+  const a = String(addr || "").replace(/^::ffff:/, "");
+  return a === "127.0.0.1" || a === "::1" || a.startsWith("10.") || a.startsWith("192.168.") || /^172\.(1[6-9]|2\d|3[01])\./.test(a);
+}
+
+function clientIp(req) {
+  const remote = req.socket.remoteAddress || "?";
+  if (isLocalAddress(remote)) {
+    const xff = req.headers["x-forwarded-for"];
+    if (xff) return String(xff).split(",")[0].trim();
+  }
+  return remote;
+}
 
 // Фиксированное окно 60 c: защита от грубой силы логина и флуда.
 const RATE_LIMIT = 240;
@@ -485,8 +568,8 @@ function adminRateLimited(ip) {
   return bucket.count > ADMIN_RATE_LIMIT;
 }
 
-function adminCookie(token, maxAge) {
-  return `${ADMIN_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+function adminCookie(token, maxAge, secure = false) {
+  return `${ADMIN_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
 function adminCookieToken(cookie) {
@@ -531,7 +614,9 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
   const server = createServer(async (req, res) => {
     const t0 = performance.now();
     const url = new URL(req.url, "http://x");
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket.remoteAddress || "?";
+    const ip = clientIp(req);
+    const https = isHttpsReq(req);
+    const baseHeaders = securityHeaders(https);
     res.on("finish", () => {
       // админку из трафика игры исключаем
       if (url.pathname === "/admin" || url.pathname.startsWith("/api/admin")) return;
@@ -540,12 +625,12 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
 
     // ---- админка ----
     if (url.pathname === "/admin") {
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", "X-Robots-Tag": "noindex" });
+      res.writeHead(200, { ...baseHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", "X-Robots-Tag": "noindex" });
       res.end(adminPageHtml());
       return;
     }
     if (url.pathname === "/api/admin/login" && req.method === "POST") {
-      const headers = { "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
       if (adminRateLimited(ip)) {
         res.writeHead(429, headers).end(JSON.stringify({ error: "слишком много попыток входа" }));
         return;
@@ -557,12 +642,12 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         res.writeHead(401, headers).end(JSON.stringify({ error: "неверный пароль" }));
         return;
       }
-      res.writeHead(200, { ...headers, "Set-Cookie": adminCookie(token, 24 * 3600) }).end(JSON.stringify({ ok: true }));
+      res.writeHead(200, { ...headers, "Set-Cookie": adminCookie(token, 24 * 3600, https) }).end(JSON.stringify({ ok: true }));
       return;
     }
     if (url.pathname === "/api/admin/logout" && req.method === "POST") {
       admin.logout(adminCookieToken(req.headers.cookie || ""));
-      res.writeHead(200, { "Content-Type": "application/json", "Set-Cookie": adminCookie("", 0) }).end(JSON.stringify({ ok: true }));
+      res.writeHead(200, { ...baseHeaders, "Content-Type": "application/json", "Set-Cookie": adminCookie("", 0) }).end(JSON.stringify({ ok: true }));
       return;
     }
     if (url.pathname === "/api/admin/stats") {
@@ -576,7 +661,7 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
     }
 
     if (url.pathname.startsWith("/api/")) {
-      const headers = { "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
       if (rateLimited(ip)) {
         res.writeHead(429, headers).end(JSON.stringify({ error: "слишком много запросов" }));
         return;
@@ -600,22 +685,31 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         cookie: req.headers.cookie || "",
         bearer: auth.startsWith("Bearer ") ? auth.slice(7) : "",
         ip,
+        secure: https,
       });
-      if (result.setCookie) headers["Set-Cookie"] = result.setCookie;
-      res.writeHead(result.status, headers).end(JSON.stringify(result.json));
+      const respHeaders = { ...baseHeaders, ...headers };
+      if (result.setCookie) respHeaders["Set-Cookie"] = result.setCookie;
+      res.writeHead(result.status, respHeaders).end(JSON.stringify(result.json));
       return;
     }
-    // статика — как serve.js: из корня репозитория, no-cache против протухших скриптов
+    // статика — из корня репозитория, no-cache против протухших скриптов.
+    // Служебные каталоги раздавать нельзя: в data/ лежат хэши паролей и
+    // токены сессий, в .git — история, остальное наружу не нужно.
     try {
       let path = decodeURIComponent(url.pathname);
       if (path === "/") path = "/index.html";
+      if (!staticPathAllowed(path)) throw new Error("forbidden");
       const file = normalize(join(ROOT, path));
       if (!file.startsWith(ROOT)) throw new Error("forbidden");
       const data = readFileSync(file);
-      res.writeHead(200, { "Content-Type": MIME[extname(file)] || "application/octet-stream", "Cache-Control": "no-cache" });
+      res.writeHead(200, {
+        ...securityHeaders(isHttpsReq(req)),
+        "Content-Type": MIME[extname(file)] || "application/octet-stream",
+        "Cache-Control": "no-cache",
+      });
       res.end(data);
     } catch {
-      res.writeHead(404).end("404");
+      res.writeHead(404, { ...baseHeaders }).end("404");
     }
   });
   server.on("error", (err) => {

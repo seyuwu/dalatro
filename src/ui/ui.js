@@ -170,7 +170,9 @@
   }
 
   function esc(str) {
-    return String(str).replace(/"/g, "&quot;");
+    // Полное экранирование: строки из пользовательских данных (сид, имя)
+    // попадают в innerHTML — «"»-хака мало, ломаем и <, >, &.
+    return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
   function fmt(n) {
