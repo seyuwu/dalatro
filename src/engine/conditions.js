@@ -181,7 +181,7 @@ const Cond = (function () {
           (ctx.state.combat.wave.hp / ctx.state.combat.wave.maxHp) * 100 > condition.pct);
       case "DISCARDS_UNUSED":
         // Скипетр «Warcry» (Sven) / осколок «Onslaught» (Primal): за бой не
-        // потрачено ни одного ТП-сброса волны.
+        // потрачено ни одного сброса волны.
         return !!(ctx.state && Game.discardsPerWave(ctx.state) === ctx.state.player.discardsLeft);
       case "HERO_LEVEL_ABOVE":
         // Скипетр «Ascended Charge» (Void Spirit): уровень XP героя > value.
@@ -190,6 +190,14 @@ const Cond = (function () {
         // Скипетр «Raptor Dance» (Kez): герой ровно в середине строя.
         return !!(ctx.playedCards && ctx.slotIndex != null &&
           ctx.slotIndex === Math.floor((ctx.playedCards.length - 1) / 2));
+      case "FIRST_CARD_RANK_ABOVE":
+        // «Полароид»: первый герой строя рангом не ниже заданного.
+        return !!(ctx.playedCards && ctx.playedCards.length &&
+          ctx.playedCards[0].power >= condition.value);
+      case "FORMATION_STREAK_ABOVE":
+        // «Мантра»: серия боёв подряд одной и той же формации (в formation-режиме
+        // combo.type = id формации, так что это зеркало comboStreak).
+        return !!(ctx.state && (ctx.state.run.comboStreak || 0) > condition.value);
       case "SLOT_CHANGED":
         // Скипетр «Overload» (Storm): герой не на своём слоте прошлого боя.
         return !!(ctx.card && ctx.state && ctx.state.combat.lastSlot &&
@@ -209,6 +217,33 @@ const Cond = (function () {
         return !!(ctx.playedCards && ctx.card && ctx.slotIndex > 0 && ctx.slotIndex < ctx.playedCards.length - 1 &&
           attrIs(ctx, ctx.playedCards[ctx.slotIndex - 1], ctx.card.attr) &&
           attrIs(ctx, ctx.playedCards[ctx.slotIndex + 1], ctx.card.attr));
+      case "NEIGHBOR_RANK_ABOVE":
+      case "NEIGHBOR_RANK_BELOW":
+      case "NEIGHBOR_RANK_SAME":
+        // Сосед по слоту сильнее/слабее/той же силы (реальная сила, паритет с
+        // IS_HIGHEST_RANK). Math.abs === 1 не может быть самим героем.
+        return !!(ctx.playedCards && ctx.card && ctx.playedCards.some((c, i) => {
+          if (Math.abs(i - ctx.slotIndex) !== 1) return false;
+          const diff = c.power - ctx.card.power;
+          return condition.type === "NEIGHBOR_RANK_ABOVE" ? diff > 0
+            : condition.type === "NEIGHBOR_RANK_BELOW" ? diff < 0
+            : diff === 0;
+        }));
+      case "STRONGEST_IS_AHEAD":
+        // «Эскорт»: впереди по слоту есть герой строго сильнее меня — я прикрываю
+        // кэрри. Равный впереди не считается: сильнейшему самому не кого прикрывать.
+        return !!(ctx.playedCards && ctx.card && ctx.playedCards.some((c, i) =>
+          i < ctx.slotIndex && c.power > ctx.card.power));
+      case "NO_ADJACENT_SAME_ATTR":
+        // «Призма»: ни одна пара соседей не одного атрибута. Джокер-Универсал
+        // «подстраивается» — пара с ним считается совпадением (паритет с
+        // NEIGHBOR_ATTR_DIFFERS). Соло не считается.
+        if (!ctx.playedCards || ctx.playedCards.length < 2) return false;
+        for (let i = 1; i < ctx.playedCards.length; i++) {
+          const a = ctx.playedCards[i - 1], b = ctx.playedCards[i];
+          if (attrIs(ctx, a, b.attr) || attrIs(ctx, b, a.attr)) return false;
+        }
+        return true;
       case "COMBO_SAME_AS_LAST":
         // Скипетры «Blade Dance» (Juggernaut) и «Mana Break+» (Anti-Mage):
         // тот же тип комбо, что в прошлом бою (первый бой волны считается повтором).
@@ -228,7 +263,7 @@ const Cond = (function () {
         return !!(ctx.state && (ctx.state.run.rerollCharges || 0) > condition.value);
       case "FORMATION_ACTIONS_ABOVE":
         // Скипетр «Counter Helix+» (Axe): действия игрока за волну
-        // (перестановки + ТП-сбросы) заряжают Helix.
+        // (перестановки + сбросы) заряжают Helix.
         return !!(ctx.state && ((ctx.state.combat.movesUsed || 0) +
           Math.max(0, Game.discardsPerWave(ctx.state) - ctx.state.player.discardsLeft)) > condition.value);
       default:

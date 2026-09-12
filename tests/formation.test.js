@@ -88,6 +88,59 @@ test("4 Protect 1: порог по СИЛЬНЕЙШЕМУ из свиты, не 
   assert(no.combo.type !== "protect", "11 против Центавра 10 — не «защита кэрри»");
 });
 
+test("Клещи: 4+ героя, оба края сильнее середины; порядок решает", () => {
+  const pin = frmPlay(frmRun("FRMPIN", "formation"), ["centaur", "zeus", "tusk", "sven"]);
+  assertEq(pin.combo.type, "pincers", "края 10 и 8 сильнее середины 5 и 3");
+  assertEq(pin.damage, 164, "(16+5 связка+26+16 Trample+8 Tusk) × 2.1 × 1.1");
+  assert(frmHasStep(pin, "Формация «Клещи»"), "шаг формации в стеке");
+  // те же герои по возрастанию — Рампа: куда ставить кэрри, решает состав
+  const ramp = frmPlay(frmRun("FRMPIN2", "formation"), ["tusk", "zeus", "sven", "centaur"]);
+  assertEq(ramp.combo.type, "ramp");
+  // на тройке «клещи» не собираются — иначе вырождались бы в «минимум в центре»
+  const trio = frmPlay(frmRun("FRMPIN3", "formation"), ["centaur", "tusk", "sven"]);
+  assert(trio.combo.type !== "pincers", "гейт 4+ героев");
+});
+
+test("Зеркальный строй: палиндром рангов из 4+ героев", () => {
+  const mir = frmPlay(frmRun("FRMMIR", "formation"), ["axe", "pudge", "juggernaut", "morphling"]);
+  assertEq(mir.combo.type, "mirror", "5-7-7-5 читается одинаково с обоих концов");
+  assertEq(mir.damage, 153, "(15+15 связки+28) × (2.2+0.2 Ловкость) × 1.1");
+  assertEq(mir.damageType, "magical");
+  // на тройке палиндром — просто «пара через слот»: не собирается
+  const trio = frmPlay(frmRun("FRMMIR2", "formation"), ["axe", "cm", "morphling"]);
+  assert(trio.combo.type !== "mirror", "гейт 4+ героев");
+});
+
+test("объяснение формации: «почему сработало» в why и в шаге стека", () => {
+  const ramp = frmPlay(frmRun("FRMWHY", "formation"), ["cm", "tusk", "zeus", "juggernaut", "centaur"]);
+  assertEq(ramp.combo.type, "ramp");
+  assert(ramp.combo.why && ramp.combo.why.includes("ранги росли"), "why: " + ramp.combo.why);
+  assert(ramp.combo.why.includes("2 → 3 → 5 → 7 → 10"), "реальные ранги в объяснении: " + ramp.combo.why);
+  const step = ramp.steps.find((st) => st.label.includes("Формация «Рампа»"));
+  assert(step && step.label.includes("ранги росли"), "причина в строке стека: " + (step && step.label));
+  const wedge = frmPlay(frmRun("FRMWHY2", "formation"), ["cm", "centaur", "tusk"]);
+  assertEq(wedge.combo.type, "wedge");
+  assert(wedge.combo.why.includes("в центре"), "Клин называет героя: " + wedge.combo.why);
+  // Короткое plain-описание есть у каждой формации — читается без словаря.
+  for (const f of Content.formations.list) assert(f.short, "short у формации " + f.id);
+});
+
+test("Combat.swapHint: подсказывает обмен, собирающий Клин; на оптимуме молчит", () => {
+  const s = frmRun("FRMSWAP", "formation");
+  frmForceHand(s, ["axe", "tusk", "cm", "pudge"]);
+  s.combat.selectedUids = s.player.handUids.slice();
+  const hint = Combat.swapHint(s);
+  assert(hint, "подсказка найдена");
+  assertEq(hint.formation, "Клин");
+  assertEq(hint.a, "Tusk");
+  assertEq(hint.b, "Pudge");
+  assert(hint.gain > 0, "выигрыш положительный: " + JSON.stringify(hint));
+  const s2 = frmRun("FRMSWAP2", "formation");
+  frmForceHand(s2, ["cm", "tusk", "axe", "pudge"]); // уже по возрастанию — Рампа
+  s2.combat.selectedUids = s2.player.handUids.slice();
+  assertEq(Combat.swapHint(s2), null, "оптимум собран — подсказки нет");
+});
+
 test("алиас Satanic: ×1.5 на слабых формациях (tier ≤ 2), молчит на жирных", () => {
   const s = frmRun("FRM6", "formation");
   s.player.items.push("satanic");

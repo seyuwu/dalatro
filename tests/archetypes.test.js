@@ -51,7 +51,7 @@ test("Перк «Штурм» (gold1): +1G на старте", () => {
   assertEq(archRun("AG1", "assault").run.gold, 5, "5G вместо 4G");
 });
 
-test("Перк «Контроль» (tp1): +1 ТП-сброс в акте 1, в акте 2 — база", () => {
+test("Перк «Контроль» (tp1): +1 сброс в акте 1, в акте 2 — база", () => {
   const s = archRun("TP1", "control");
   const base = Ranks.discardsPerWave(s);
   assertEq(s.player.discardsLeft, base + 1, "акт 1: +1 сброс");

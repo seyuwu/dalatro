@@ -76,8 +76,8 @@ test("Vladmir: +2 золота за бой, харас добавляет +1", (
 test("Shadow Blade: бамп сильнейшего только если он улучшает комбо", () => {
   const s = newRun("SHB1");
   s.player.items.push("shadow_blade");
-  const res = play(s, ["dawnbreaker", "centaur", "tusk", "cm", "sven"]);
-  // 9,10,3,2,8: бамп 10→9 → пара 9-9: (10+32+8 Tusk) × (2+1 Dawnbreaker-UNI) × 1.25 = 188
+  const res = play(s, ["cm", "tusk", "centaur", "dawnbreaker", "sven"]);
+  // 2,3,10,9,8: бамп 10→9 → пара 9-9: (10+32+8 Tusk) × (2+1 Fire Ring) × 1.25 = 188
   assertEq(res.combo.type, "pair", "бамп собрал пару из 9+10");
   assertEq(res.damage, 188, "50 × 3 × 1.25");
   // а вот пару бамп ломать не должен — движок выбирает лучший вариант
@@ -183,7 +183,7 @@ test("Tempest Double под Безмолвием честно молчит", () 
   assert(!stepLabels(res).some((l) => l.includes("повтор")), "второго прогона нет");
 });
 
-test("Miser's Chest: +1G за каждый неиспользованный ТП-сброс в бою", () => {
+test("Miser's Chest: +1G за каждый неиспользованный сброс в бою", () => {
   const s = newRun("MCHEST1");
   s.player.items.push("misers_chest");
   const before = s.run.gold;

@@ -55,7 +55,7 @@ PRE_DETECT-эффекты (меняют только детекцию):
 Свободные слоты сетки (power×attr) — в CONTENT.md; не занимай занятые.
 
 ФОРМАТ ПРЕДМЕТА:
-{ "id":"<англ>", "name":"<Dota-предмет>", "cost":6..13, "emoji":"...":
+{ "id":"<англ>", "name":"<Dota-предмет>", "cost":6..13, "emoji":"..."
   "rarity":"common|rare|epic", "category":"power|mult|rule|economy",
   "desc":"<правило по-русски, ≤2 строк>",
   "ability":{ "name":"...", "event":"ON_PLAY|COMBO_DETECTED|FIGHT_SCORING",

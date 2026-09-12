@@ -181,13 +181,13 @@ test("Кости: выплата строго из таблицы 1–6", () => 
   assert(seen.size >= 2, "кости реально кидаются");
 });
 
-test("Грех: навсегда +3% урона и −1 ТП-сброс", () => {
+test("Грех: навсегда +3% урона и −1 сброс", () => {
   const s = rtFork(rtRun("RSIN1"));
   s.combat.routeOptions = [{ id: "normal" }, { id: "sin" }];
   Game.dispatch(s, { type: "TAKE_ROUTE", kind: "sin" });
   assertEq(s.run.sinDmg, 3);
   assertEq(s.run.sinDiscards, -1);
-  assertEq(Game.discardsPerWave(s), Ranks.discardsPerWave(s) - 1, "ТП-сброс отнят");
+  assertEq(Game.discardsPerWave(s), Ranks.discardsPerWave(s) - 1, "сброс отнят");
 });
 
 test("Банкротство: всё золото сгорает, лавка бесплатна", () => {

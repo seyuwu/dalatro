@@ -36,7 +36,7 @@ const Advisor = (function () {
       if (n >= 3) {
         builds.push({
           key: "flush_" + attr,
-          name: `Тимфайт ${Content.attrNames[attr]}`,
+          name: `Флеш «${Content.attrNames[attr]}»`,
           have: n, need: 5,
           hint: "Пять героев одного атрибута = флеш: 35 × 4",
         });

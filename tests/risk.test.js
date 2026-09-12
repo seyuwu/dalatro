@@ -36,12 +36,12 @@ function setWave(s, waveId, hpOverride) {
 
 suite("Ставка");
 
-test("5 героев = ×1.25: шаг «Коммит» в стеке, урон 414 → 518", () => {
+test("5 героев = ×1.25: шаг «Полная пятёрка» в стеке, урон 414 → 518", () => {
   const s = newRun("STAV1");
   const res = play(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   const step = res.steps.find((st) => st.icon === "🎖");
   assert(step, "шаг ставки присутствует");
-  assert(step.label.includes("Коммит"), "назван тир");
+  assert(step.label.includes("Полная пятёрка"), "назван тир ставки");
   assertEq(res.damage, 518, "round(69 × 6 × 1.25)");
 });
 

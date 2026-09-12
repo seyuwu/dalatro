@@ -8,7 +8,7 @@ const COMBOS_DATA = [
   { id: "two_pair", name: "Ротация", basePower: 20, baseMult: 2, rank: 2, damageType: "physical" },
   { id: "three", name: "Ганг", basePower: 30, baseMult: 3, rank: 3, damageType: "physical" },
   { id: "straight", name: "Смок на Рошана", basePower: 30, baseMult: 4, rank: 4, damageType: "magical" },
-  { id: "flush", name: "Тимфайт атрибута", basePower: 35, baseMult: 4, rank: 5, damageType: "magical" },
+  { id: "flush", name: "Командный флеш", basePower: 35, baseMult: 4, rank: 5, damageType: "magical" },
   { id: "full_house", name: "4 Protect 1", basePower: 40, baseMult: 6, rank: 6, damageType: "pure" },
 ];
 
@@ -39,24 +39,24 @@ const WAVES_DATA = [
 const ACT_NAMES = { 1: "На линии", 2: "Тёмный лес", 3: "Трон" };
 
 const MODIFIERS_DATA = [
-  { id: "armor", name: "Armor", desc: "Первый бой волны наносит ×0.5 урона." },
-  { id: "glyph", name: "Glyph", desc: "Каждый 3-й бой полностью заблокирован." },
-  { id: "mines", name: "Мины", desc: "Каждый бой 2 карты руки заминированы — их нельзя разыграть. Sentry Ward или BKB обезвреживают мины." },
-  { id: "aegis", name: "Aegis", desc: "Один раз возрождается с 50% HP.", hpPercent: 50 },
+  { id: "armor", name: "Armor", desc: "Первый бой волны наносит вдвое меньше урона." },
+  { id: "glyph", name: "Glyph", desc: "Каждый третий бой заблокирован: урон 0, но казарму ты не теряешь — бей там минимальным отрядом." },
+  { id: "mines", name: "Мины", desc: "Каждый бой две случайные карты руки заминированы и не играют — отряд собирается из остальных. Sentry Ward или BKB обезвреживают мины." },
+  { id: "aegis", name: "Aegis", desc: "Один раз за волну возрождается с половиной HP — снимать HP придётся дважды.", hpPercent: 50 },
   // Проклятия элитных башен (BKB игнорирует всё)
-  { id: "adaptation", name: "Адаптация", desc: "Одна и та же комбинация дважды подряд наносит ×0.5 урона.", curse: true },
-  { id: "bastion", name: "Фортификация", desc: "Харас, Дуо и Ротация наносят ×0.5 урона.", curse: true },
-  { id: "fog", name: "Туман войны", desc: "Герои ранга ≤4 не дают своей силы.", curse: true },
-  { id: "silence", name: "Безмолвие", desc: "Способности героев отключены (предметы и комбинации работают).", curse: true },
-  { id: "disarm", name: "Обезоруживание", desc: "В тимфайт можно взять не более 4 героев.", curse: true },
+  { id: "adaptation", name: "Адаптация", desc: "Одна и та же комбинация дважды подряд бьёт вдвое слабее.", curse: true },
+  { id: "bastion", name: "Фортификация", desc: "Малые комбо — одиночный рейд, пара и две пары — бьют вдвое слабее. Собирай тройку или больше.", curse: true },
+  { id: "fog", name: "Туман войны", desc: "Герои с силой 4 и ниже не дают своей силы.", curse: true },
+  { id: "silence", name: "Безмолвие", desc: "Способности героев отключены; предметы и комбо работают.", curse: true },
+  { id: "disarm", name: "Обезоруживание", desc: "В бой можно взять не больше 4 героев.", curse: true },
   // Мутации башен (выдаются рангами Божество+): одна волновая способность.
-  { id: "regen", name: "Регенерация", desc: "Башня лечит 4% от макс. HP после каждого боя, пока волна не зачищена.", mutation: true },
-  { id: "reflection", name: "Отражение", desc: "Каждый чётный бой наносит по башне ×0.75 урона.", mutation: true },
-  { id: "enrage", name: "Ярость", desc: "Падая ниже 25% HP, башня раз в волну исцеляется на 10%.", mutation: true },
-  { id: "thorns", name: "Шипы", desc: "Отряды из 4–5 героев наносят по башне ×0.85.", mutation: true },
-  { id: "greed", name: "Жадность", desc: "Бой, не снявший 30% её текущего HP, отдаёт башне 1 золото.", mutation: true },
+  { id: "regen", name: "Регенерация", desc: "После каждого боя башня лечит 4% от макс. HP, пока волна не зачищена.", mutation: true },
+  { id: "reflection", name: "Отражение", desc: "Каждый чётный бой бьёт по башне ×0.75.", mutation: true },
+  { id: "enrage", name: "Ярость", desc: "Опустившись ниже 25% HP, башня раз за волну лечится на 10%.", mutation: true },
+  { id: "thorns", name: "Шипы", desc: "Отряды из 4–5 героев бьют по башне ×0.85.", mutation: true },
+  { id: "greed", name: "Жадность", desc: "Бой, не снявший 30% текущего HP башни, сжигает 1 твоего золота (оно уходит башне впустую).", mutation: true },
   // Маршрутный мод «Архивариус» (#20): анти-спам самого частого комбо забега.
-  { id: "archivist", name: "Архивариус", desc: "Твоё самое частое комбо наносит ×0.75.", curse: true },
+  { id: "archivist", name: "Архивариус", desc: "Твоё самое частое комбо за забег бьёт ×0.75.", curse: true },
 ];
 
 const CURSES = ["adaptation", "bastion", "fog", "silence", "disarm"];
@@ -91,19 +91,25 @@ const ROUTE_SPECIAL_SLOTS = 2;
 // docs/REDESIGN_ANTI_BALATRO.md §12–13; правило выбора формации — максимум
 // итогового урона, ничья — позиционная. Часть формаций читает ПОРЯДОК слотов.
 const FORMATIONS_DATA = [
-  { id: "skirmish", name: "Харас", tier: 0, basePower: 5, baseMult: 1, damageType: "physical", rule: "1 герой в бою", gold: 1, when: { type: "PLAYED_COUNT_IS", value: 1 } },
-  { id: "duel", name: "Дуэль на линии", tier: 1, basePower: 10, baseMult: 1.4, damageType: "physical", rule: "2 героя", when: { type: "PLAYED_COUNT_IS", value: 2 } },
+  { id: "skirmish", name: "Харас", short: "одиночный рейд", tier: 0, basePower: 5, baseMult: 1, damageType: "physical", rule: "ровно 1 герой в бою", gold: 1, when: { type: "PLAYED_COUNT_IS", value: 1 } },
+  { id: "duel", name: "Дуэль на линии", short: "двое в бою", tier: 1, basePower: 10, baseMult: 1.4, damageType: "physical", rule: "ровно 2 героя", when: { type: "PLAYED_COUNT_IS", value: 2 } },
   // Фолбэк: любой отряд 3+ всегда что-то наносит (аналог «старшей карты»).
-  { id: "squad", name: "Отряд", tier: 1, basePower: 12, baseMult: 1.4, damageType: "physical", rule: "3+ героя без выраженной формации", when: { type: "PLAYED_COUNT_ABOVE", value: 2 } },
-  { id: "triangle", name: "Треугольник", tier: 2, basePower: 16, baseMult: 1.9, damageType: "magical", rule: "3+ героя, минимум 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
-  { id: "wall", name: "Стена", tier: 2, positional: true, basePower: 18, baseMult: 1.9, damageType: "physical", rule: "3+ героя: в слотах 1–2 два Силовика ранга 6+", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "FRONT_IS", attr: "str", minPower: 6 }] } },
-  { id: "wedge", name: "Клин", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "pure", rule: "3+ героя: самый сильный стоит в центре строя", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "PEAK_IN_CENTER" }] } },
-  { id: "ramp", name: "Рампа", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "physical", rule: "3+ героя: ранги строго растут от слота 1 к последнему", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "RANKS_ASCENDING" }] } },
-  { id: "phalanx", name: "Фаланга", tier: 3, basePower: 20, baseMult: 2.2, damageType: "byAttribute", rule: "4+ героя одного атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 3 }] } },
+  { id: "squad", name: "Отряд", short: "без особого построения", tier: 1, basePower: 12, baseMult: 1.4, damageType: "physical", rule: "3+ героя без выраженной формации", when: { type: "PLAYED_COUNT_ABOVE", value: 2 } },
+  { id: "triangle", name: "Треугольник", short: "три разных атрибута в отряде", tier: 2, basePower: 16, baseMult: 1.9, damageType: "magical", rule: "3+ героя, минимум 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
+  { id: "wall", name: "Стена", short: "первые два героя — Силовики 6+", tier: 2, positional: true, basePower: 18, baseMult: 1.9, damageType: "physical", rule: "3+ героя: в первых двух слотах два Силовика с силой 6+", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "FRONT_IS", attr: "str", minPower: 6 }] } },
+  { id: "wedge", name: "Клин", short: "самый сильный герой — в центре", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "pure", rule: "3+ героя: самый сильный герой стоит в центре строя", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "PEAK_IN_CENTER" }] } },
+  { id: "ramp", name: "Рампа", short: "сила героев растёт слева направо", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "physical", rule: "3+ героя: сила героев растёт от первого слота к последнему", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "RANKS_ASCENDING" }] } },
+  // Зеркало Клина: сильные по краям, слабые в середине. Гейт 4+ героев: на
+  // тройке «клещи» вырождаются в «минимум в центре» и перехватывают всё.
+  { id: "pincers", name: "Клещи", short: "крайние герои сильнее средних", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "physical", rule: "4+ героя: оба края сильнее каждого, кто между ними", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "RANKS_EDGES_ABOVE" }] } },
+  // Поздний слой: требует дубликатов рангов (тренировка, пары) — строй-палиндром.
+  // Гейт 4+ по той же причине: на тройке это просто «пара через слот».
+  { id: "mirror", name: "Зеркальный строй", short: "ранги повторяются зеркально (5-7-7-5)", tier: 3, positional: true, basePower: 15, baseMult: 2.2, damageType: "magical", rule: "4+ героя: ранги читаются одинаково с обоих концов — палиндром", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "RANKS_PALINDROME" }] } },
+  { id: "phalanx", name: "Фаланга", short: "4+ героя одного атрибута", tier: 3, basePower: 20, baseMult: 2.2, damageType: "byAttribute", rule: "4+ героя одного атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 3 }] } },
   // margin 4, а не 3 — ручка из §10: при margin 3 формация перехватывает почти
   // любую руку с пиком в центре и убивает A/B-тест гипотезы.
-  { id: "protect", name: "4 Protect 1", tier: 5, positional: true, basePower: 23, baseMult: 3.0, damageType: "pure", rule: "5 героев: кэрри в слоте 3 и на 4+ ранга сильнее КАЖДОГО из свиты", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "CARRY_PROTECTED", margin: 4 }] } },
-  { id: "teamwipe", name: "Тимвайп", tier: 5, basePower: 23, baseMult: 3.4, damageType: "magical", rule: "5 героев: пять рангов подряд и 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "RANK_RUN", value: 5 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
+  { id: "protect", name: "4 Protect 1", short: "кэрри в центре и сильнее каждого из свиты", tier: 5, positional: true, basePower: 23, baseMult: 3.0, damageType: "pure", rule: "5 героев: кэрри в центре и сильнее каждого из свиты минимум на 4", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "CARRY_PROTECTED", margin: 4 }] } },
+  { id: "teamwipe", name: "Тимвайп", short: "пятеро: ранги подряд и разные атрибуты", tier: 5, basePower: 23, baseMult: 3.4, damageType: "magical", rule: "5 героев: силы идут подряд (4-5-6-7-8) и 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "RANK_RUN", value: 5 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
 ];
 
 // Связки — пороги признаков, все активные складываются. Одна ступень на связку,
@@ -148,28 +154,28 @@ const DAMAGE_TYPE_NAMES = { physical: "физический", magical: "маги
 const RANKS_DATA = [
   { id: 1, name: "Рекрут", roman: "I", hpMult: 1.0, goldMult: 1.0, quote: "Мир терпит ошибки", color: "#97a39b", adds: ["mercy"], notes: ["Милосердие: после провала башня восстанавливает 70% HP"] },
   { id: 2, name: "Рыцарь", roman: "II", hpMult: 1.08, goldMult: 1.06, quote: "Мир начинает сопротивляться", color: "#7fb069", adds: ["memory"], notes: ["Память башен: тот же тип удара, что в прошлом бою — ×0.9"] },
-  { id: 3, name: "Герой", roman: "III", hpMult: 1.18, goldMult: 1.14, quote: "Ресурсы имеют цену", color: "#5a9dd6", adds: ["inflation", "reroll3"], notes: ["Инфляция лавки: каждая покупка в визите дороже на 1G", "Реролл стоит 3G"] },
+  { id: 3, name: "Герой", roman: "III", hpMult: 1.18, goldMult: 1.14, quote: "Ресурсы имеют цену", color: "#5a9dd6", adds: ["inflation", "reroll3"], notes: ["Инфляция лавки: каждая покупка в визите дороже на 1 золото", "Обновление лавки стоит 3 золота"] },
   { id: 4, name: "Легенда", roman: "IV", hpMult: 1.3, goldMult: 1.23, quote: "Нельзя полагаться на одного героя", color: "#a678e0", adds: ["fatigue"], notes: ["Усталость: каждые 5 боёв героя — −1 к его силе (до −3)"] },
   { id: 5, name: "Властелин", roman: "V", hpMult: 1.45, goldMult: 1.34, quote: "Позиция имеет значение", color: "#d8b24f", adds: ["unstable"], notes: ["Нестабильная позиция: каждая волна выбирает слот с −40% силы"] },
   { id: 6, name: "Божество", roman: "VI", hpMult: 1.65, goldMult: 1.49, quote: "Каждая башня уникальна", color: "#64d8ce", adds: ["hand6", "mutations1"], notes: ["Рука 6 карт вместо 7", "Мутации башен: 1 случайная способность на волну"] },
-  { id: 7, name: "Титан", roman: "VII", hpMult: 1.7, goldMult: 1.68, quote: "Враг изучает тебя", color: "#e0684e", adds: ["adaptive", "antihero", "capClass"], notes: ["Адаптация мира: твоё самое частое комбо наносит ×0.85", "Охота на героя: самый используемый герой −2 к силе", "Лимит классов: не больше 2 атак / 2 защит / 2 утилит"] },
-  { id: 8, name: "Титан 10+", roman: "VIII", hpMult: 1.9, goldMult: 1.9, quote: "Ты платишь за всё", color: "#e25f43", adds: ["discards2", "tax1"], notes: ["ТП-сбросов 2 за волну", "Налог: зачистка приносит −1G"] },
+  { id: 7, name: "Титан", roman: "VII", hpMult: 1.7, goldMult: 1.68, quote: "Враг изучает тебя", color: "#e0684e", adds: ["adaptive", "antihero", "capClass"], notes: ["Адаптация мира: твоё самое частое комбо бьёт ×0.85", "Охота на героя: самый используемый герой −2 к силе", "Лимит классов: не больше 2 атак, 2 защит и 2 утилит"] },
+  { id: 8, name: "Титан 10+", roman: "VIII", hpMult: 1.9, goldMult: 1.9, quote: "Ты платишь за всё", color: "#e25f43", adds: ["discards2", "tax1"], notes: ["Сбросов 2 за волну", "Налог: зачистка приносит −1 золото"] },
   { id: 9, name: "Титан 100+", roman: "IX", hpMult: 2.15, goldMult: 2.2, quote: "Ты сам выбираешь свою боль", color: "#e4573d", adds: ["curseChoice"], notes: ["Проклятия забега: в начале каждого акта выбираешь 1 из 3"] },
-  { id: 10, name: "Титан 1 000+", roman: "X", hpMult: 2.45, goldMult: 2.58, quote: "Правила больше не гарантированы", color: "#e84f36", adds: ["mutations2"], notes: ["Reality Break: 2 мутации башен на каждую волну"] },
-  { id: 11, name: "Титан 10 000+", roman: "XI", hpMult: 2.8, goldMult: 3.03, quote: "Всё против тебя", color: "#ec472f", adds: ["fights3"], notes: ["Тимфайтов 3 за волну"] },
-  { id: 12, name: "Титан 100 000+", roman: "XII", hpMult: 3.2, goldMult: 3.55, quote: "Последние стены", color: "#f03f28", adds: ["reroll4", "tax2"], notes: ["Реролл стоит 4G", "Налог: зачистка приносит −2G"] },
+  { id: 10, name: "Титан 1 000+", roman: "X", hpMult: 2.45, goldMult: 2.58, quote: "Правила больше не гарантированы", color: "#e84f36", adds: ["mutations2"], notes: ["Реальность трещит: 2 мутации башен на каждую волну"] },
+  { id: 11, name: "Титан 10 000+", roman: "XI", hpMult: 2.8, goldMult: 3.03, quote: "Всё против тебя", color: "#ec472f", adds: ["fights3"], notes: ["Боёв за волну: 3"] },
+  { id: 12, name: "Титан 100 000+", roman: "XII", hpMult: 3.2, goldMult: 3.55, quote: "Последние стены", color: "#f03f28", adds: ["reroll4", "tax2"], notes: ["Обновление лавки стоит 4 золота", "Налог: зачистка приносит −2 золота"] },
   { id: 13, name: "Титан 1 000 000+", roman: "XIII", hpMult: 3.7, goldMult: 4.15, quote: "Предел. Дальше — только он", color: "#f43722", adds: ["hand5"], notes: ["Рука 5 карт"] },
-  { id: 14, name: "Папочка", roman: "XIV", hpMult: 4.5, goldMult: 5.13, quote: "Он всё видел. Он всё помнит.", color: "#ffb03a", papochka: true, adds: ["fights2", "discards1"], notes: ["Тимфайтов 2, ТП-сбросов 1", "Трон становится Папочкой. Он всё видел."] },
+  { id: 14, name: "Папочка", roman: "XIV", hpMult: 4.5, goldMult: 5.13, quote: "Он всё видел. Он всё помнит.", color: "#ffb03a", papochka: true, adds: ["fights2", "discards1"], notes: ["Боёв за волну: 2, сбросов 1", "Трон становится Папочкой. Он всё видел."] },
 ];
 
 // Проклятия забега (Титан 100+): игрок выбирает 1 из 3 в начале каждого акта.
 // Минус и компенсация зашиты в описание; эффекты — по id в game.js/combat.js.
 const RANK_CURSES_DATA = [
   { id: "blood", name: "Кровоток", emoji: "🩸", desc: "Зачистки дают ×0.75 золота, но весь урон ×1.15." },
-  { id: "web", name: "Паутина", emoji: "🕸", desc: "−1 ТП-сброс за волну, зато зачистки дают ×1.2 золота." },
-  { id: "hunger", name: "Голод", emoji: "☠", desc: "−1 тимфайт за волну, зато товары в лавке дешевле на 20%." },
-  { id: "time", name: "Время", emoji: "⏳", desc: "Реролл дороже на 2G, зато +1 ТП-сброс за волну." },
-  { id: "chaos", name: "Хаос", emoji: "🎲", desc: "Каждая волна получает +1 случайную мутацию, зачистки ×1.15 золота." },
+  { id: "web", name: "Паутина", emoji: "🕸", desc: "−1 сброс за волну, зато зачистки дают ×1.2 золота." },
+  { id: "hunger", name: "Голод", emoji: "☠", desc: "−1 бой за волну, зато предметы в лавке дешевле на 20%." },
+  { id: "time", name: "Время", emoji: "⏳", desc: "Обновление лавки дороже на 2 золота, зато +1 сброс за волну." },
+  { id: "chaos", name: "Хаос", emoji: "🎲", desc: "Каждая волна получает +1 случайную мутацию, зато зачистки дают ×1.15 золота." },
 ];
 
 // --- Стартовые архетипы (спек §7): выбор задаёт НАПРАВЛЕНИЕ, не запирает игру.
@@ -180,21 +186,21 @@ const RANK_CURSES_DATA = [
 const ARCHETYPES_DATA = [
   {
     id: "standard", name: "Стандарт", emoji: "🎯", quote: "Классические двенадцать", color: "#97a39b",
-    guaranteed: [], fill: [], perk: null, perkDesc: "Без перка — базовая колода стартовой двенадцатки",
+    guaranteed: [], fill: [], perk: null, perkDesc: "Без перка — классическая стартовая двенадцатка",
   },
   {
     id: "assault", name: "Штурм", emoji: "⚔", quote: "Ломай быстрее, чем чинят", color: "#d8b24f",
     guaranteed: ["juggernaut", "axe", "centaur"],
     fill: ["tusk", "pudge", "sven", "morphling", "pa", "bounty", "dawnbreaker", "primal", "slark", "tiny",
       "meepo", "anti_mage", "legion", "huskar", "marci", "void_spirit"],
-    perk: "gold1", perkDesc: "+1G начального золота",
+    perk: "gold1", perkDesc: "+1 золота на старте",
   },
   {
     id: "control", name: "Контроль", emoji: "❄", quote: "Мир замедляется — ты нет", color: "#5a9dd6",
     guaranteed: ["zeus", "cm", "morphling"],
     fill: ["tusk", "axe", "pudge", "sven", "centaur", "juggernaut", "pa", "dawnbreaker", "primal",
       "rubick", "oracle", "ogre_magi", "io", "muerta", "void_spirit", "kez"],
-    perk: "tp1", perkDesc: "+1 ТП-сброс в акте 1",
+    perk: "tp1", perkDesc: "+1 сброс в акте 1",
   },
   {
     id: "crit", name: "Крит", emoji: "💀", quote: "Один удар. Одна ошибка врага", color: "#e0684e",
@@ -208,6 +214,6 @@ const ARCHETYPES_DATA = [
     guaranteed: ["zeus", "cm", "primal"],
     fill: ["tusk", "axe", "pudge", "sven", "morphling", "juggernaut", "pa", "dawnbreaker",
       "rubick", "invoker", "lina", "skywrath", "oracle", "storm_spirit", "outworld", "snapfire"],
-    perk: "freeroll1", perkDesc: "Первый реролл каждой лавки бесплатен",
+    perk: "freeroll1", perkDesc: "Первое обновление каждой лавки бесплатно",
   },
 ];

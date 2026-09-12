@@ -20,19 +20,33 @@ const port = Number(process.argv[2]) || 8000;
     ".svg": "image/svg+xml",
   };
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   try {
     let path = decodeURIComponent(new URL(req.url, "http://x").pathname);
     if (path === "/") path = "/index.html";
     const file = normalize(join(root, path));
     if (!file.startsWith(root)) throw new Error("forbidden");
     const data = await readFile(file);
-    res.writeHead(200, { "Content-Type": MIME[extname(file)] || "application/octet-stream" });
+    // no-cache: dev-сервер. Без него Chromium держит протухший скрипт в кэше,
+    // и «свежая» загрузка страницы молча гоняет старый код.
+    res.writeHead(200, { "Content-Type": MIME[extname(file)] || "application/octet-stream", "Cache-Control": "no-cache" });
     res.end(data);
   } catch {
     res.writeHead(404);
     res.end("404");
   }
-}).listen(port, () => {
+});
+
+// Без обработчика занятый порт роняет процесс необработанным EADDRINUSE.
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`Порт ${port} занят — возможно, dev-сервер уже запущен. Запустите на другом: node serve.js ${port + 1}`);
+    process.exit(1);
+  }
+  throw err;
+});
+
+// Только localhost: dev-сервер не должен смотреть в LAN.
+server.listen(port, "localhost", () => {
   console.log(`dotora dev server → http://localhost:${port}`);
 });

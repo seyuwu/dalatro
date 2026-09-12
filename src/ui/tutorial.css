@@ -1,0 +1,92 @@
+/* dotora — tutorial: слой интерактивного онбординга. Живёт вне #app,
+   z-стек: под тостами (100), над модалками (50). Отдельный файл — чтобы
+   не конфликтовать с параллельными правками styles.css. // TUTORIAL */
+
+#tut-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif; }
+
+/* Затемнение реплики «вот твой враг» — сплошная штора, клик продолжает. */
+.tut-veil { position: fixed; inset: 0; animation: tutFade .25s ease-out; background: linear-gradient(160deg, #070c08e8, #0a120bee); backdrop-filter: blur(5px) saturate(.85); }
+
+/* Шторы режима проведения: 4 панели вокруг цели шага. Блокируют всё,
+   кроме цели; в шаге «враг» — одна сплошная, клик продолжает. */
+.tut-shade {
+  position: fixed; background: rgba(6, 10, 7, .78);
+  pointer-events: auto; animation: tutFade .25s ease-out;
+  transition: left .25s ease, top .25s ease, width .25s ease, height .25s ease;
+}
+.tut-shade.click { cursor: pointer; backdrop-filter: blur(5px) saturate(.85); background: linear-gradient(160deg, #070c08e8, #0a120bee); }
+.tut-shade:not(.click) { cursor: not-allowed; }
+/* Ловец кликов авто-шагов: прозрачный, на весь экран, под карточкой. */
+.tut-catch { position: fixed; inset: 0; pointer-events: auto; cursor: pointer; }
+.tut-card.shake { animation: tutShake .32s ease-in-out; }
+@keyframes tutShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 55% { transform: translateX(6px); } 80% { transform: translateX(-3px); } }
+
+/* Световое кольцо вокруг цели шага (поверх штор, клики не мешает). */
+.tut-ring {
+  position: fixed; border-radius: 14px; pointer-events: none;
+  border: 1.5px solid #a2c7a36e;
+  box-shadow: 0 0 26px #a2c7a32e inset, 0 0 18px #a2c7a326;
+  transition: left .25s ease, top .25s ease, width .25s ease, height .25s ease;
+}
+/* Пульс на карте звезды (Dawnbreaker). */
+.tut-pulse {
+  position: fixed; border-radius: 10px; pointer-events: none;
+  animation: tutPulse 1.5s ease-out infinite;
+}
+
+/* Карточка: мягкое стекло в оливковой палитре игры. Одна мысль на карточку. */
+.tut-card {
+  position: fixed; width: 300px; max-width: calc(100vw - 24px); padding: 12px 15px 11px;
+  background: linear-gradient(152deg, #25301f, #1a231b 78%);
+  border: 1px solid #5b6b52; border-radius: 13px;
+  box-shadow: 0 24px 70px #000c, 0 2px 10px #0008, inset 0 1px 0 #ffffff10;
+  color: #c9d2bd; font-size: 13.5px; line-height: 1.5;
+  pointer-events: auto; animation: tutCardPop .28s cubic-bezier(.2, .9, .3, 1.2);
+}
+.tut-card h3 { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: .4px; color: #eceada; margin: 2px 0 5px; }
+.tut-card p { margin: 0; }
+.tut-card p b { color: #e9e6d4; }
+/* Шаг «сила героя»: крупная цифра в заголовке вместо простыни текста. */
+.tut-card.num h3 { font-size: 20px; margin: 4px 0 8px; }
+.tut-card.num h3 b { font-size: 30px; line-height: 1; color: #f2efdd; }
+.tut-card .tut-attr { font-weight: 800; font-size: 14.5px; }
+.tut-card .tut-line { margin-top: 5px; }
+.tut-card .tut-line.action { margin-top: 8px; color: #869187; font-size: 12.5px; }
+.tut-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tut-kicker { font-size: 8px; font-weight: 800; letter-spacing: 1.7px; color: #8fb492; }
+.tut-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; min-height: 22px; }
+.tut-foot-right { display: flex; align-items: center; gap: 10px; }
+.tut-skip {
+  font-size: 11px; font-weight: 700; color: #b9c2ac;
+  border: 1px solid #4a5744; border-radius: 7px; padding: 4px 10px; background: #ffffff08;
+}
+.tut-skip:hover { color: #eceada; border-color: #7d8f70; background: #ffffff10; }
+.tut-later { font-size: 11px; color: #869187; border-bottom: 1px dotted #5a665a; padding: 2px 0; }
+.tut-later:hover { color: #b9c2ac; }
+.tut-caption { font-size: 10.5px; color: #75816f; font-style: italic; }
+
+/* Записка первого раза: пилюля сверху по центру, исчезает сама, клик — закрыть. */
+.tut-note {
+  position: fixed; top: 74px; left: 50%; transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 30px));
+  padding: 9px 16px; border-radius: 999px;
+  background: linear-gradient(152deg, #25301ff2, #1a231bf2);
+  border: 1px solid #5b6b52; box-shadow: 0 14px 40px #000b;
+  color: #cdd5c1; font-size: 12.5px; line-height: 1.45;
+  display: flex; align-items: center; gap: 8px; text-align: left;
+  pointer-events: auto; animation: tutNotePop .28s cubic-bezier(.2, .9, .3, 1.2);
+}
+.tut-note:hover { border-color: #7d8f70; }
+.tut-note b { color: #e9e6d4; }
+
+@keyframes tutCardPop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes tutNotePop { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes tutFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tutPulse {
+  0% { box-shadow: 0 0 0 0 #ddb17a00, 0 0 0 2px #ddb17a; }
+  60% { box-shadow: 0 0 0 9px #ddb17a00, 0 0 0 2px #ddb17a; }
+  100% { box-shadow: 0 0 0 0 #ddb17a00, 0 0 0 2px #ddb17a; }
+}
+
+.reduced-motion .tut-card, .reduced-motion .tut-veil, .reduced-motion .tut-note, .reduced-motion .tut-shade { animation: none; }
+.reduced-motion .tut-pulse { animation: none; box-shadow: 0 0 0 2px #ddb17a; }

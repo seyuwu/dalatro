@@ -29,7 +29,7 @@ const AGHANIMS_DATA = [
   // --- Tidehunter ---
   {
     id: "tidehunter_sc", heroId: "tidehunter", kind: "scepter", name: "Ravage", cost: 10, emoji: "🔮", override: true,
-    desc: "Kraken Shell заменён: полная пятёрка — способности ВСЕХ героев срабатывают дважды.",
+    desc: "Anchor Smash заменён: полная пятёрка — способности всех героев срабатывают дважды.",
     ability: {
       name: "Ravage", event: "FIGHT_SCORING",
       when: { type: "PLAYED_COUNT_IS", value: 5 },
@@ -38,7 +38,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "tidehunter_sh", heroId: "tidehunter", kind: "shard", name: "Kelp Vise", cost: 3, emoji: "🔹",
-    desc: "В отряде ровно 4 героя — Tidehunter +6 силы (компенсация сорвавшейся пятёрки).",
+    desc: "В отряде ровно 4 героя — Tidehunter +6 силы: страховка за сорвавшуюся пятёрку.",
     ability: {
       name: "Kelp Vise", event: "FIGHT_SCORING",
       when: { type: "PLAYED_COUNT_IS", value: 4 },
@@ -49,7 +49,7 @@ const AGHANIMS_DATA = [
   // --- Huskar ---
   {
     id: "huskar_sc", heroId: "huskar", kind: "scepter", name: "Burn the Racks", cost: 10, emoji: "🔮",
-    desc: "Казармы = опыт: зачистка волны, пока потеряна хоть одна казарма, даёт всем героям боя +1 опыта.",
+    desc: "Казармы = опыт: зачистка волны с потерянной казармой даёт героям боя +1 опыта.",
     ability: {
       name: "Burn the Racks", event: "FIGHT_SCORING",
       effects: [{ type: "GRANT_XP_ON_CLEAR", value: 1 }],
@@ -57,7 +57,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "huskar_sh", heroId: "huskar", kind: "shard", name: "Inner Fire", cost: 3, emoji: "🔹",
-    desc: "Башня ниже 50% HP — Huskar +5 силы.",
+    desc: "Башня ниже половины HP — Huskar +5 силы.",
     ability: {
       name: "Inner Fire", event: "FIGHT_SCORING",
       when: { type: "TOWER_HP_BELOW", pct: 50 },
@@ -68,7 +68,7 @@ const AGHANIMS_DATA = [
   // --- Ursa ---
   {
     id: "ursa_sc", heroId: "ursa", kind: "scepter", name: "Overpower", cost: 10, emoji: "🔮", override: true,
-    desc: "Enrage срабатывает и в соло-бое (ровно один герой): ×1.8.",
+    desc: "Fury Swipes заменён: Ursa свирепствует ×1.8, будучи сильнейшим в отряде или в одиночном рейде.",
     ability: {
       name: "Enrage", event: "FIGHT_SCORING",
       when: { any: [{ type: "IS_HIGHEST_RANK" }, { type: "PLAYED_COUNT_IS", value: 1 }] },
@@ -77,7 +77,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "ursa_sh", heroId: "ursa", kind: "shard", name: "Earthshock", cost: 3, emoji: "🔹",
-    desc: "Если Enrage не сработал — Ursa +6 силы (утешительный удар).",
+    desc: "Свирепость мимо (Ursa не сильнейший и не соло) — Ursa +6 силы (утешительный удар).",
     ability: {
       name: "Earthshock", event: "FIGHT_SCORING",
       when: { all: [{ not: { type: "IS_HIGHEST_RANK" } }, { not: { type: "PLAYED_COUNT_IS", value: 1 } }] },
@@ -88,7 +88,7 @@ const AGHANIMS_DATA = [
   // --- Phantom Lancer ---
   {
     id: "phantom_lancer_sc", heroId: "phantom_lancer", kind: "scepter", name: "Doppelganger", cost: 10, emoji: "🔮", override: true,
-    desc: "Precision Aura заменён: +1 к множителю за каждого Ловкого в отряде; полностью Ловкий отряд даёт ещё +1.",
+    desc: "Spirit Lance заменён: +1 к множителю за каждого Ловкого в отряде; полностью Ловкий отряд даёт ещё +1.",
     abilities: [
       { name: "Doppelganger", event: "FIGHT_SCORING",
         effects: [{ type: "ADD_MULT_PER_ATTRIBUTE", attr: "agi", value: 1 }] },
@@ -99,7 +99,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "phantom_lancer_sh", heroId: "phantom_lancer", kind: "shard", name: "Phantom Rush", cost: 3, emoji: "🔹",
-    desc: "Иллюзия из Manta Style считается Ловкой (кормит аги-флеш и условия).",
+    desc: "Иллюзия из Manta Style считается Ловкой — участвует во флеше и в условиях способностей.",
     ability: {
       name: "Phantom Rush", event: "PRE_DETECT",
       effects: [{ type: "ILLUSION_ATTR", attr: "agi" }],
@@ -109,7 +109,7 @@ const AGHANIMS_DATA = [
   // --- Tiny ---
   {
     id: "tiny_sc", heroId: "tiny", kind: "scepter", name: "Avalanche", cost: 10, emoji: "🔮",
-    desc: "Tiny растёт: каждый ТП-сброс волны даёт +1 к рангу навсегда (кап +3). Ранг влияет на комбо.",
+    desc: "Tiny растёт: каждый сброс волны даёт ему +1 к силе — навсегда (максимум +3).",
     ability: {
       name: "Avalanche", event: "FIGHT_SCORING",
       effects: [{ type: "GAIN_RANK_PER_USED_DISCARD", value: 1, cap: 3 }],
@@ -117,7 +117,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "tiny_sh", heroId: "tiny", kind: "shard", name: "Toss", cost: 3, emoji: "🔹",
-    desc: "Tiny подбрасывает слабейшего: +50% его силы к удару.",
+    desc: "Tiny подбрасывает слабейшего героя: +50% его силы к удару.",
     ability: {
       name: "Toss", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_WEAKEST", pct: 50 }],
@@ -129,7 +129,7 @@ const AGHANIMS_DATA = [
   // --- Sven (str 8) ---
   {
     id: "sven_sc", heroId: "sven", kind: "scepter", name: "Warcry", cost: 10, emoji: "🔮",
-    desc: "Чистая рука: за бой не потрачено ни одного ТП-сброса — Sven +8 силы (God's Strength работает как обычно).",
+    desc: "Чистая рука: за бой не потрачено ни одного сброса — Sven +8 силы (God's Strength работает как обычно).",
     ability: {
       name: "Warcry", event: "FIGHT_SCORING",
       when: { type: "DISCARDS_UNUSED" },
@@ -180,7 +180,7 @@ const AGHANIMS_DATA = [
   // --- Primal Beast (uni 11) ---
   {
     id: "primal_sc", heroId: "primal", kind: "scepter", name: "Uproot", cost: 10, emoji: "🔮", override: true,
-    desc: "Pulverize ослаблен к позиции: центр из трёх средних слотов и 4+ героя — ×2.",
+    desc: "Pulverize привязан к позиции: в одном из трёх средних слотов при 4+ героях — ×2.",
     ability: {
       name: "Pulverize", event: "FIGHT_SCORING",
       when: { all: [{ any: [{ type: "SLOT_IS", value: 1 }, { type: "SLOT_IS", value: 2 }, { type: "SLOT_IS", value: 3 }] }, { type: "PLAYED_COUNT_ABOVE", value: 3 }] },
@@ -189,7 +189,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "primal_sh", heroId: "primal", kind: "shard", name: "Onslaught", cost: 3, emoji: "🔹",
-    desc: "Бой без ТП-сбросов — Primal Beast +5 силы.",
+    desc: "Бой без сбросов — Primal Beast +5 силы.",
     ability: {
       name: "Onslaught", event: "FIGHT_SCORING",
       when: { type: "DISCARDS_UNUSED" },
@@ -200,7 +200,7 @@ const AGHANIMS_DATA = [
   // --- Undying (str 2) ---
   {
     id: "undying_sc", heroId: "undying", kind: "scepter", name: "Soul Rip", cost: 10, emoji: "🔮",
-    desc: "Сброс волны кормит немедленно: каждый ТП-сброс — заряд Undying (+3 силы, тратится целиком в следующем бою).",
+    desc: "Каждый сброс волны даёт Undying заряд. В бою заряды тратятся: +3 силы за каждый.",
     abilities: [
       { name: "Soul Rip", event: "ON_ANY_DISCARD", effects: [{ type: "ADD_CHARGE", value: 1 }] },
       { name: "Soul Rip", event: "FIGHT_SCORING", effects: [{ type: "SPEND_CHARGES_POWER", value: 3 }] },
@@ -208,7 +208,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "undying_sh", heroId: "undying", kind: "shard", name: "Tombstone", cost: 3, emoji: "🔹",
-    desc: "Использованные в бою ТП-сбросы дают Undying ещё +2 силы каждый.",
+    desc: "Использованные в бою сбросы дают Undying ещё +2 силы каждый.",
     ability: {
       name: "Tombstone", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_USED_DISCARD", value: 2 }],
@@ -218,7 +218,7 @@ const AGHANIMS_DATA = [
   // --- Meepo (agi 2) ---
   {
     id: "meepo_sc", heroId: "meepo", kind: "scepter", name: "Divided We Stand", cost: 10, emoji: "🔮", override: true,
-    desc: "Poof заменён: +6 силы за КАЖДОГО Ловкого в отряде (включая себя).",
+    desc: "Poof заменён: +6 силы за каждого Ловкого в отряде, включая себя.",
     ability: {
       name: "Poof", event: "ON_PLAY",
       effects: [{ type: "ADD_POWER_PER_ATTRIBUTE", attr: "agi", value: 6 }],
@@ -236,7 +236,7 @@ const AGHANIMS_DATA = [
   // --- Bounty Hunter (agi 3) ---
   {
     id: "bounty_sc", heroId: "bounty", kind: "scepter", name: "Jinada", cost: 10, emoji: "🔮",
-    desc: "Точный ласт-хит возвращает 1 ТП-сброс на следующую волну (экономика в темпо).",
+    desc: "Точный ласт-хит вернёт 1 сброс на следующую волну.",
     ability: {
       name: "Jinada", event: "FIGHT_SCORING",
       effects: [{ type: "REFUND_DISCARD", value: 1 }],
@@ -263,7 +263,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "faceless_sh", heroId: "faceless", kind: "shard", name: "Time Dilation", cost: 3, emoji: "🔹",
-    desc: "После проваленной волны Void даёт +1 к множителю даже не на боссе.",
+    desc: "После проваленной волны Void даёт +1 к множителю — и на обычных башнях тоже.",
     ability: {
       name: "Time Dilation", event: "FIGHT_SCORING",
       when: { type: "AFTER_FAILURE" },
@@ -274,7 +274,7 @@ const AGHANIMS_DATA = [
   // --- Terrorblade (agi 11) ---
   {
     id: "terrorblade_sc", heroId: "terrorblade", kind: "scepter", name: "Reflection", cost: 10, emoji: "🔮",
-    desc: "В детекции Terrorblade считается рангом правого соседа (сила остаётся своей) — пары из «непарных» рук.",
+    desc: "Для комбо Terrorblade считается с силой правого соседа (своя сила не меняется) — собирает пары из «непарных» рук.",
     ability: { name: "Reflection", event: "PRE_DETECT", effects: [{ type: "MIRROR_RANK" }] },
   },
   {
@@ -298,7 +298,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "oracle_sh", heroId: "oracle", kind: "shard", name: "Fate Seal", cost: 3, emoji: "🔹",
-    desc: "У Oracle есть тёзка по рангу — Oracle и каждый тёзка получают +4 силы.",
+    desc: "В отряде есть герой той же силы, что Oracle, — Oracle и каждый тёзка получают +4 силы.",
     ability: {
       name: "Fate Seal", event: "FIGHT_SCORING",
       when: { type: "SAME_RANK_GROUP", size: 2 },
@@ -309,7 +309,7 @@ const AGHANIMS_DATA = [
   // --- Skywrath Mage (int 4) ---
   {
     id: "skywrath_sc", heroId: "skywrath", kind: "scepter", name: "Ancient Seal", cost: 10, emoji: "🔮",
-    desc: "Дуо-градиент: при ровно двух героях ×1.4 (соло ×2 остаётся).",
+    desc: "При ровно двух героях в отряде: ×1.4 (в соло ×2 остаётся).",
     ability: {
       name: "Ancient Seal", event: "FIGHT_SCORING",
       when: { type: "PLAYED_COUNT_IS", value: 2 },
@@ -329,7 +329,7 @@ const AGHANIMS_DATA = [
   // --- Lina (int 6) ---
   {
     id: "lina_sc", heroId: "lina", kind: "scepter", name: "Fiery Soul", cost: 10, emoji: "🔮",
-    desc: "Каждый использованный в бою ТП-сброс даёт Lina +5 силы.",
+    desc: "Каждый использованный в бою сброс даёт Lina +5 силы.",
     ability: {
       name: "Fiery Soul", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_USED_DISCARD", value: 5 }],
@@ -348,7 +348,7 @@ const AGHANIMS_DATA = [
   // --- Storm Spirit (int 9) ---
   {
     id: "storm_spirit_sc", heroId: "storm_spirit", kind: "scepter", name: "Overload", cost: 10, emoji: "🔮",
-    desc: "Ball Lightning срабатывает на любом слоте, где Storm не стоял в прошлом бою: +9 силы за ротацию.",
+    desc: "Electric Swing срабатывает на любом слоте, где Storm не стоял в прошлом бою: +9 силы за ротацию.",
     ability: {
       name: "Overload", event: "ON_PLAY",
       when: { type: "SLOT_CHANGED" },
@@ -368,7 +368,7 @@ const AGHANIMS_DATA = [
   // --- Outworld Destroyer (int 10) ---
   {
     id: "outworld_sc", heroId: "outworld", kind: "scepter", name: "Sanity Overload", cost: 10, emoji: "🔮",
-    desc: "Каждый атрибут СВЕРХ третьего в отряде: ещё +6 силы и +0.5 к множителю (базовые +12 остаются).",
+    desc: "Каждый атрибут сверх третьего в отряде: ещё +6 силы и +0.5 к множителю (Astral Imprisonment работает как обычно).",
     ability: {
       name: "Sanity Overload", event: "FIGHT_SCORING",
       when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
@@ -377,14 +377,14 @@ const AGHANIMS_DATA = [
   },
   {
     id: "outworld_sh", heroId: "outworld", kind: "shard", name: "Essence Flux", cost: 3, emoji: "🔹",
-    desc: "Универсалы считаются за атрибут для Sanity's Eclipse (2 реальных + UNI = 3).",
+    desc: "Универсалы идут в зачёт атрибутов для Sanity Overload: 2 атрибута + Универсал = 3.",
     preFlag: { uniDistinct: true },
   },
 
   // --- Ancient Apparition (int 11) ---
   {
     id: "aa_sc", heroId: "ancient_apparition", kind: "scepter", name: "Shatter", cost: 10, emoji: "🔮",
-    desc: "Зачистка волны с AA в отряде: следующая башня акта начинается с −10% HP (копится до −30%).",
+    desc: "Зачистка волны с AA в отряде: следующая башня акта начинается с −10% HP — копится до −30%.",
     ability: {
       name: "Shatter", event: "FIGHT_SCORING",
       effects: [{ type: "SET_NEXT_WAVE_PCT", value: 10 }],
@@ -392,7 +392,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "aa_sh", heroId: "ancient_apparition", kind: "shard", name: "Chilling Touch", cost: 3, emoji: "🔹",
-    desc: "Башня выше 80% HP — AA +6 силы (первый удар).",
+    desc: "Башня выше 80% HP — AA +6 силы.",
     ability: {
       name: "Chilling Touch", event: "FIGHT_SCORING",
       when: { type: "TOWER_HP_ABOVE", pct: 80 },
@@ -403,7 +403,7 @@ const AGHANIMS_DATA = [
   // --- Enigma (int 12) ---
   {
     id: "enigma_sc", heroId: "enigma", kind: "scepter", name: "Demonic Conversion", cost: 10, emoji: "🔮", override: true,
-    desc: "Eidolon: иллюзия Энигмы копирует его ранг ПОЛНОСТЬЮ для комбо (сила остаётся 50%).",
+    desc: "Eidolon: для комбо иллюзия Энигмы считается с его полной силой — бьёт по-прежнему половиной.",
     ability: {
       name: "Eidolon", event: "PRE_DETECT",
       effects: [{ type: "CREATE_ILLUSION", powerRatio: 0.5, fullRank: true }],
@@ -418,7 +418,7 @@ const AGHANIMS_DATA = [
   // --- Io (uni 2) ---
   {
     id: "io_sc", heroId: "io", kind: "scepter", name: "Relocate", cost: 10, emoji: "🔮",
-    desc: "Tether привязывается локально: +6 силы за каждого Сильного соседа ПО СЛОТУ.",
+    desc: "Tether Pull привязывается к соседям: +6 силы за каждого Сильного соседа по слоту.",
     ability: {
       name: "Relocate", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_NEIGHBOR_ATTR", attr: "str", value: 6, includeSelf: false }],
@@ -456,7 +456,7 @@ const AGHANIMS_DATA = [
   // --- Marci (uni 4) ---
   {
     id: "marci_sc", heroId: "marci", kind: "scepter", name: "Rebound", cost: 10, emoji: "🔮",
-    desc: "Оба соседа другого атрибута: Marci +12 силы и +1 к множителю (базовые +8 остаются).",
+    desc: "Оба соседа другого атрибута: Marci +12 силы и +1 к множителю (обычные +8 остаются).",
     ability: {
       name: "Rebound", event: "FIGHT_SCORING",
       when: { type: "BOTH_NEIGHBORS_DIFFER" },
@@ -465,7 +465,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "marci_sh", heroId: "marci", kind: "shard", name: "Companion Run", cost: 3, emoji: "🔹",
-    desc: "Оба соседа одного (моего) атрибута — Marci +6 силы.",
+    desc: "Оба соседа — того же атрибута, что Marci: +6 силы.",
     ability: {
       name: "Companion Run", event: "FIGHT_SCORING",
       when: { type: "BOTH_NEIGHBORS_SAME" },
@@ -476,7 +476,7 @@ const AGHANIMS_DATA = [
   // --- Snapfire (uni 5) ---
   {
     id: "snapfire_sc", heroId: "snapfire", kind: "scepter", name: "Lil' Shredder", cost: 10, emoji: "🔮",
-    desc: "Каждый использованный в бою ТП-сброс: Snapfire +0.5 к множителю.",
+    desc: "Каждый использованный в бою сброс: Snapfire +0.5 к множителю.",
     ability: {
       name: "Lil' Shredder", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_MULT_PER_USED_DISCARD", value: 0.5 }],
@@ -495,7 +495,7 @@ const AGHANIMS_DATA = [
   // --- Void Spirit (uni 6) ---
   {
     id: "void_spirit_sc", heroId: "void_spirit", kind: "scepter", name: "Ascended Charge", cost: 10, emoji: "🔮", override: true,
-    desc: "Опыт освобождает: при уровне Void Spirit 1+ Dissimilate срабатывает без условия «высший ранг»: +8 силы.",
+    desc: "Prism Line заменён: Void Spirit +8 силы, когда он сильнейший в отряде, а с уровнем — всегда.",
     ability: {
       name: "Dissimilate", event: "FIGHT_SCORING",
       when: { any: [{ type: "IS_HIGHEST_RANK" }, { type: "HERO_LEVEL_ABOVE", value: 0 }] },
@@ -514,7 +514,7 @@ const AGHANIMS_DATA = [
   // --- Kez (uni 7) ---
   {
     id: "kez_sc", heroId: "kez", kind: "scepter", name: "Raptor Dance", cost: 10, emoji: "🔮",
-    desc: "Kez ровно в середине отряда: +1 к множителю (Echo Slash по-прежнему бьёт по средним рангам).",
+    desc: "Kez в середине отряда: +1 к множителю. Echo Slash работает как раньше.",
     ability: {
       name: "Raptor Dance", event: "FIGHT_SCORING",
       when: { type: "IS_MIDDLE_SLOT" },
@@ -534,7 +534,7 @@ const AGHANIMS_DATA = [
   // --- Beastmaster (uni 8) ---
   {
     id: "beastmaster_sc", heroId: "beastmaster", kind: "scepter", name: "Call of the Wild", cost: 10, emoji: "🔮",
-    desc: "Близкие ранги считаются: +2 силы за каждого героя ранга ±1 к рангу Beastmaster.",
+    desc: "+2 силы за каждого героя с силой ±1 от силы Beastmaster.",
     ability: {
       name: "Call of the Wild", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_SAME_RANK", value: 2, tolerance: 1 }],
@@ -542,7 +542,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "beastmaster_sh", heroId: "beastmaster", kind: "shard", name: "Wild Axes", cost: 3, emoji: "🔹",
-    desc: "В отряде есть пара одинаковых рангов — Beastmaster +4 силы.",
+    desc: "В отряде есть пара героев одной силы — Beastmaster +4 силы.",
     ability: {
       name: "Wild Axes", event: "FIGHT_SCORING",
       when: { type: "SAME_RANK_GROUP", size: 2 },
@@ -563,7 +563,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "pa_sh", heroId: "pa", kind: "shard", name: "Blur", cost: 3, emoji: "🔹",
-    desc: "За волну была хоть одна перестановка формации — PA +4 силы.",
+    desc: "За волну была хоть одна перестановка — PA +4 силы.",
     ability: {
       name: "Blur", event: "FIGHT_SCORING",
       when: { type: "MOVES_ABOVE", value: 0 },
@@ -574,7 +574,7 @@ const AGHANIMS_DATA = [
   // --- Zeus (int 5) ---
   {
     id: "zeus_sc", heroId: "zeus", kind: "scepter", name: "Thundergod's Circuit", cost: 10, emoji: "🔮",
-    desc: "Цепь грома: +1 к множителю за каждый ТИП комбо, использованный за забег (кап +3).",
+    desc: "Цепь грома: +1 к множителю за каждый тип комбо за забег (максимум +3).",
     ability: {
       name: "Thundergod's Circuit", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_MULT_PER_DISTINCT_COMBO", value: 1, cap: 3 }],
@@ -593,7 +593,7 @@ const AGHANIMS_DATA = [
   // --- Crystal Maiden (int 2) ---
   {
     id: "cm_sc", heroId: "cm", kind: "scepter", name: "Arcane Reserve", cost: 10, emoji: "🔮",
-    desc: "Неиспользованные ТП-сбросы волны копятся в Mana Reserve (до 3): в первом бою волны CM +3 силы за запас.",
+    desc: "Неиспользованные сбросы волны копятся в Mana Reserve (до 3). В первом бою волны CM получает +3 силы за каждый накопленный сброс.",
     ability: {
       name: "Arcane Reserve", event: "FIGHT_SCORING",
       when: { type: "FIGHT_FIRST" },
@@ -602,7 +602,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "cm_sh", heroId: "cm", kind: "shard", name: "Frostbite Memory", cost: 3, emoji: "🔹",
-    desc: "Каждый использованный в бою ТП-сброс приносит +1 золота.",
+    desc: "Каждый использованный в бою сброс приносит +1 золота.",
     ability: {
       name: "Frostbite Memory", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_GOLD_PER_USED_DISCARD", value: 1 }],
@@ -612,7 +612,7 @@ const AGHANIMS_DATA = [
   // --- Tinker (uni 12) ---
   {
     id: "tinker_sc", heroId: "tinker", kind: "scepter", name: "Rearm Protocol", cost: 10, emoji: "🔮", override: true,
-    desc: "Rearm заменён: способности срабатывают дважды, только пока в ядре 2+ реролла лавки (тратит 2).",
+    desc: "Rearm заменён: способности срабатывают дважды, пока накоплено 2 обновления лавки (тратит их).",
     ability: {
       name: "Rearm Protocol", event: "FIGHT_SCORING",
       when: { type: "REROLL_CHARGES_ABOVE", value: 1 },
@@ -621,7 +621,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "tinker_sh", heroId: "tinker", kind: "shard", name: "Heat Sink", cost: 3, emoji: "🔹",
-    desc: "Каждый накопленный реролл лавки даёт Tinker +2 силы (ядро не тратится).",
+    desc: "Каждое накопленное обновление лавки даёт Tinker +2 силы (ядро не тратится).",
     ability: {
       name: "Heat Sink", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_REROLL_CHARGE", value: 2 }],
@@ -654,7 +654,7 @@ const AGHANIMS_DATA = [
   // --- Pudge (str 7) ---
   {
     id: "pudge_sc", heroId: "pudge", kind: "scepter", name: "Flesh Heap", cost: 10, emoji: "🔮",
-    desc: "Каждая перестановка формации за волну — Heap: +2 силы за смену (кап +8), тратится в бою.",
+    desc: "Каждая перестановка строя добавляет Pudge +2 силы (максимум +8).",
     ability: {
       name: "Flesh Heap", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_FORMATION_MOVE", value: 2, cap: 8, consume: true }],
@@ -672,7 +672,7 @@ const AGHANIMS_DATA = [
   // --- Axe (str 5) ---
   {
     id: "axe_sc", heroId: "axe", kind: "scepter", name: "Counter Helix+", cost: 10, emoji: "🔮",
-    desc: "Действия заряжают Helix: 2+ (перестановки + ТП-сбросы за волну) — Axe +8 силы.",
+    desc: "Перестановки и сбросы за волну заряжают Helix: 2+ действий — Axe +8 силы.",
     ability: {
       name: "Counter Helix+", event: "FIGHT_SCORING",
       when: { type: "FORMATION_ACTIONS_ABOVE", value: 2 },
@@ -692,7 +692,7 @@ const AGHANIMS_DATA = [
   // --- Juggernaut (agi 7) ---
   {
     id: "jugg_sc", heroId: "juggernaut", kind: "scepter", name: "Blade Dance", cost: 10, emoji: "🔮",
-    desc: "Серия одинаковых комбо подряд: +1 к множителю за каждый повтор (кап +3).",
+    desc: "Серия одинаковых комбо подряд: +1 к множителю за каждый повтор (максимум +3).",
     ability: {
       name: "Blade Dance", event: "FIGHT_SCORING",
       when: { type: "COMBO_SAME_AS_LAST" },
@@ -700,10 +700,10 @@ const AGHANIMS_DATA = [
     },
   },
   {
-    id: "jugg_sh", heroId: "juggernaut", kind: "shard", name: "Blade Fury+", cost: 3, emoji: "🔹",
+    id: "jugg_sh", heroId: "juggernaut", kind: "shard", name: "Blade Step", cost: 3, emoji: "🔹",
     desc: "За волну была перестановка — Juggernaut +4 силы.",
     ability: {
-      name: "Blade Fury+", event: "FIGHT_SCORING",
+      name: "Blade Step", event: "FIGHT_SCORING",
       when: { type: "MOVES_ABOVE", value: 0 },
       effects: [{ type: "ADD_POWER", value: 4 }],
     },
@@ -717,7 +717,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "slark_sh", heroId: "slark", kind: "shard", name: "Pounce", cost: 3, emoji: "🔹",
-    desc: "Slark на новом слоте (не как в прошлом бою) — +5 силы.",
+    desc: "Slark встал не на тот слот, что в прошлом бою: +5 силы.",
     ability: {
       name: "Pounce", event: "FIGHT_SCORING",
       when: { type: "SLOT_CHANGED" },
@@ -728,7 +728,7 @@ const AGHANIMS_DATA = [
   // --- Anti-Mage (agi 8) ---
   {
     id: "anti_mage_sc", heroId: "anti_mage", kind: "scepter", name: "Mana Break+", cost: 10, emoji: "🔮", override: true,
-    desc: "Mana Break заменён: новое комбо — пустые слоты дают +8 силы каждый, повтор прошлого — только +3.",
+    desc: "Mana Break заменён: новое комбо — пустые слоты дают по +8 силы, повтор прошлого — по +3.",
     abilities: [
       { name: "Mana Break", event: "FIGHT_SCORING",
         when: { type: "COMBO_DIFFERENT_FROM_LAST" },
@@ -751,7 +751,7 @@ const AGHANIMS_DATA = [
   // --- Legion Commander (str 6) ---
   {
     id: "legion_sc", heroId: "legion", kind: "scepter", name: "Duel+", cost: 10, emoji: "🔮",
-    desc: "Точный ласт-хит — Duel stack (до 6): +2 силы за каждый стек.",
+    desc: "Точный ласт-хит даёт стек (до 6). Каждый стек — +2 силы.",
     abilities: [
       { name: "Duel+", event: "FIGHT_SCORING", effects: [{ type: "GAIN_CHARGE_ON_LAST_HIT", cap: 6 }] },
       { name: "Duel+", event: "FIGHT_SCORING", effects: [{ type: "ADD_POWER_PER_CHARGE", value: 2 }] },
@@ -759,7 +759,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "legion_sh", heroId: "legion", kind: "shard", name: "Press the Attack", cost: 3, emoji: "🔹",
-    desc: "Каждый прокачанный герой (уровень 1+) в отряде даёт +2 силы.",
+    desc: "Каждый герой с уровнем в отряде — Legion +2 силы.",
     ability: {
       name: "Press the Attack", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_LEVELED_HERO", value: 2 }],
@@ -769,7 +769,7 @@ const AGHANIMS_DATA = [
   // --- Rubick (int 7) ---
   {
     id: "rubick_sc", heroId: "rubick", kind: "scepter", name: "Grand Magus", cost: 10, emoji: "🔮",
-    desc: "Rubick ворует магию: +3 силы за каждую ЧУЖУЮ способность, сработавшую в этом бою (кап +12).",
+    desc: "Rubick ворует магию: +3 силы за каждую чужую способность, сработавшую в этом бою (максимум +12).",
     ability: {
       name: "Grand Magus", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_TRIGGERED_HEROES", value: 3, cap: 12 }],
@@ -788,7 +788,7 @@ const AGHANIMS_DATA = [
   // --- Ogre Magi (str 4) ---
   {
     id: "ogre_sc", heroId: "ogre_magi", kind: "scepter", name: "Multicast+", cost: 10, emoji: "🔮",
-    desc: "35% шанс: удар повторяется мелкой копией — +20% урона сверх.",
+    desc: "35% шанс: удар повторится и добавит +20% урона.",
     ability: {
       name: "Multicast+", event: "FIGHT_SCORING",
       effects: [{ type: "SET_ECHO_POWER", pct: 20, chance: 35 }],
@@ -807,7 +807,7 @@ const AGHANIMS_DATA = [
   // --- Kunkka (str 12) ---
   {
     id: "kunkka_sc", heroId: "kunkka", kind: "scepter", name: "Torrent Combo", cost: 10, emoji: "🔮",
-    desc: "Цепь прилива: +5 силы за каждый ТИП комбо за забег (кап +15).",
+    desc: "Цепь прилива: +5 силы за каждый тип комбо за забег (максимум +15).",
     ability: {
       name: "Torrent Combo", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_PER_DISTINCT_COMBO", value: 5, cap: 15 }],
@@ -815,7 +815,7 @@ const AGHANIMS_DATA = [
   },
   {
     id: "kunkka_sh", heroId: "kunkka", kind: "shard", name: "Tidebringer", cost: 3, emoji: "🔹",
-    desc: "Kunkka — сильнейшая карта отряда: +6 силы.",
+    desc: "Kunkka сильнейший в отряде: +6 силы.",
     ability: {
       name: "Tidebringer", event: "FIGHT_SCORING",
       when: { type: "IS_HIGHEST_RANK" },
@@ -826,7 +826,7 @@ const AGHANIMS_DATA = [
   // --- Tusk (str 3) ---
   {
     id: "tusk_sc", heroId: "tusk", kind: "scepter", name: "Walrus Chain", cost: 10, emoji: "🔮",
-    desc: "Крит в бою — цепь передаётся: Tusk +6 силы (снежный ком от любых критов).",
+    desc: "В бою сработал крит — цепь передаётся: Tusk +6 силы. Любой крит зажигает цепь.",
     ability: {
       name: "Walrus Chain", event: "FIGHT_SCORING",
       effects: [{ type: "ADD_POWER_IF_CRIT", value: 6 }],

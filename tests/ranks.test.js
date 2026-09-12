@@ -38,7 +38,7 @@ test("ранг 1 = базовая игра: рука 7, 4 тимфайта, 3 с
   assertEq(s.run.rank, 1, "ранг");
   assertEq(s.player.handUids.length, 7, "рука");
   assertEq(s.player.fightsLeft, 4, "тимфайты");
-  assertEq(s.player.discardsLeft, 3, "ТП-сбросы");
+  assertEq(s.player.discardsLeft, 3, "сбросы");
   assertEq(s.combat.wave.maxHp, Content.waves.byId.t1.hp, "HP без множителя");
   assertEq(s.combat.forbiddenSlot, null, "без запретного слота");
   assertEq(Ranks.hpMult(s), 1, "hpMult");

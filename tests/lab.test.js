@@ -256,7 +256,7 @@ test("Huskar: +3 силы за разрушенную казарму", () => {
   assertEq(res.power, 17, "5 базы + 9 хускар + 3 за казарму");
 });
 
-test("Skywrath: ×2 в одиночке; Tidehunter: 5 героев +2 множителя", () => {
+test("Skywrath: ×2 в одиночке; Tidehunter: +2 множителя из слота 4", () => {
   const s = newRun("NH3");
   const sky = recruitInto(s, "skywrath");
   forceHand(s, ["cm"]);
@@ -266,9 +266,10 @@ test("Skywrath: ×2 в одиночке; Tidehunter: 5 героев +2 множ�
   assertEq(s.combat.lastResolution.mult, 2, "харас ×2");
   const s2 = newRun("NH4");
   recruitInto(s2, "tidehunter");
-  const res = play(s2, ["tidehunter", "axe", "morphling", "zeus", "pudge"]);
-  // сет 5-5-5 (морф копирует STR): база 3 + tidehunter 2 = 5
-  assertEq(res.mult, 5);
+  const res = play(s2, ["axe", "morphling", "zeus", "tidehunter", "pudge"]);
+  // сет 5-5-5 (морф копирует STR): множитель базы 3; Anchor Smash из слота 4: +10 силы
+  assertEq(res.mult, 3);
+  assert(res.steps.some((st) => st.label.includes("Tidehunter: +10")), "Anchor Smash из слота 4");
 });
 
 test("Bounty: точный ласт-хит приносит +8 золота", () => {

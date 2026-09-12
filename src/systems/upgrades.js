@@ -53,11 +53,14 @@ const Upgrades = (function () {
 
   function luck(state) {
     let l = sum(state, "luck");
-    // Осколок «Shuriken Toss» (Bounty): удача копится ласт-хитами в heroCharges.
+    // Осколок «Shuriken Toss» (Bounty) и предмет «Заячья лапка»: удача копится
+    // ласт-хитами в heroCharges.
     const charges = state.run && state.run.heroCharges;
     if (charges) for (const h of Object.values(charges)) l += h.luck || 0;
     // Пакт с Фортуны: провалы копят удачу (см. react FORTUNE в движке).
     l += (state.run && state.run.fortune) || 0;
+    // Маршруты удачи («Талисман странника», «Счастливый жетон»).
+    l += (state.run && state.run.luckFlat) || 0;
     return l;
   }
 
@@ -159,7 +162,11 @@ const Upgrades = (function () {
       return nextTier(u) != null; // купленное — только следующей ступенью
     };
     const offerDef = (u) => {
-      const tier = nextTier(u);
+      // Ступень — только к КУПЛЕННОМУ дефу: nextTier() через instanceOf лениво
+      // создаёт инстанс (level 1), и для некупленного возвращал «II». Лавка
+      // продавала усиление без базы, а такая покупка шла мимо run.upgrades —
+      // эффекты (ownedDefs → sum, хуки) её не видели вовсе.
+      const tier = owned.has(u.id) ? nextTier(u) : null;
       offers.push(tier ? { id: u.id, tier } : { id: u.id });
     };
     const virtualForRarity = (rarity) => {

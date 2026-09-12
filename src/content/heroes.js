@@ -1,11 +1,11 @@
 // dotora content — heroes.
 // Card = hero + a mechanical rule (trigger), never just a skin.
-// The full 40-slot grid (10 ranks × 4 attributes) exists here: heroes with
+// The full 44-card grid (11 ranks 2–12 × 4 attributes) exists here: heroes with
 // inDeck:true form the starting 12; the rest are recruited in the shop.
 // Every hero has an ability; new rules lean on rank/attr/slot/count conditions
 // so they read the same in both scoring modes (classic и formation).
 //
-// Power 2..11 (11 = Aegis-tier). attr: str | agi | int | uni.
+// Power 2..12 (12 = Aegis-tier). attr: str | agi | int | uni.
 const HEROES_DATA = [
   // --- Starting deck (12) ---
   {
@@ -57,9 +57,9 @@ const HEROES_DATA = [
   {
     id: "juggernaut", name: "Juggernaut", attr: "agi", power: 7, inDeck: true,
     ability: {
-      name: "Blade Fury", event: "ON_PLAY",
-      when: { type: "SLOT_IS", value: 0 },
-      effects: [{ type: "ADD_POWER", value: 8 }],
+      name: "Escort", event: "FIGHT_SCORING",
+      when: { type: "STRONGEST_IS_AHEAD" },
+      effects: [{ type: "ADD_MULT", value: 1 }],
     },
   },
   {
@@ -92,7 +92,8 @@ const HEROES_DATA = [
   {
     id: "dawnbreaker", name: "Dawnbreaker", attr: "uni", power: 9, inDeck: true,
     ability: {
-      name: "Solar Guardian", event: "FIGHT_SCORING",
+      name: "Fire Ring", event: "FIGHT_SCORING",
+      when: { type: "SLOT_IS", value: 3 },
       effects: [{ type: "ADD_MULT_PER_ATTRIBUTE", attr: "uni", value: 1 }],
     },
   },
@@ -105,11 +106,11 @@ const HEROES_DATA = [
     },
   },
 
-  // --- Ростер таверны (28): рекрутируются в лавке, способности v0.4 ---
+  // --- Ростер таверны (32): рекрутируются в лавке, способности v0.4 ---
   { id: "undying", name: "Undying", attr: "str", power: 2, inDeck: false,
     ability: {
-      name: "Decay", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_PER_DISCARD", value: 2, cap: 12 }],
+      name: "Risen Legion", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_PER_NEIGHBOR_ATTR", attr: "str", value: 4 }],
     } },
   { id: "ogre_magi", name: "Ogre Magi", attr: "str", power: 4, inDeck: false,
     ability: {
@@ -118,9 +119,9 @@ const HEROES_DATA = [
     } },
   { id: "legion", name: "Legion Commander", attr: "str", power: 6, inDeck: false,
     ability: {
-      name: "Duel", event: "FIGHT_SCORING",
-      when: { type: "COMBO_MIN", value: "pair" },
-      effects: [{ type: "ADD_POWER", value: 12 }],
+      name: "Moment of Courage", event: "ON_PLAY",
+      when: { type: "SLOT_IS", value: 1 },
+      effects: [{ type: "ADD_POWER", value: 10 }],
     } },
   { id: "huskar", name: "Huskar", attr: "str", power: 9, inDeck: false,
     ability: {
@@ -129,9 +130,9 @@ const HEROES_DATA = [
     } },
   { id: "tidehunter", name: "Tidehunter", attr: "str", power: 11, inDeck: false,
     ability: {
-      name: "Kraken Shell", event: "FIGHT_SCORING",
-      when: { type: "PLAYED_COUNT_ABOVE", value: 4 },
-      effects: [{ type: "ADD_MULT", value: 2 }],
+      name: "Anchor Smash", event: "FIGHT_SCORING",
+      when: { type: "SLOT_IS", value: 3 },
+      effects: [{ type: "ADD_POWER", value: 10 }],
     } },
   {
     id: "kunkka", name: "Kunkka", attr: "str", power: 12, inDeck: false,
@@ -144,7 +145,7 @@ const HEROES_DATA = [
   { id: "meepo", name: "Meepo", attr: "agi", power: 2, inDeck: false,
     ability: {
       name: "Poof", event: "ON_PLAY",
-      // «Poof» — прыжок к соседу: только позиционный сосед с AGI (баг #?): раньше
+      // «Poof» — прыжок к соседу: только позиционный сосед с AGI: раньше
       // EXISTS_ATTRIBUTE стрелял от любого AGI в строю.
       when: { type: "NEIGHBOR_ATTR_IS", value: "agi" },
       effects: [{ type: "ADD_POWER", value: 6 }],
@@ -161,9 +162,9 @@ const HEROES_DATA = [
     } },
   { id: "phantom_lancer", name: "Phantom Lancer", attr: "agi", power: 6, inDeck: false,
     ability: {
-      name: "Precision Aura", event: "FIGHT_SCORING",
-      when: { type: "ALL_ATTRIBUTES", value: "agi" },
-      effects: [{ type: "ADD_MULT", value: 3 }],
+      name: "Spirit Lance", event: "ON_PLAY",
+      when: { type: "SLOT_IS", value: 1 },
+      effects: [{ type: "ADD_POWER", value: 7 }],
     } },
   { id: "anti_mage", name: "Anti-Mage", attr: "agi", power: 8, inDeck: false,
     ability: {
@@ -222,14 +223,14 @@ const HEROES_DATA = [
     } },
   { id: "storm_spirit", name: "Storm Spirit", attr: "int", power: 9, inDeck: false,
     ability: {
-      name: "Ball Lightning", event: "ON_PLAY",
-      when: { type: "SLOT_IS", value: 0 },
+      name: "Electric Swing", event: "ON_PLAY",
+      when: { type: "NEIGHBOR_RANK_ABOVE" },
       effects: [{ type: "ADD_POWER", value: 9 }],
     } },
   { id: "outworld", name: "Outworld Destroyer", attr: "int", power: 10, inDeck: false,
     ability: {
-      name: "Sanity's Eclipse", event: "FIGHT_SCORING",
-      when: { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 },
+      name: "Astral Imprisonment", event: "ON_PLAY",
+      when: { type: "SLOT_IS", value: 3 },
       effects: [{ type: "ADD_POWER", value: 12 }],
     } },
   {
@@ -248,15 +249,15 @@ const HEROES_DATA = [
 
   { id: "io", name: "Io", attr: "uni", power: 2, inDeck: false,
     ability: {
-      name: "Tether", event: "FIGHT_SCORING",
-      when: { type: "EXISTS_ATTRIBUTE", value: "str" },
-      effects: [{ type: "ADD_POWER", value: 6 }],
+      name: "Tether Pull", event: "FIGHT_SCORING",
+      when: { type: "NEIGHBOR_ATTR_IS", value: "str" },
+      effects: [{ type: "ADD_MULT", value: 1 }],
     } },
   { id: "muerta", name: "Muerta", attr: "uni", power: 3, inDeck: false,
     ability: {
-      name: "Dead Shot", event: "ON_PLAY",
-      when: { type: "SLOT_IS", value: 2 },
-      effects: [{ type: "ADD_POWER", value: 8 }],
+      name: "Pallbearer", event: "FIGHT_SCORING",
+      when: { type: "SLOT_IS_LAST" },
+      effects: [{ type: "ADD_MULT", value: 1 }, { type: "LAST_HIT_GOLD", value: 4 }],
     } },
   { id: "marci", name: "Marci", attr: "uni", power: 4, inDeck: false,
     ability: {
@@ -272,9 +273,9 @@ const HEROES_DATA = [
     } },
   { id: "void_spirit", name: "Void Spirit", attr: "uni", power: 6, inDeck: false,
     ability: {
-      name: "Dissimilate", event: "FIGHT_SCORING",
-      when: { type: "IS_HIGHEST_RANK" },
-      effects: [{ type: "ADD_POWER", value: 8 }],
+      name: "Prism Line", event: "FIGHT_SCORING",
+      when: { type: "NO_ADJACENT_SAME_ATTR" },
+      effects: [{ type: "ADD_MULT", value: 2 }],
     } },
   {
     id: "kez", name: "Kez", attr: "uni", power: 7, inDeck: false,
@@ -293,13 +294,58 @@ const HEROES_DATA = [
     } },
   { id: "tiny", name: "Tiny", attr: "uni", power: 10, inDeck: false,
     ability: {
-      name: "Grow", event: "FIGHT_SCORING",
-      effects: [{ type: "ADD_POWER_PER_PLAYED", value: 3 }],
+      name: "Rock Slide", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_EDGES", pct: 25 }],
     } },
   {
     id: "tinker", name: "Tinker", attr: "uni", power: 12, inDeck: false,
     ability: {
       name: "Rearm", event: "FIGHT_SCORING",
       effects: [{ type: "REFRESH_HERO_TRIGGERS" }],
+    } },
+
+  // ===== Легенды таверны (вне сетки 11×4): рекрут ×2 цены, максимум 2 за забег =====
+  // docs/PROPOSALS_FUN_BUILDS.md §0.1 — фановые архетипы сообществ.
+  {
+    id: "venomancer", name: "Venomancer", attr: "agi", power: 5, inDeck: false, legend: true, emoji: "🐍",
+    ability: {
+      name: "Poison Nova", event: "FIGHT_SCORING",
+      effects: [{ type: "TOWER_BURN", value: 7 }],
+    } },
+  {
+    id: "wraith_king", name: "Wraith King", attr: "uni", power: 6, inDeck: false, legend: true, emoji: "👑",
+    ability: {
+      name: "Wraithfire", event: "FIGHT_SCORING",
+      effects: [{ type: "GAIN_RANK_PER_FIGHT", value: 1, cap: 12 }],
+    } },
+  {
+    id: "magnus", name: "Magnus", attr: "str", power: 8, inDeck: false, legend: true, emoji: "🦏",
+    ability: {
+      name: "Reverse Polarity", event: "FIGHT_SCORING",
+      effects: [{ type: "ADD_POWER_NEIGHBOR_PCT", pct: 35 }],
+    } },
+  {
+    id: "techies", name: "Techies", attr: "int", power: 4, inDeck: false, legend: true, emoji: "💣",
+    ability: {
+      name: "Suicide", event: "FIGHT_SCORING",
+      effects: [{ type: "FAIL_BURN_PCT", pct: 10 }],
+    } },
+  {
+    id: "silencer", name: "Silencer", attr: "int", power: 6, inDeck: false, legend: true, emoji: "🤐",
+    ability: {
+      name: "Last Word", event: "ON_HELD",
+      effects: [{ type: "ADD_POWER_PER_HELD", value: 2 }],
+    } },
+  {
+    id: "chaos_knight", name: "Chaos Knight", attr: "str", power: 10, inDeck: false, legend: true, emoji: "🎲",
+    ability: {
+      name: "Chaos Bolt", event: "FIGHT_SCORING",
+      effects: [{ type: "CHAOS_BOLT", mult: 2, power: 16 }],
+    } },
+  {
+    id: "pugna", name: "Pugna", attr: "int", power: 7, inDeck: false, legend: true, emoji: "👁️",
+    ability: {
+      name: "Nether Ward", event: "FIGHT_SCORING",
+      effects: [{ type: "HEAL_TO_DAMAGE" }],
     } },
 ];

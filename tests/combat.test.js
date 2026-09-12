@@ -62,14 +62,14 @@ test("позиция важна: [zeus, morphling] даёт Zeus-бонус, [mo
   assertEq(noBonus.damage, 40, "зевс без int-соседа");
 });
 
-test("Juggernaut: +8 силы только из слота 1", () => {
+test("Juggernaut — Escort: +1 множитель только за сильнейшим впереди", () => {
   const s = newRun("JUG1");
-  const first = play(s, ["juggernaut", "cm"]);
-  // хай-карта: 5 + 7 + 2 = 14, +8 = 22
-  assertEq(first.damage, 22, "джагг первым");
+  const escort = play(s, ["centaur", "juggernaut"]);
+  // хай-карта: 5 + 10 + 7 = 22, +8 Trample (Centaur в слоте 1) = 30, ×2 (Escort) = 60
+  assertEq(escort.damage, 60, "джагг за кэрри");
   const s2 = newRun("JUG2");
-  const second = play(s2, ["cm", "juggernaut"]);
-  assertEq(second.damage, 14, "джагг вторым");
+  const front = play(s2, ["juggernaut", "centaur"]);
+  assertEq(front.damage, 22, "кэрри позади — без бонуса");
 });
 
 test("Butterfly: слабейшая карта ±1 ранг → two_pair из 2,3,5,5", () => {
@@ -165,10 +165,10 @@ test("Aegis: Рошан возрождается один раз, потом у�
 
 test("Last Hit: урон ровно в HP башни = +5 золота", () => {
   const s = newRun("LH1");
-  s.combat.wave.hp = 22;
+  s.combat.wave.hp = 14;
   const res = play(s, ["juggernaut", "cm"]);
-  // хай-карта 14 + джагг +8 = 22 ровно
-  assertEq(res.damage, 22, "точный урон");
+  // хай-карта 5 + 7 + 2 = 14 ровно (Escort молчит: впереди никого сильнее)
+  assertEq(res.damage, 14, "точный урон");
   assertEq(res.goldGained, 5, "ласт-хит");
 });
 

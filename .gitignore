@@ -2,3 +2,8 @@
 Thumbs.db
 .DS_Store
 *.log
+# Python-шум от разовых скриптов
+__pycache__/
+*.pyc
+# node_modules прототипов additions/ и test/ (собственные package.json)
+node_modules/

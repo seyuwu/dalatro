@@ -60,6 +60,17 @@ const DeckSys = (function () {
     state.player.discardUids = [];
   }
 
+  // После загрузки сейва: счётчик uid — модульная переменная и не
+  // сериализуется, поэтому восстанавливаем его из реестра карт. Без этого
+  // первый же addHero после перезагрузки страницы создаёт uid "c0", уже
+  // занятый стартовой колодой, и молча перезаписывает чужую карту.
+  function syncUidCounter(state) {
+    for (const uid of Object.keys(state.cards || {})) {
+      const m = /^c(\d+)$/.exec(uid);
+      if (m) uidCounter = Math.max(uidCounter, Number(m[1]) + 1);
+    }
+  }
+
   // Creates a card for a recruited hero and adds it to the deck (tavern).
   function addHero(state, heroId) {
     const uid = "c" + uidCounter++;
@@ -68,5 +79,5 @@ const DeckSys = (function () {
     return uid;
   }
 
-  return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, handSize, HAND_SIZE };
+  return { createFromHeroes, draw, moveToDiscard, resetAll, addHero, syncUidCounter, handSize, HAND_SIZE };
 })();

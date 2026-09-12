@@ -77,7 +77,9 @@
         rng.fastForward(s.rngCount || 0);
         Rng.setActive(rng);
       }
-      return normalizeState(s);
+      const restored = normalizeState(s);
+      DeckSys.syncUidCounter(restored); // иначе наём после перезагрузки перезапишет чужую карту
+      return restored;
     } catch (e) { return null; }
   }
 
@@ -85,13 +87,14 @@
     try {
       const raw = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
       UI.UIState.motion = raw.motion !== false;
+      UI.UIState.keepBase = raw.keepBase !== false;
       if (raw.sound === false && !Sfx.isMuted()) Sfx.toggleMuted();
     } catch (e) { /* defaults */ }
   }
 
   function savePrefs() {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ sound: !Sfx.isMuted(), motion: UI.UIState.motion }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ sound: !Sfx.isMuted(), motion: UI.UIState.motion, keepBase: UI.UIState.keepBase !== false }));
     } catch (e) { /* ignore */ }
   }
 
@@ -242,13 +245,15 @@
   function startRun(seedCode) {
     // Ядро скоринга одно — формации. Тумблер и ?rules= выпилены:
     // какой-либо выбор режима больше не предусмотрен.
-    state = Game.dispatch(state, { type: "START_RUN", seedCode, rules: "formation", rank: UI.UIState.rankDraft || 1, starterId: UI.UIState.starterDraft || "standard" });
+    state = Game.dispatch(state, {
+      type: "START_RUN", seedCode, rules: "formation", rank: UI.UIState.rankDraft || 1,
+      starterId: UI.UIState.starterDraft || "standard", keepBase: UI.UIState.keepBase !== false,
+    });
     UI.UIState.unlockBanner = null;
     saveState();
-    if (!localStorage.getItem(ONBOARD_KEY)) {
-      UI.UIState.onboarding = true;
-      UI.UIState.onboardingStep = 0;
-    }
+    // Онбординг: вместо модалки-простыни — интерактивный сценарий (tutorial.js),
+    // он сам вооружается на титульном экране. «Как играть — 5 шагов» остаётся
+    // кнопкой на титуле для тех, кто хочет полный текст.
     rerender();
   }
 
@@ -270,6 +275,13 @@
         break;
       case "pick-starter":
         UI.UIState.starterDraft = Content.archetypes.byId[el.dataset.starter] ? el.dataset.starter : "standard";
+        UI.UIState.starterPicks = (UI.UIState.starterPicks || 0) + 1; // туториал: клик по уже активному билду тоже прогресс
+        Sfx.play("select");
+        rerender();
+        break;
+      case "toggle-keep-base":
+        UI.UIState.keepBase = !(UI.UIState.keepBase !== false);
+        savePrefs();
         Sfx.play("select");
         rerender();
         break;
@@ -282,6 +294,30 @@
       case "fight": dispatchAndRender({ type: "CONFIRM_FIGHT" }); break;
       case "discard": Sfx.play("discard"); dispatchAndRender({ type: "DISCARD", uids: state.combat.selectedUids.slice() }); break;
       case "clear-selection": clearSelection(); break;
+      case "apply-hint": {
+        // Клик по подсказке «в руке собирается формация»: выставляем её отряд
+        // целиком в готовом порядке. Те же проверки, что у SELECT_CARD, —
+        // состояние могло измениться с момента расчёта подсказки.
+        if (state.phase !== "wave" || state.combat.outcome) break;
+        const uids = String(el.dataset.uids || "").split("|").filter(Boolean);
+        const mined = state.combat.minedUids || [];
+        const wave = state.combat.wave || {};
+        const ok = uids.length > 0
+          && uids.length <= Game.maxSlots(state)
+          && uids.every((uid) => {
+            if (!state.player.handUids.includes(uid) || mined.includes(uid) || !state.cards[uid]) return false;
+            const heroId = state.cards[uid].heroId;
+            if (wave.bannedHeroId === heroId) return false;
+            if (wave.banAttrs && wave.banAttrs.includes(Game.heroAttr(state, heroId))) return false;
+            if (wave.noRepeat && (wave.lastFightHeroes || []).includes(heroId)) return false;
+            return true;
+          });
+        if (!ok) break;
+        Sfx.play("select");
+        state.combat.selectedUids = uids;
+        rerender();
+        break;
+      }
       case "enter-shop":
         Sfx.play("click");
         dispatchAndRender({ type: "ENTER_SHOP" });
@@ -315,7 +351,7 @@
         break;
       case "sell":
         dispatchAndRender({ type: "SELL_ITEM", itemId: el.dataset.id });
-        if (UI.UIState.modal === "detail") UI.UIState.modal = null;
+        if (UI.UIState.modal === "detail") { UI.UIState.modal = null; UI.UIState.detail = null; }
         UI.toast(state, "Предмет продан за половину цены");
         rerender();
         break;
@@ -331,6 +367,10 @@
       case "take-route":
         Sfx.play("path");
         dispatchAndRender({ type: "TAKE_ROUTE", kind: el.dataset.kind });
+        break;
+      case "undo-route":
+        Sfx.play("click");
+        dispatchAndRender({ type: "UNDO_ROUTE" });
         break;
       case "buy-recruit":
         Sfx.play("buy");
@@ -489,6 +529,9 @@
       }
       return;
     }
+    // Enter на сфокусированной кнопке/ссылке — её нативная активация:
+    // не перехватываем, иначе получаем двойное действие (клик + хоткей).
+    if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.closest("button, a, [data-action]")) return;
     if (e.key === "Escape") {
       if (UI.UIState.onboarding) { UI.UIState.onboarding = false; try { localStorage.setItem(ONBOARD_KEY, "seen"); } catch (err) { } }
       closeModal();
@@ -507,7 +550,7 @@
       return;
     }
     if (UI.UIState.modal || fighting) return;
-    if (/^[1-7]$/.test(e.key) && state.phase === "wave" && !state.combat.outcome) {
+    if (/^[1-9]$/.test(e.key) && state.phase === "wave" && !state.combat.outcome) {
       e.preventDefault();
       const order = UI.handOrder(state);
       const uid = order[Number(e.key) - 1];

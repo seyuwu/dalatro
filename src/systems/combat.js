@@ -24,8 +24,8 @@ const Combat = (function () {
   // Ставка: сколько героев отправил в бой. 2-3 героя — нейтрально.
   const COMMIT_TIERS = {
     1: { name: "Харас", finalMult: 1, gold: 1 },
-    4: { name: "Тимфайт", finalMult: 1.1, gold: 0 },
-    5: { name: "Коммит", finalMult: 1.25, gold: 0 },
+    4: { name: "Отряд", finalMult: 1.1, gold: 0 },
+    5: { name: "Полная пятёрка", finalMult: 1.25, gold: 0 },
   };
   // Импульс: серия зачищенных волн подряд (сбрасывается провалом).
   const MOMENTUM_STEP = 0.05;
@@ -51,16 +51,44 @@ const Combat = (function () {
       .filter((id) => Content.modifiers.byId[id] && Content.modifiers.byId[id].curse);
   }
 
+  // Множители правил ЦЕЛИ для конкретного комбо/формации — зеркало шага 7
+  // resolveFight. Панель комбинаций рисует их красными бейджами, чтобы правила
+  // башни были видны ДО боя. BKB/Игнор снимают фортификацию, адаптацию и
+  // архивариуса; память башен и адаптация мира — правила лиги, они остаются.
+  function comboRuleMults(state, comboId) {
+    const wave = state.combat.wave;
+    if (!wave || state.phase !== "wave") return [];
+    const def = state.rules === "formation"
+      ? Content.formations.byId[comboId]
+      : Content.combos.byId[comboId];
+    if (!def) return [];
+    const bkb = state.player.items.includes("bkb") || !!state.run.pendingIgnoreMods;
+    const mods = (wave.modifiers || []).map((m) => m.id);
+    const hunted = Ranks.mostUsedCombo(state);
+    const mults = [];
+    const push = (name, value) => mults.push({ name, value });
+    if (!bkb) {
+      const small = state.rules === "formation" ? def.tier <= 1 : def.rank <= 2;
+      if (mods.includes("bastion") && small) push("Фортификация", 0.5);
+      if (mods.includes("adaptation") && state.combat.lastComboType === comboId) push("Адаптация", 0.5);
+      if (mods.includes("archivist") && hunted && hunted.id === comboId) push("Архивариус", 0.75);
+    }
+    if (Ranks.has(state, "memory") && state.combat.lastComboType === comboId) push("Память башен", 0.9);
+    if (Ranks.has(state, "adaptive") && hunted && hunted.id === comboId) push("Адаптация мира", 0.85);
+    return mults;
+  }
+
   function collectPreDetectEffects(state, playedCards) {
     const effects = [];
     playedCards.forEach((card, slotIndex) => {
       if (card.illusion) return;
       const hero = Content.heroes.byId[card.heroId];
       // Аугменты героя (docs/AGHANIMS.md): PRE_DETECT-осколки/скептеры.
-      // Скипетр с override заменяет базовую PRE_DETECT-способность.
+      // Аугмент с override (скипетр или осколок) заменяет базовую
+      // PRE_DETECT-способность.
       const owned = state.run.aghanims && state.run.aghanims[hero.id];
-      const scDef = owned && owned.scepter ? Content.aghanims.byId[owned.scepter] : null;
-      if (hero.ability && !(scDef && scDef.override) && hero.ability.event === "PRE_DETECT") {
+      const overridden = !!(owned && ["scepter", "shard"].some((k) => owned[k] && Content.aghanims.byId[owned[k]] && Content.aghanims.byId[owned[k]].override));
+      if (hero.ability && !overridden && hero.ability.event === "PRE_DETECT") {
         effects.push({ effect: hero.ability.effects[0], card, slotIndex, sourceName: hero.name, sourceId: hero.id });
       }
       for (const kind of ["scepter", "shard"]) {
@@ -87,6 +115,7 @@ const Combat = (function () {
     const copyLog = []; // какие копии атрибута изменили effective-набор
     let strongestBump = 0;
     let bumpSource = null;
+    let pendingJackpot = null; // «Однорукий бандит»: кандидат «весь отряд = ранг N»
 
     for (const { effect, card, slotIndex, sourceName, sourceId } of collectPreDetectEffects(state, effective)) {
       switch (effect.type) {
@@ -149,7 +178,7 @@ const Combat = (function () {
               effective[slotIndex].detectPower = target;
               Resolver.pushStep(resolution, {
                 icon: "🟣",
-                label: `${sourceName}: в комбо считается рангом ${Content.heroes.byId[neighbor.heroId].name} (${target})`,
+                label: `${sourceName}: в комбо считается с силой ${Content.heroes.byId[neighbor.heroId].name} (${target})`,
                 kind: "aghanim",
               });
             }
@@ -210,6 +239,18 @@ const Combat = (function () {
           bumpSource = sourceName;
           break;
         }
+        case "SET_ALL_RANKS": {
+          // «Однорукий бандит»: шанс — весь отряд считается заданным рангом.
+          // Отложенный кандидат (массив candidates строится после свитча).
+          // В превью лотерея не разыгрывается (как 🎲-триггеры): показываем базу.
+          if (state.simulate) break;
+          if (!Rng.current().chance(effect.chance || 1)) {
+            Resolver.pushStep(resolution, { icon: "🎲", label: `${sourceName}: барабан крутнулся мимо`, kind: "item" });
+            break;
+          }
+          pendingJackpot = { value: effect.value, sourceName };
+          break;
+        }
       }
     }
 
@@ -239,6 +280,10 @@ const Combat = (function () {
     // so detection hooks never HURT the player.
     const identity = effective.map((c) => ({ ...c, meta: { bumped: false, wild: 0 } }));
     const candidates = [identity];
+    if (pendingJackpot) {
+      candidates.push(effective.map((c) => ({ ...c, detectPower: pendingJackpot.value, meta: { bumped: false, wild: 0 } })));
+      Resolver.pushStep(resolution, { icon: "🎰", label: `${pendingJackpot.sourceName}: ДЖЕКПОТ — весь отряд считается рангом ${pendingJackpot.value}!`, kind: "item" });
+    }
     if (strongestBump) {
       const strongestIdx = identity.reduce((mi, c, i, arr) => (c.power > arr[mi].power ? i : mi), 0);
       for (const delta of [strongestBump, -strongestBump]) {
@@ -266,6 +311,10 @@ const Combat = (function () {
             defense: towerDefenseOf(state),
             // Скипетр Starbreaker: Универсал — джокер и для условий формаций.
             uniWildcard: !!(state.combat.scoring && state.combat.scoring.flags && state.combat.scoring.flags.uniWildcard),
+            // Предмет «Еретик»: Фаланга от 3, Треугольник от 2 атрибутов.
+            heresy: state.player.items.includes("heresy"),
+            // «Планетарий»: персональные множители формаций за забег.
+            formationBoosts: state.run.formationBoosts || {},
           })
         : PokerSys.evaluate(candidate);
       if (!combo) continue;
@@ -277,14 +326,14 @@ const Combat = (function () {
     if (strongestBump && usedBump) {
       Resolver.pushStep(resolution, {
         icon: "◆",
-        label: `${bumpSource}: сильнейшая карта считается соседним рангом`,
+        label: `${bumpSource}: сильнейшая карта считается соседней силой`,
         kind: "item",
       });
     }
     if (pendingWilds.length && best.meta && best.meta.wild !== 0) {
       Resolver.pushStep(resolution, {
         icon: "◆",
-        label: `Butterfly: слабейшая карта считается соседним рангом для комбо`,
+        label: `Butterfly: слабейшая карта считается соседней силой для комбо`,
         kind: "item",
       });
     }
@@ -435,9 +484,12 @@ const Combat = (function () {
     const { effective, combo, copyLog } = buildEffectiveSet(state, played, resolution);
     resolution.combo = combo;
     if (state.rules === "formation") {
+      // «Живой репититор»: в строке формации объясняется, ЧТО в составе игрока
+      // собрало паттерн («Рампа · ранги росли: 3 → 5 → 10»).
+      const why = combo.why ? ` · ${combo.why}` : "";
       Resolver.pushStep(resolution, {
         icon: "🧩",
-        label: `Формация «${combo.name}» (тир ${combo.tier}): ${combo.formPower} × ${combo.formMult}, ${Content.damageTypeNames[combo.damageType]} урон`,
+        label: `Формация «${combo.name}»: ${combo.formPower} × ${combo.formMult}, ${Content.damageTypeNames[combo.damageType]} урон${why}`,
         kind: "combo",
       });
       for (const bond of combo.bonds) {
@@ -472,7 +524,7 @@ const Combat = (function () {
       cardPowerSum += power;
     }
     if (fog && effective.some((c) => c.power <= 4)) {
-      Resolver.pushStep(resolution, { icon: "☠", label: "Туман войны: герои ранга ≤4 не дают силы", kind: "modifier" });
+      Resolver.pushStep(resolution, { icon: "☠", label: "Туман войны: герои с силой 4 и ниже не дают силы", kind: "modifier" });
     }
     if (forbiddenHit) {
       Resolver.pushStep(resolution, { icon: "☠", label: `Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы`, kind: "modifier" });
@@ -558,6 +610,10 @@ const Combat = (function () {
     // 5.5 Улучшения лавки (фаза F): те же триггеры, отдельный вид источника.
     runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, ["upgrade"]);
 
+    // 5.7 Скамейка (docs/PROPOSALS_FUN_BUILDS.md): герои и предметы, оставшиеся
+    // в руке (ON_HELD). Глушится Безмолвием наравне с героями.
+    runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate }, silenced ? [] : HERO_KINDS.concat(["item"]), "ON_HELD");
+
     // 6. Refresher: hero triggers again.
     if (state.combat.scoring.flags.refreshHeroTriggers && !silenced) {
       runTriggers(state, resolution, { playedCards: effective, combo, scoring: state.combat.scoring, simulate: state.simulate, onlyKinds: HERO_KINDS, refreshed: true }, HERO_KINDS);
@@ -612,7 +668,7 @@ const Combat = (function () {
     const towerTrace = state.combat.scoring.trace;
     const traceCurse = (source, value) => towerTrace.towerMult.push({ source, value });
     if (curses.includes("archivist")) {
-      const hunted = Ranks.mostUsedCombo(s);
+      const hunted = Ranks.mostUsedCombo(state);
       if (hunted && hunted.id === combo.type) {
         curseMultiplier *= 0.75;
         traceCurse("Архивариус", 0.75);
@@ -658,13 +714,18 @@ const Combat = (function () {
       const baseDefense = towerDefenseOf(state);
       const defense = s.flags.pierceMr ? { armor: baseDefense.armor, mr: 0 } : baseDefense;
       const pen = s.flags.armorPen || 0;
-      const mitigated = FormationSys.mitigate(raw, combo.damageType, defense, pen);
+      // «Осадный колун»: физическая броня башни не вычитается, а прибавляется.
+      const mitigated = s.flags.armorFeed && combo.damageType === "physical" && !s.flags.bkbBlocksMods
+        ? raw + Math.max(0, defense.armor - pen)
+        : FormationSys.mitigate(raw, combo.damageType, defense, pen);
       if (state.combat.scoring.flags.bkbBlocksMods) {
         Resolver.pushStep(resolution, { icon: "🛡", label: "BKB: числовая защита башни игнорируется", kind: "modifier" });
       } else if (combo.damageType === "pure") {
         Resolver.pushStep(resolution, { icon: "✦", label: "Чистый урон: броня и сопротивление игнорируются", kind: "info" });
       } else if (combo.damageType === "magical" && defense.mr) {
         Resolver.pushStep(resolution, { icon: "✺", label: `Сопротивление ${Math.round(defense.mr * 100)}%: ${Math.round(raw)} → ${mitigated}`, kind: "modifier" });
+      } else if (s.flags.armorFeed && combo.damageType === "physical" && defense.armor) {
+        Resolver.pushStep(resolution, { icon: "🪓", label: `Осадный колун: броня ${defense.armor} прибавлена к удару (${Math.round(raw)} → ${Math.round(mitigated)})`, kind: "item" });
       } else if (defense.armor) {
         const effArmor = Math.max(0, defense.armor - pen);
         const absorbed = Math.min(effArmor, raw * 0.5);
@@ -698,9 +759,28 @@ const Combat = (function () {
       }
     }
     // Осада (TOWER_BURN): чистый добор поверх удара, глиф блокирует всё.
-    if (!resolution.blocked && s.flags.towerBurn) {
-      damage += s.flags.towerBurn;
-      Resolver.pushStep(resolution, { icon: "☄", label: `Осада: +${s.flags.towerBurn} чистого урона по башне`, kind: "item" });
+    // «Воронка яда» (PERSISTENT_BURN): осадный урон копится в банке волны и
+    // бьёт каждым боем нарастающим итогом, даже если новый яд не капал.
+    if (!resolution.blocked && (s.flags.towerBurn || state.combat.wave.burnBank)) {
+      const towerRef = state.combat.wave;
+      const fresh = s.flags.towerBurn || 0;
+      if (s.flags.persistentBurn || towerRef.burnBank) {
+        if (fresh) towerRef.burnBank = (towerRef.burnBank || 0) + fresh;
+        const total = towerRef.burnBank || 0;
+        if (total) {
+          damage += total;
+          Resolver.pushStep(resolution, { icon: "☄", label: `Яд копится: всего ${total} чистого урона по башне`, kind: "item" });
+        }
+      } else {
+        damage += fresh;
+        Resolver.pushStep(resolution, { icon: "☄", label: `Осада: +${fresh} чистого урона по башне`, kind: "item" });
+      }
+    }
+    // «Крысиный ультиматум»: процент maxHp башни поверх удара.
+    if (!resolution.blocked && s.flags.pctBurn) {
+      const extra = Math.min(s.flags.pctBurn.capFlat, Math.round(state.combat.wave.maxHp * s.flags.pctBurn.pct / 100));
+      damage += extra;
+      Resolver.pushStep(resolution, { icon: "🐀", label: `Сплит-пуш: башня теряет ещё ${extra} HP (${s.flags.pctBurn.pct}% maxHp)`, kind: "item" });
     }
     resolution.damageType = combo.damageType || null;
     resolution.power = s.power;
@@ -742,15 +822,22 @@ const Combat = (function () {
       const hasMut = (id) => (tower.modifiers || []).some((m) => m.id === id);
       if (hasMut("regen")) {
         const heal = Math.max(1, Math.round(tower.maxHp * 0.04));
-        tower.hp = Math.min(tower.maxHp, tower.hp + heal);
+        // Pugna (Nether Ward): лечение башни обращается в урон.
+        const fed = s.flags.healToDamage ? -heal : heal;
+        tower.hp = Math.max(1, Math.min(tower.maxHp, tower.hp + fed));
         tower.regenTotal += heal;
-        Resolver.pushStep(resolution, { icon: "☠", label: `Регенерация: башня лечит ${heal} HP`, kind: "modifier" });
+        Resolver.pushStep(resolution, { icon: "☠", label: s.flags.healToDamage
+          ? `Регенерация: Pugna обращает лечение во вред — башня теряет ${heal} HP`
+          : `Регенерация: башня лечит ${heal} HP`, kind: "modifier" });
       }
       if (hasMut("enrage") && !tower.enraged && tower.hp < tower.maxHp * 0.25) {
         tower.enraged = true;
         const heal = Math.max(1, Math.round(tower.maxHp * 0.1));
-        tower.hp = Math.min(tower.maxHp, tower.hp + heal);
-        Resolver.pushStep(resolution, { icon: "☠", label: `Ярость: башня исцеляется на ${heal} HP`, kind: "modifier" });
+        const fed = s.flags.healToDamage ? -heal : heal;
+        tower.hp = Math.max(1, Math.min(tower.maxHp, tower.hp + fed));
+        Resolver.pushStep(resolution, { icon: "☠", label: s.flags.healToDamage
+          ? `Ярость: Pugna обращает лечение во вред — башня теряет ${heal} HP`
+          : `Ярость: башня исцеляется на ${heal} HP`, kind: "modifier" });
       }
       if (hasMut("greed") && damage < hpBefore * 0.3) {
         greedSteal = true;
@@ -762,25 +849,25 @@ const Combat = (function () {
     // 10. Gold from overkill + exact last hit.
     let gold = overkillGold(state, overkill);
     if (gold > 0) {
-      Resolver.pushStep(resolution, { icon: "💰", label: `Overkill +${gold} золота`, kind: "gold" });
+      Resolver.pushStep(resolution, { icon: "💰", label: `Оверкилл: +${gold} золота`, kind: "gold" });
     }
     if (!resolution.blocked && damage === hpBefore && hpBefore > 0) {
       gold += 5;
-      Resolver.pushStep(resolution, { icon: "🎯", label: "Last Hit! +5 золота", kind: "gold" });
+      Resolver.pushStep(resolution, { icon: "🎯", label: "Точный ласт-хит! +5 золота", kind: "gold" });
       const track = s.flags.lastHitGold || 0;
       if (track) {
         gold += track;
-        Resolver.pushStep(resolution, { icon: "💰", label: `Track: +${track} золота за точный ласт-хит`, kind: "gold" });
+        Resolver.pushStep(resolution, { icon: "💰", label: `Track: +${track} золота за ласт-хит`, kind: "gold" });
       }
       // Перк архетипа «Крит»: точный ласт-хит доплачивает.
       if (Game.archPerk(state) === "lasthit2") {
         gold += 2;
         Resolver.pushStep(resolution, { icon: "💀", label: "Отряд «Крит»: +2 золота за точный ласт-хит", kind: "gold" });
       }
-      // Скипетр «Jinada» (Bounty): ласт-хит возвращает ТП-сброс на следующую волну.
+      // Скипетр «Jinada» (Bounty): ласт-хит возвращает сброс на следующую волну.
       if (s.flags.refundDiscards) {
         state.run.pendingDiscardBonus = (state.run.pendingDiscardBonus || 0) + s.flags.refundDiscards;
-        Resolver.pushStep(resolution, { icon: "🟣", label: `Jinada: +${s.flags.refundDiscards} ТП-сброс на следующую волну`, kind: "aghanim" });
+        Resolver.pushStep(resolution, { icon: "🟣", label: `Jinada: +${s.flags.refundDiscards} сброс на следующую волну`, kind: "aghanim" });
       }
       // Осколок «Shuriken Toss» (Bounty): ласт-хит копит удачу (кап).
       const luckHit = s.flags.luckOnLastHit;
@@ -790,7 +877,7 @@ const Combat = (function () {
         const before = charges[luckHit.heroId].luck || 0;
         if (before < luckHit.cap) {
           charges[luckHit.heroId].luck = Math.min(luckHit.cap, before + 1);
-          Resolver.pushStep(resolution, { icon: "🟣", label: `Shuriken Toss: удача ${charges[luckHit.heroId].luck}/${luckHit.cap}`, kind: "aghanim" });
+          Resolver.pushStep(resolution, { icon: "🟣", label: `${luckHit.name || "Shuriken Toss"}: удача ${charges[luckHit.heroId].luck}/${luckHit.cap}`, kind: "aghanim" });
         }
       }
       // Скипетр «Duel+» (Legion): точный ласт-хит — Duel stack.
@@ -807,7 +894,7 @@ const Combat = (function () {
     }
     if (commit && commit.gold) {
       gold += commit.gold;
-      Resolver.pushStep(resolution, { icon: "💰", label: `Харас (1 герой): +${commit.gold} золото`, kind: "gold" });
+      Resolver.pushStep(resolution, { icon: "💰", label: `Харас (1 герой): +${commit.gold} золота`, kind: "gold" });
     }
     resolution.goldGained = gold;
     state.run.gold += gold;
@@ -884,11 +971,21 @@ const Combat = (function () {
       }
     }
     state.combat.lastResolution = resolution;
+    // Techies: флаг «провал надрывает башню» переживает бой на объекте волны —
+    // его применит RETRY_WAVE при восстановлении HP.
+    if (state.combat.scoring.flags.failBurnPct) {
+      state.combat.wave.failBurnPct = Math.max(state.combat.wave.failBurnPct || 0, state.combat.scoring.flags.failBurnPct);
+    }
     state.combat.scoring = null;
     return resolution;
   }
 
-  function runTriggers(state, resolution, payload, kinds) {
+  function runTriggers(state, resolution, payload, kinds, event) {
+    if (event) {
+      // Отдельное событие (ON_HELD): скамейка бьёт, стек тот же.
+      Triggers.runEvent(state, null, event, { ...payload, onlyKinds: kinds }, resolution);
+      return;
+    }
     Triggers.runEvent(state, null, "ON_PLAY", { ...payload, onlyKinds: kinds }, resolution);
     Triggers.runEvent(state, null, "COMBO_DETECTED", { ...payload, onlyKinds: kinds }, resolution);
     Triggers.runEvent(state, null, "FIGHT_SCORING", { ...payload, onlyKinds: kinds }, resolution);
@@ -898,5 +995,33 @@ const Combat = (function () {
     return Math.round(v * 100) / 100;
   }
 
-  return { resolveFight, realPlayedCards, buildEffectiveSet, HAND_SIZE, MAX_SLOTS, COMMIT_TIERS, MOMENTUM_STEP, MOMENTUM_CAP };
+  // Подсказка перестановки для панели формаций: один обмен слотами, дающий
+  // лучшую формацию. Оценка на «сырых» картах (без PRE_DETECT-копий атрибутов
+  // и wild-рангов) — это обучение паттерну, а не точный приговор, поэтому
+  // сравнение с превью может отличаться на копиях Morphling/иллюзиях.
+  function swapHint(state) {
+    if (state.rules !== "formation") return null;
+    const uids = state.combat.selectedUids || [];
+    if (uids.length < 2) return null;
+    const cards = uids.map((uid, i) => {
+      const card = state.cards[uid];
+      return { power: Game.rankOf(state, card.heroId), attr: Game.heroAttr(state, card.heroId), heroId: card.heroId, slotIndex: i };
+    });
+    // Скипетр Starbreaker в выбранном отряде: Универсал — джокер условий.
+    // В момент выбора scoring ещё не существует — читаем экипировку напрямую.
+    const uniWildcard = uids.some((uid) => {
+      const hid = state.cards[uid] && state.cards[uid].heroId;
+      const owned = hid && state.run.aghanims && state.run.aghanims[hid];
+      return !!(owned && owned.scepter === "dawnbreaker_sc");
+    });
+    const hint = FormationSys.bestSwap(cards, {
+      defense: towerDefenseOf(state),
+      uniWildcard,
+    });
+    if (!hint) return null;
+    const nameOf = (i) => (Content.heroes.byId[cards[i].heroId] || {}).name || "герой";
+    return { a: nameOf(hint.swap[0]), b: nameOf(hint.swap[1]), formation: hint.name, gain: Math.round(hint.gain) };
+  }
+
+  return { resolveFight, realPlayedCards, buildEffectiveSet, comboRuleMults, swapHint, towerDefenseOf, HAND_SIZE, MAX_SLOTS, COMMIT_TIERS, MOMENTUM_STEP, MOMENTUM_CAP };
 })();

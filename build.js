@@ -8,8 +8,10 @@ import { fileURLToPath } from "node:url";
 const root = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(root, "index.html"), "utf8");
 
-const css = readFileSync(join(root, "src/ui/styles.css"), "utf8");
+const css = readFileSync(join(root, "src/ui/styles.css"), "utf8")
+  + "\n" + readFileSync(join(root, "src/ui/tutorial.css"), "utf8"); // TUTORIAL
 let out = html.split('<link rel="stylesheet" href="src/ui/styles.css">').join(`<style>\n${css}\n</style>`);
+out = out.split('<link rel="stylesheet" href="src/ui/tutorial.css">').join("");
 
 const scriptTags = [...out.matchAll(/<script src="([^"]+)"><\/script>/g)];
 for (const [, src] of scriptTags) {
@@ -25,4 +27,5 @@ if (/<script src=/.test(out)) {
 mkdirSync(join(root, "dist", "images"), { recursive: true });
 writeFileSync(join(root, "dist", "index.html"), out);
 copyFileSync(join(root, "images", "battlefield.jpg"), join(root, "dist", "images", "battlefield.jpg"));
-console.log(`OK → dist/index.html (${Math.round(out.length / 1024)} KB, ${scriptTags.length} scripts inlined)`);
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+console.log(`OK → dist/index.html (${Math.round(Buffer.byteLength(out) / 1024)} KB, ${scriptTags.length} scripts inlined, v${pkg.version})`);

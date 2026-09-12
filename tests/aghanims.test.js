@@ -93,19 +93,19 @@ test("Tidehunter Ravage: пятёрка дублирует способност�
   const s = agRun("AGTH1");
   agAdd(s, ["tidehunter"]);
   agEquip(s, "tidehunter", "scepter", "tidehunter_sc");
-  const res = agPlay(s, ["tusk", "axe", "cm", "zeus", "tidehunter"], 999999);
+  const res = agPlay(s, ["tusk", "axe", "cm", "tidehunter", "zeus"], 999999);
   const labels = stepLabels(res);
-  assert(labels.filter((l) => l.includes("Tidehunter: +2")).length === 0, "базовый Kraken Shell заменён");
+  assert(labels.filter((l) => l.includes("Tidehunter: +10")).length === 0, "базовый Anchor Smash заменён");
   assert(labels.filter((l) => l.includes("Tusk: +4")).length === 2, "Snowball сработал дважды");
   assert(labels.some((l) => l.includes("Ravage") && l.includes("дважды")), "шаг про двойные способности");
 });
 
-test("Tidehunter без скептера: пятёрка даёт Kraken Shell один раз", () => {
+test("Tidehunter без скептера: слот 4 даёт Anchor Smash один раз", () => {
   const s = agRun("AGTH2");
   agAdd(s, ["tidehunter"]);
-  const res = agPlay(s, ["tusk", "axe", "cm", "zeus", "tidehunter"], 999999);
+  const res = agPlay(s, ["tusk", "axe", "cm", "tidehunter", "zeus"], 999999);
   const labels = stepLabels(res);
-  assert(labels.filter((l) => l.includes("Tidehunter: +2")).length === 1, "база на месте");
+  assert(labels.filter((l) => l.includes("Tidehunter: +10")).length === 1, "база на месте");
   assert(labels.filter((l) => l.includes("Tusk: +4")).length === 1, "без двойных способностей");
 });
 
@@ -158,13 +158,13 @@ test("PL Phantom Rush: иллюзия Manta считается AGI", () => {
   assertEq(illusion.attr, Game.heroAttr(probe, "sven") === "str" ? "agi" : illusion.attr, "переопределение атрибута");
 });
 
-test("Tiny Avalanche: ТП-сбросы растят ранг навсегда, кап +3", () => {
+test("Tiny Avalanche: сбросы растят ранг навсегда, кап +3", () => {
   const s = agRun("AGTN1");
   agAdd(s, ["tiny"]);
   agEquip(s, "tiny", "scepter", "tiny_sc");
   const base = Game.rankOf(s, "tiny");
   assertEq(base, 10, "база Tiny 10");
-  // Один ТП-сброс → used 1.
+  // Один сброс → used 1.
   const anyUid = s.player.handUids[0];
   s.combat.selectedUids = [anyUid];
   Game.dispatch(s, { type: "DISCARD", uids: [anyUid] });
@@ -428,7 +428,7 @@ test("Undying Soul Rip: сброс — заряд, бой тратит цели�
   const uid = s.player.handUids[0];
   s.combat.selectedUids = [uid];
   Game.dispatch(s, { type: "DISCARD", uids: [uid] });
-  assertEq((s.run.heroCharges.undying || {}).count, 1, "заряд за ТП-сброс");
+  assertEq((s.run.heroCharges.undying || {}).count, 1, "заряд за сброс");
   const res = agPlay(s, ["undying"], 999999);
   assert(stepLabels(res).some((l) => l.includes("Soul Rip") && l.includes("+3")), "заряд конвертирован в +3");
   assertEq((s.run.heroCharges.undying || {}).count, 0, "заряды потрачены");
@@ -442,7 +442,7 @@ test("Meepo Divided We Stand: +6 за каждого Ловкого", () => {
   assert(stepLabels(res).some((l) => l.includes("Divided We Stand") && l.includes("+12")), "2 агих = +12 (база заменена)");
 });
 
-test("Bounty Jinada: точный ласт-хит возвращает ТП-сброс", () => {
+test("Bounty Jinada: точный ласт-хит возвращает сброс", () => {
   const s = agRun("AGBO1");
   agAdd(s, ["bounty"]);
   agEquip(s, "bounty", "scepter", "bounty_sc");
@@ -525,7 +525,7 @@ test("Storm Overload: ротация слотов вознаграждается
   s.combat.lastSlot = { storm_spirit: 2 };
   const res = agPlay(s, ["storm_spirit"], 999999);
   const labels = stepLabels(res);
-  assert(labels.some((l) => l.includes("Storm Spirit: +9")), "база на первом слоте");
+  assert(!labels.some((l) => l.includes("Storm Spirit: +9")), "соло Electric Swing молчит (нет соседа сильнее)");
   assert(labels.some((l) => l.includes("Overload") && l.includes("+9")), "скептер за смену позиции");
 });
 
@@ -535,11 +535,19 @@ test("Outworld Sanity Overload и Essence Flux", () => {
   agEquip(s, "outworld", "scepter", "outworld_sc");
   const res = agPlay(s, ["outworld", "dawnbreaker", "tusk", "juggernaut"], 999999);
   assert(stepLabels(res).some((l) => l.includes("Sanity Overload") && l.includes("+6")), "4-й атрибут = +6/+0.5");
+  // Осколок Essence Flux: Универсалы добирают недостающий атрибут.
+  // 3 реальных (int, uni, str) + джокер = 4 → один «лишний» атрибут = +6.
   const s2 = agRun("AGOW2");
-  agAdd(s2, ["outworld"]);
+  agAdd(s2, ["outworld", "dawnbreaker"]);
+  agEquip(s2, "outworld", "scepter", "outworld_sc");
   agEquip(s2, "outworld", "shard", "outworld_sh");
-  const res2 = agPlay(s2, ["outworld", "dawnbreaker", "cm"], 999999);
-  assert(stepLabels(res2).some((l) => l.includes("Outworld Destroyer: +12")), "UNI добирает третий атрибут");
+  const res2 = agPlay(s2, ["outworld", "dawnbreaker", "tusk", "cm"], 999999);
+  assert(stepLabels(res2).some((l) => l.includes("Sanity Overload") && l.includes("+6")), "UNI добирает четвёртый атрибут");
+  const s3 = agRun("AGOW3");
+  agAdd(s3, ["outworld", "dawnbreaker"]);
+  agEquip(s3, "outworld", "scepter", "outworld_sc");
+  const res3 = agPlay(s3, ["outworld", "dawnbreaker", "tusk", "cm"], 999999);
+  assert(!stepLabels(res3).some((l) => l.includes("Sanity Overload") && l.includes("+6")), "без осколка лишних атрибутов нет");
 });
 
 test("AA Shatter: зачистка ослабляет следующую башню", () => {

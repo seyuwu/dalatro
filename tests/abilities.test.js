@@ -62,13 +62,12 @@ test("Centaur — Trample: +4 силы за героя, только из пер
   assertEq(frontC.damage, 39, "classic: хай-карта 27 + 12");
 });
 
-test("Dawnbreaker — Solar Guardian: +1 множитель за каждого Универсала", () => {
-  const f = ablPlay(ablRun("ABL5", "formation"), ["dawnbreaker", "primal", "cm"]);
-  assertEq(f.combo.type, "wedge", "Primal в центре — Клин");
-  assertEq(f.damage, 156, "formation Клин: (16+22) × (2.1 + 2 за двух UNI), pure");
-  assert(ablStep(f, "Dawnbreaker: +2 к множителю (2 героев Универсал)"));
-  const c = ablPlay(ablRun("ABL5b"), ["dawnbreaker", "primal", "cm"]);
-  assertEq(c.damage, 81, "classic хай-карта 27 × 3");
+test("Dawnbreaker — Fire Ring: в слоте 4 даёт +1 множитель за Универсала", () => {
+  const c = ablPlay(ablRun("ABL5"), ["cm", "tusk", "primal", "dawnbreaker"]);
+  assert(ablStep(c, "Dawnbreaker: +2 к множителю (2 × Универсал)"), "primal + dawnbreaker = 2 UNI");
+  assertEq(c.damage, 125, "classic: хай-карта (5+25+8 Tusk) × (1+2) × 1.1 ставка");
+  const front = ablPlay(ablRun("ABL5b", "formation"), ["dawnbreaker", "primal", "cm"]);
+  assert(!ablStep(front, "Dawnbreaker: +"), "слот 1 — молчит");
 });
 
 test("Primal — Pulverize: ×2 в центре пятёрки (и 4 Protect 1 собирается)", () => {
@@ -159,12 +158,12 @@ test("Pipe: магический урон игнорирует сопротив�
   const s = ablRun("ABL12", "formation");
   s.combat.wave.towerId = "t3"; // armor 18, mr 25%
   const bare = ablPlay(s, ["juggernaut", "cm", "zeus", "axe", "morphling"]);
-  assertEq(bare.damage, 260, "Треугольник: (16+9+24+8 Jugg+10 Axe) × (1.9+0.4+2 Zeus) × 1.25, минус 30% mr");
+  assertEq(bare.damage, 230, "Треугольник: (16+5+6 связки+24+10 Axe) × (1.9+0.4+2 Zeus) × 1.25, минус 30% mr");
   const s2 = ablRun("ABL12b", "formation");
   s2.combat.wave.towerId = "t3";
   s2.player.items.push("pipe");
   const res = ablPlay(s2, ["juggernaut", "cm", "zeus", "axe", "morphling"]);
-  assertEq(res.damage, 457, "69 × (1.9+0.4+2+1 Pipe) × 1.25 — сопротивление игнорируется");
+  assertEq(res.damage, 404, "(61 × (4.3+1 Pipe)) × 1.25 = 404 — сопротивление игнорируется");
   assert(ablStep(res, "магический урон игнорирует сопротивление"));
 });
 
@@ -175,7 +174,7 @@ test("Ethereal Blade: ×1.4 за магический урон", () => {
   s.combat.wave.towerId = "t3";
   s.player.items.push("ethereal_blade");
   const res = ablPlay(s, ["juggernaut", "cm", "zeus", "axe", "morphling"]);
-  assertEq(res.damage, 363, "69 × (4.3 × 1.4) × 1.25, минус 30% mr");
+  assertEq(res.damage, 321, "61 × (4.3 × 1.4 Ethereal) × 1.25, минус 30% mr");
   assert(ablStep(res, "Ethereal Blade: ×1.4"));
 });
 

@@ -12,6 +12,13 @@ const Effects = (function () {
   function fmt(v) {
     return v > 0 ? "+" + v : String(v);
   }
+  // Русское множественное число: ru(2, "героя", "героев", "герой") -> "героя".
+  function ru(n, few, many, one) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+    return many;
+  }
 
   // Аудит силы (фаза D): каждое применение эффектов пишет структурный след в
   // scoring.trace — слои power/mult с разделением hero/item и списки
@@ -103,18 +110,18 @@ const Effects = (function () {
       const n = ctx.playedCards.length;
       if (!n) return null;
       ctx.scoring.power += effect.value * n;
-      return { label: `${ctx.sourceName}: +${effect.value * n} силы (${n} героев × ${effect.value})` };
+      return { label: `${ctx.sourceName}: +${effect.value * n} силы (${n} ${ru(n, "героя", "героев", "герой")} × ${effect.value})` };
     },
     ADD_MULT_PER_PLAYED(effect, ctx) {
       const n = ctx.playedCards.length;
       if (!n) return null;
       const bonus = Math.round(effect.value * n * 100) / 100;
       ctx.scoring.mult += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} к множителю (${n} героев × ${effect.value})` };
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${n} ${ru(n, "героя", "героев", "герой")} × ${effect.value})` };
     },
     TOWER_BURN(effect, ctx) {
       ctx.scoring.flags.towerBurn = (ctx.scoring.flags.towerBurn || 0) + effect.value;
-      return { label: `${ctx.sourceName}: осада — башне нанесётся +${effect.value} чистого урона сверх удара` };
+      return { label: `${ctx.sourceName}: башня получит +${effect.value} чистого урона сверх удара` };
     },
     ADD_MULT_PER_ITEM(effect, ctx) {
       const n = ctx.state.player.items.length;
@@ -128,14 +135,14 @@ const Effects = (function () {
       if (!lost) return null;
       const bonus = Math.round(effect.value * lost * 10) / 10;
       ctx.scoring.mult += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} к множителю (${lost} разрушенных казарм)` };
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${lost} ${ru(lost, "разрушенных казармы", "разрушенных казарм", "разрушенная казарма")})` };
     },
     ADD_POWER_PER_LOST_BARRACKS(effect, ctx) {
       const max = (typeof Game !== "undefined" && Game.BARRACKS_MAX) || 6;
       const lost = Math.max(0, max - ctx.state.run.barracks);
       if (!lost) return null;
       ctx.scoring.power += effect.value * lost;
-      return { label: `${ctx.sourceName}: +${effect.value * lost} силы (${lost} разрушенных казарм)` };
+      return { label: `${ctx.sourceName}: +${effect.value * lost} силы (${lost} ${ru(lost, "разрушенных казармы", "разрушенных казарм", "разрушенная казарма")})` };
     },
     ADD_POWER_PER_PAIR_GROUP(effect, ctx) {
       const counts = new Map();
@@ -150,7 +157,7 @@ const Effects = (function () {
       const empty = Math.max(0, maxSlots - ctx.playedCards.length);
       if (!empty) return null;
       ctx.scoring.power += effect.value * empty;
-      return { label: `${ctx.sourceName}: +${effect.value * empty} силы (${empty} пустых позиций)` };
+      return { label: `${ctx.sourceName}: +${effect.value * empty} силы (${empty} ${ru(empty, "пустых слота", "пустых слотов", "пустой слот")})` };
     },
     ADD_POWER_PER_SAME_RANK(effect, ctx) {
       if (!ctx.card) return null;
@@ -158,22 +165,25 @@ const Effects = (function () {
       const near = ctx.playedCards.filter((c) => Math.abs(c.power - ctx.card.power) <= tol).length - 1;
       if (near <= 0) return null;
       ctx.scoring.power += effect.value * near;
-      const how = tol ? `${near} героя ранга ±${tol}` : `${near} героя своего ранга`;
+      const how = tol ? `${near} ${ru(near, "героя", "героев", "герой")} с силой ±${tol}` : `${near} ${ru(near, "героя", "героев", "герой")} его силы`;
       return { label: `${ctx.sourceName}: +${effect.value * near} силы (${how})` };
     },
     ADD_POWER_PER_DISCARD(effect, ctx) {
       const bonus = Math.min(effect.cap || Infinity, ctx.state.player.discardUids.length) * effect.value;
       if (!bonus) return null;
       ctx.scoring.power += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} силы из сброса (${ctx.state.player.discardUids.length} карт)` };
+      const nDis = ctx.state.player.discardUids.length;
+      return { label: `${ctx.sourceName}: +${bonus} силы из сброса (${nDis} ${ru(nDis, "карты", "карт", "карта")})` };
     },
     ADD_POWER_PER_USED_DISCARD(effect, ctx) {
-      const base = (typeof Game !== "undefined" && Game.DISCARDS_PER_WAVE) || 3;
+      const base = (typeof Game !== "undefined" && Game.discardsPerWave)
+        ? Game.discardsPerWave(ctx.state)
+        : 3;
       const used = Math.max(0, base - ctx.state.player.discardsLeft);
       const bonus = used * (effect.value || 4);
       if (!bonus) return null;
       ctx.scoring.power += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} силы (${used} ТП-сбросов за волну)` };
+      return { label: `${ctx.sourceName}: +${bonus} силы (${used} ${used === 1 ? "сброс" : used < 5 ? "сброса" : "сбросов"} за волну)` };
     },
     ADD_POWER_PER_NEIGHBOR(effect, ctx) {
       const n = ctx.playedCards ? ctx.playedCards.length : 0;
@@ -207,7 +217,7 @@ const Effects = (function () {
       const n = ctx.playedCards.filter((c) => c.attr === effect.attr).length;
       if (!n) return null;
       ctx.scoring.mult += effect.value * n;
-      return { label: `${ctx.sourceName}: +${effect.value * n} к множителю (${n} героев ${Content.attrNames[effect.attr]})` };
+      return { label: `${ctx.sourceName}: +${effect.value * n} к множителю (${n} × ${Content.attrNames[effect.attr]})` };
     },
     LAST_HIT_GOLD(effect, ctx) {
       ctx.scoring.flags.lastHitGold = (ctx.scoring.flags.lastHitGold || 0) + effect.value;
@@ -249,7 +259,7 @@ const Effects = (function () {
       ctx.scoring.flags.grantXpOnClear = (ctx.scoring.flags.grantXpOnClear || 0) + effect.value;
       return { label: `${ctx.sourceName}: казармы = опыт (при зачистке с потерей казармы)` };
     },
-    // Скипетр «Avalanche» (Tiny): использованные ТП-сбросы волны растят ранг
+    // Скипетр «Avalanche» (Tiny): использованные сбросы волны растят ранг
     // навсегда (heroCharges, читается в Game.rankOf). Ранг влияет на комбо.
     GAIN_RANK_PER_USED_DISCARD(effect, ctx) {
       if (!ctx.sourceId) return null;
@@ -261,7 +271,7 @@ const Effects = (function () {
       const after = Math.min(effect.cap || Infinity, before + used * (effect.value || 1));
       if (after === before) return null;
       charges[ctx.sourceId].rank = after;
-      return { label: `${ctx.sourceName}: ранг растёт +${after - before} (крепчает на ${after})` };
+      return { label: `${ctx.sourceName}: сила выросла +${after - before} (теперь ${after})` };
     },
     // Осколок «Phantom Rush» (PL): иллюзии этого боя считаются заданным атрибутом.
     // Правило боя — CREATE_ILLUSION читает флаг при создании иллюзии.
@@ -297,37 +307,47 @@ const Effects = (function () {
       ctx.scoring.power += effect.value * n;
       return { label: `${ctx.sourceName}: +${effect.value * n} силы (${n} × ${Content.attrNames[effect.attr]})` };
     },
-    // +множитель за каждый использованный в бою ТП-сброс.
+    // +множитель за каждый использованный в бою сброс.
     ADD_MULT_PER_USED_DISCARD(effect, ctx) {
       const base = Game.discardsPerWave(ctx.state);
       const used = Math.max(0, base - ctx.state.player.discardsLeft);
       if (!used) return null;
       const bonus = Math.round(effect.value * used * 100) / 100;
       ctx.scoring.mult += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} к множителю (${used} ТП-сброса)` };
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${used} ${used === 1 ? "сброс" : used < 5 ? "сброса" : "сбросов"})` };
     },
     // Скипетр «Sanity Overload» (Outworld): каждый атрибут СВЕРХ третьего.
+    // Осколок «Essence Flux» (preFlag uniDistinct): Универсал добирает
+    // недостающий атрибут — паритет с Cond.evaluate (DISTINCT_ATTRIBUTES_ABOVE).
     ADD_POWER_PER_EXTRA_DISTINCT(effect, ctx) {
       if (!ctx.playedCards) return null;
-      const distinct = new Set(ctx.playedCards.map((c) => c.attr)).size;
-      const extra = Math.max(0, distinct - 3);
+      const attrs = new Set();
+      for (const c of ctx.playedCards) {
+        if (c.nativeAttr && c.nativeAttr !== c.attr) attrs.add(c.nativeAttr);
+        attrs.add(c.attr);
+      }
+      const uniDistinct = !!(ctx.state.combat && ctx.state.combat.scoring &&
+        ctx.state.combat.scoring.flags && ctx.state.combat.scoring.flags.uniDistinct);
+      if (uniDistinct && ctx.playedCards.some((c) => c.attr === "uni")) attrs.add("⬤");
+      const extra = Math.max(0, attrs.size - 3);
       if (!extra) return null;
       ctx.scoring.power += effect.value * extra;
       if (effect.extraMult) ctx.scoring.mult += effect.extraMult * extra;
       const parts = [`+${effect.value * extra} силы`];
       if (effect.extraMult) parts.push(`+${Math.round(effect.extraMult * extra * 100) / 100} к множителю`);
-      return { label: `${ctx.sourceName}: ${parts.join(", ")} (${extra} лишних атрибута)` };
+      return { label: `${ctx.sourceName}: ${parts.join(", ")} (${extra} ${ru(extra, "лишних атрибута", "лишних атрибутов", "лишний атрибут")})` };
     },
-    // Осколок «Shuriken Toss» (Bounty): точный ласт-хит копит удачу (кап).
+    // Осколок «Shuriken Toss» (Bounty) и предмет «Заячья лапка»: точный
+    // ласт-хит копит удачу (кап).
     ADD_LUCK_ON_LAST_HIT(effect, ctx) {
       if (!ctx.sourceId) return null;
-      ctx.scoring.flags.luckOnLastHit = { heroId: ctx.sourceId, cap: effect.cap || 3 };
+      ctx.scoring.flags.luckOnLastHit = { heroId: ctx.sourceId, cap: effect.cap || 3, name: ctx.sourceName };
       return { label: `${ctx.sourceName}: точный ласт-хит даст +1 удачу` };
     },
-    // Скипетр «Jinada» (Bounty): точный ласт-хит возвращает ТП-сброс на волну.
+    // Скипетр «Jinada» (Bounty): точный ласт-хит возвращает сброс на волну.
     REFUND_DISCARD(effect, ctx) {
       ctx.scoring.flags.refundDiscards = (ctx.scoring.flags.refundDiscards || 0) + (effect.value || 1);
-      return { label: `${ctx.sourceName}: точный ласт-хит вернёт ${effect.value || 1} ТП-сброс` };
+      return { label: `${ctx.sourceName}: точный ласт-хит вернёт ${effect.value || 1} сброс` };
     },
     // Скипетр «Shatter» (AA): зачистка волны режет HP следующей башни акта.
     SET_NEXT_WAVE_PCT(effect, ctx) {
@@ -343,7 +363,8 @@ const Effects = (function () {
       const after = Math.min(effect.cap || Infinity, before + (effect.value || 1));
       if (after === before) return null;
       charges[ctx.sourceId].count = after;
-      return { label: `${ctx.sourceName}: +${after - before} заряд (сила копится)` };
+      const gained = after - before;
+      return { label: `${ctx.sourceName}: +${gained} ${ru(gained, "заряда", "зарядов", "заряд")} (сила копится)` };
     },
     SPEND_CHARGES_POWER(effect, ctx) {
       if (!ctx.sourceId) return null;
@@ -353,7 +374,7 @@ const Effects = (function () {
       const bonus = held * effect.value;
       charges[ctx.sourceId].count = 0;
       ctx.scoring.power += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} силы (${held} заряда из сбросов)` };
+      return { label: `${ctx.sourceName}: +${bonus} силы (${held} ${ru(held, "заряда", "зарядов", "заряд")} из сбросов)` };
     },
     // Скипетр «Invoke Mastery» (Invoker): N зарядов — усиление множителем.
     SPEND_CHARGES_MULT(effect, ctx) {
@@ -373,7 +394,7 @@ const Effects = (function () {
       const bonus = Math.min(effect.cap || Infinity, moves * effect.value);
       ctx.scoring.power += bonus;
       if (effect.consume) ctx.state.combat.movesUsed = 0;
-      return { label: `${ctx.sourceName}: +${bonus} силы (${moves} перестановок)` };
+      return { label: `${ctx.sourceName}: +${bonus} силы (${moves} ${ru(moves, "перестановки", "перестановок", "перестановка")})` };
     },
     // Скипетр «Rearm Protocol» (Tinker): рероллы лавки — заряды перегрева.
     ADD_POWER_PER_REROLL_CHARGE(effect, ctx) {
@@ -381,7 +402,7 @@ const Effects = (function () {
       if (!charges) return null;
       const bonus = charges * effect.value;
       ctx.scoring.power += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} силы (${charges} реролла в ядре)` };
+      return { label: `${ctx.sourceName}: +${bonus} силы (${charges} ${ru(charges, "обновления лавки", "обновлений лавки", "обновление лавки")})` };
     },
     CONSUME_REROLL_CHARGES(effect, ctx) {
       const before = ctx.state.run.rerollCharges || 0;
@@ -394,16 +415,16 @@ const Effects = (function () {
       const used = Math.max(0, Game.discardsPerWave(ctx.state) - ctx.state.player.discardsLeft);
       if (!used) return null;
       ctx.state.run.gold += used * effect.value;
-      return { label: `${ctx.sourceName}: +${used * effect.value} золота (${used} ТП-сброса)`, gold: used * effect.value };
+      return { label: `${ctx.sourceName}: +${used * effect.value} золота (${used} ${used === 1 ? "сброс" : used < 5 ? "сброса" : "сбросов"})`, gold: used * effect.value };
     },
     // Предмет «Miser's Chest»: скупость вознаграждается — золото за каждый
-    // неиспользованный ТП-сброс волны, начисляется в каждом бою.
+    // неиспользованный сброс волны, начисляется в каждом бою.
     ADD_GOLD_PER_UNUSED_DISCARD(effect, ctx) {
       const unused = ctx.state.player.discardsLeft;
       if (!unused) return null;
       const gain = unused * effect.value;
       ctx.state.run.gold += gain;
-      return { label: `${ctx.sourceName}: +${gain} золота (${unused} неиспользованных ТП-сброса)`, gold: gain };
+      return { label: `${ctx.sourceName}: +${gain} золота (${unused} неиспользованн${unused === 1 ? "ый" : "ых"} ${unused === 1 ? "сброс" : unused < 5 ? "сброса" : "сбросов"})`, gold: gain };
     },
     // Скипетр «Arcane Reserve» (CM): Mana Reserve копится с неиспользованных
     // сбросов волны (game.js) и тратится в первом бою следующей волны.
@@ -431,7 +452,7 @@ const Effects = (function () {
       const bonus = Math.min(effect.cap || Infinity, distinct * effect.value);
       if (!bonus) return null;
       ctx.scoring.mult += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} к множителю (${distinct} типа комбо)` };
+      return { label: `${ctx.sourceName}: +${bonus} к множителю (${distinct} ${ru(distinct, "типа комбо", "типов комбо", "тип комбо")})` };
     },
     ADD_POWER_PER_DISTINCT_COMBO(effect, ctx) {
       if (!ctx.combo) return null;
@@ -440,7 +461,7 @@ const Effects = (function () {
       const bonus = Math.min(effect.cap || Infinity, distinct * effect.value);
       if (!bonus) return null;
       ctx.scoring.power += bonus;
-      return { label: `${ctx.sourceName}: +${bonus} силы (${distinct} типа комбо)` };
+      return { label: `${ctx.sourceName}: +${bonus} силы (${distinct} ${ru(distinct, "типа комбо", "типов комбо", "тип комбо")})` };
     },
     // Скипетр «Multicast+» (Ogre): шанс повторить удар мелкой копией.
     SET_ECHO_POWER(effect, ctx) {
@@ -473,7 +494,7 @@ const Effects = (function () {
       const held = (ctx.state.run.heroCharges[ctx.sourceId] || {}).count || 0;
       if (!held) return null;
       ctx.scoring.power += held * effect.value;
-      return { label: `${ctx.sourceName}: +${held * effect.value} силы (${held} stacks)` };
+      return { label: `${ctx.sourceName}: +${held * effect.value} силы (${held} ${ru(held, "стека", "стеков", "стек")})` };
     },
     // Осколок «Press the Attack» (Legion): прокачанные герои бьют плотнее.
     ADD_POWER_PER_LEVELED_HERO(effect, ctx) {
@@ -492,6 +513,138 @@ const Effects = (function () {
       const bonus = Math.min(effect.cap || Infinity, others.length * effect.value);
       ctx.scoring.power += bonus;
       return { label: `${ctx.sourceName}: +${bonus} силы (украл ${others.length} способност${others.length === 1 ? "ь" : "и"})` };
+    },
+
+    // ===== Fun-билды (docs/PROPOSALS_FUN_BUILDS.md) =====
+
+    // Wraith King: растёт навсегда за каждый бой, где сыгран.
+    GAIN_RANK_PER_FIGHT(effect, ctx) {
+      if (!ctx.sourceId) return null;
+      const charges = ctx.state.run.heroCharges;
+      charges[ctx.sourceId] = charges[ctx.sourceId] || {};
+      const before = charges[ctx.sourceId].rank || 0;
+      const after = Math.min(effect.cap || Infinity, before + (effect.value || 1));
+      if (after === before) return null;
+      charges[ctx.sourceId].rank = after;
+      const total = Game.rankOf(ctx.state, ctx.sourceId);
+      return { label: `${ctx.sourceName}: воскрешает сильнее — теперь ${total} силы` };
+    },
+    // Magnus: соседи по слоту бьют сильнее — процент их суммарной силы.
+    ADD_POWER_NEIGHBOR_PCT(effect, ctx) {
+      if (!ctx.playedCards || ctx.slotIndex == null || ctx.slotIndex < 0) return null;
+      const n = ctx.playedCards.length;
+      if (n < 2) return null;
+      let neighborPower = 0, count = 0;
+      ctx.playedCards.forEach((c, i) => {
+        if (Math.abs(i - ctx.slotIndex) === 1) { neighborPower += c.power; count += 1; }
+      });
+      if (!count) return null;
+      const bonus = Math.max(1, Math.round(neighborPower * effect.pct / 100));
+      ctx.scoring.power += bonus;
+      const word = count === 1 ? "сосед" : "соседа";
+      return { label: `${ctx.sourceName}: рог бьёт по площади — +${bonus} силы (${count} ${word} × ${effect.pct}%)` };
+    },
+    // Silencer: скамейка бьёт — +сила за каждого героя, оставшегося в руке.
+    ADD_POWER_PER_HELD(effect, ctx) {
+      const selected = new Set(ctx.state.combat.selectedUids || []);
+      const held = ctx.state.player.handUids.filter((uid) => !selected.has(uid)).length;
+      if (!held) return null;
+      ctx.scoring.power += effect.value * held;
+      return { label: `${ctx.sourceName}: скамейка бьёт — +${effect.value * held} силы (${held} в руке)` };
+    },
+    // «Скипетр Барона»: за каждого героя заданного ранга, оставшегося в руке — ×множ.
+    MULT_PER_HELD_RANK(effect, ctx) {
+      const selected = new Set(ctx.state.combat.selectedUids || []);
+      const held = ctx.state.player.handUids
+        .filter((uid) => !selected.has(uid))
+        .map((uid) => ctx.state.cards[uid])
+        .filter(Boolean);
+      const kings = held.filter((c) => Game.rankOf(ctx.state, c.heroId) >= (effect.rank || 12)).length;
+      if (!kings) return null;
+      const total = Math.min(effect.cap || Infinity, 1 + (effect.value - 1) * kings);
+      ctx.scoring.mult *= total;
+      trace(ctx, "mult_mult", total);
+      return { label: `${ctx.sourceName}: ${kings} ${ru(kings, "короля", "королей", "король")} в руке — ×${total} к множителю` };
+    },
+    // «Спелый банан»: после волны может сгнить — предмет уничтожается.
+    DESTROY_SELF_CHANCE(effect, ctx) {
+      const items = ctx.state.player.items;
+      const idx = items.indexOf(ctx.sourceId);
+      if (idx === -1) return null;
+      if (!Rng.current().chance(effect.chance)) {
+        return { label: `${ctx.sourceName}: банан выдержал ещё одну волну 🍌` };
+      }
+      items.splice(idx, 1);
+      return { label: `${ctx.sourceName}: банан сгнил. Предмет уничтожен` };
+    },
+    // «Три звезды»: группа из size героев одного ранга получает +pct% силы каждый.
+    BUFF_RANK_GROUP(effect, ctx) {
+      if (!ctx.playedCards || !ctx.playedCards.length) return null;
+      const counts = new Map();
+      for (const c of ctx.playedCards) counts.set(c.power, (counts.get(c.power) || 0) + 1);
+      let bonus = 0, members = 0;
+      for (const c of ctx.playedCards) {
+        if ((counts.get(c.power) || 0) >= (effect.size || 3)) {
+          bonus += Math.max(1, Math.floor(c.power * effect.pct / 100));
+          members += 1;
+        }
+      }
+      if (!bonus) return null;
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: ${members} ${ru(members, "героя", "героев", "герой")} группы усилены — +${bonus} силы` };
+    },
+    // «Демоническая форма»: каждый бой волны качает следующий бой этой волны.
+    WAVE_RAMP_POWER(effect, ctx) {
+      const idx = ctx.state.combat.fightIndex || 0;
+      if (!idx) return { label: `${ctx.sourceName}: форма растёт — каждый следующий бой волны сильнее` };
+      const bonus = effect.value * idx;
+      ctx.scoring.power += bonus;
+      return { label: `${ctx.sourceName}: демоническая форма — +${bonus} силы (бой ${idx + 1} волны)` };
+    },
+    // «Мелкие клинки»: +сила за каждого героя рангом ≤ заданного.
+    ADD_POWER_PER_WEAK_RANK(effect, ctx) {
+      if (!ctx.playedCards || !ctx.playedCards.length) return null;
+      const cap = effect.rank || 4;
+      const weak = ctx.playedCards.filter((c) => c.power <= cap).length;
+      if (!weak) return null;
+      ctx.scoring.power += effect.value * weak;
+      return { label: `${ctx.sourceName}: мелочь колет — +${effect.value * weak} силы (${weak} героя рангом ≤${cap})` };
+    },
+    // Chaos Knight: чистая лотерея — ×множ или плоская сила.
+    CHAOS_BOLT(effect, ctx) {
+      if (Rng.current().chance(0.5)) {
+        ctx.scoring.mult *= effect.mult;
+        trace(ctx, "mult_mult", effect.mult);
+        return { label: `${ctx.sourceName}: хаос сложился — ×${effect.mult} к множителю` };
+      }
+      ctx.scoring.power += effect.power;
+      trace(ctx, "power", effect.power);
+      return { label: `${ctx.sourceName}: хаос рассыпался — +${effect.power} силы` };
+    },
+    // Pugna: лечение башни обращается в урон (Регенерация/Ярость).
+    HEAL_TO_DAMAGE(effect, ctx) {
+      ctx.scoring.flags.healToDamage = true;
+      return { label: `${ctx.sourceName}: лечение башни обращается в урон` };
+    },
+    // «Осадный колун»: броня башни прибавляется к удару (флаг читает combat).
+    ARMOR_FEED(effect, ctx) {
+      ctx.scoring.flags.armorFeed = true;
+      return { label: `${ctx.sourceName}: броня башни кормит твой удар` };
+    },
+    // «Крысиный ультиматум»: процент maxHp башни поверх удара (кап плоский).
+    TOWER_PCT_BURN(effect, ctx) {
+      ctx.scoring.flags.pctBurn = { pct: effect.pct, capFlat: effect.capFlat || Infinity };
+      return { label: `${ctx.sourceName}: башня потеряет ${effect.pct}% maxHp сверх удара` };
+    },
+    // Techies: при провале волны башня надрывается (флаг читает RETRY_WAVE).
+    FAIL_BURN_PCT(effect, ctx) {
+      ctx.scoring.flags.failBurnPct = effect.pct;
+      return { label: `${ctx.sourceName}: при провале волны башня потеряет ${effect.pct}% maxHp` };
+    },
+    // «Воронка яда»: осадный урон копится между боями волны (флаг читает combat).
+    PERSISTENT_BURN(effect, ctx) {
+      ctx.scoring.flags.persistentBurn = true;
+      return { label: `${ctx.sourceName}: яд больше не смывается — копится до конца волны` };
     },
   };
 

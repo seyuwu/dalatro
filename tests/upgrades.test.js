@@ -123,7 +123,7 @@ test("Скаляр умножается на уровень инстанса", (
   const s = upRun("UPV8");
   s.run.upgrades = ["chistyy_dabor"];
   s.run.upgradeState = { chistyy_dabor: { level: 2, charges: 0, actUses: 0 } };
-  assertEq(Upgrades.sum(s, "discardsBonus"), 2, "+1 ТП-сброс × уровень II");
+  assertEq(Upgrades.sum(s, "discardsBonus"), 2, "+1 сброс × уровень II");
   assertEq(Game.discardsPerWave(s), Ranks.discardsPerWave(s) + 2, "интеграция читает уровень");
 });
 
@@ -405,4 +405,22 @@ test("Ступени: недоступенчатые дефы не предла�
   const offers = Upgrades.generateOffers(s, 12, []);
   assert(!offers.some((o) => o.id === "iskra" && o.tier), "ability-деф без ступеней");
   assert(!offers.some((o) => (o.id === "krolichya_lapka" || o.id === "klever") && o.tier), "удача без ступеней");
+});
+
+test("Ступени: некупленному уровневому — база, «II» только купленному", () => {
+  // Регрессия: nextTier() лениво создавал инстанс (level 1) и некупленному
+  // уровневому дефу предлагал ступень II — покупка шла мимо run.upgrades
+  // и не давала эффекта вовсе.
+  const s = upRun("UPVT3");
+  const all = Upgrades.generateOffers(s, 30, []);
+  assert(all.some((o) => Content.upgrades.byId[o.id] && Content.upgrades.byId[o.id].levels), "в полной выдаче есть уровневый деф");
+  assert(all.every((o) => !o.tier), "ничего не куплено — ступеней в лавке нет");
+  // Купленному уровневому — только следующая ступень, база повторно не приходит.
+  s.run.upgrades = ["chistyy_dabor"];
+  Upgrades.instanceOf(s, "chistyy_dabor");
+  const rest = Content.upgrades.list.filter((u) => u.id !== "chistyy_dabor").map((u) => ({ id: u.id }));
+  const offers = Upgrades.generateOffers(s, 10, rest);
+  const dbo = offers.find((o) => o.id === "chistyy_dabor");
+  assert(dbo && dbo.tier === 2, "купленному предложена ровно ступень II");
+  assert(offers.every((o) => o.id === "chistyy_dabor" || [Upgrades.HAND_SLOT_ID, Upgrades.ATTR_POTION_ID, Upgrades.RECHARGE_ID].includes(o.id)), "кроме ступени — только виртуальные карточки");
 });

@@ -94,7 +94,7 @@ test("Sven — God's Strength: ×1.5 только у сильнейшего", ()
 });
 
 test("Centaur — Trample: +4 за героя только из слота 1 (оба режима)", () => {
-  bfFiresBoth("BF05", null, ["centaur", "cm"], "Centaur Warrunner: +8 силы (2 героев");
+  bfFiresBoth("BF05", null, ["centaur", "cm"], "Centaur Warrunner: +8 силы (2 геро");
   const back = bfPlay(bfRun("BF05b", "formation"), ["cm", "centaur"]);
   assert(!bfStep(back, "Warrunner: +"), "во втором слоте молчит");
 });
@@ -103,10 +103,10 @@ test("Morphling — Morph: копирует атрибут соседа слев
   bfFiresBoth("BF06", null, ["zeus", "morphling"], "Morphling копирует атрибут «Интеллект»");
 });
 
-test("Juggernaut — Blade Fury: +8 только в слоте 1", () => {
-  bfFiresBoth("BF07", null, ["juggernaut", "cm"], "Juggernaut: +8 силы");
-  const back = bfPlay(bfRun("BF07b", "formation"), ["cm", "juggernaut"]);
-  assert(!bfStep(back, "Juggernaut: +8"), "не в слоте 1 — молчит");
+test("Juggernaut — Escort: +1 множитель, если впереди герой сильнее", () => {
+  bfFiresBoth("BF07", null, ["centaur", "juggernaut"], "Juggernaut: +1 к множителю");
+  const front = bfPlay(bfRun("BF07b", "formation"), ["juggernaut", "centaur"]);
+  assert(!bfStep(front, "Juggernaut: +1"), "кэрри позади — эскорт не нужен");
 });
 
 test("PA — Coup de Grace: пара + шанс; без пары шанс не спасает", () => {
@@ -121,7 +121,7 @@ test("PA — Coup de Grace: пара + шанс; без пары шанс не �
   assert(!bfStep(no, "Phantom Assassin: ×2"), "хай-карта: COMBO_MIN pair не выполнен");
 });
 
-test("CM — Frostbite: ТП-сброс даёт +2 золота", () => {
+test("CM — Frostbite: сброс даёт +2 золота", () => {
   const s = bfRun("BF09");
   bfAdd(s, "cm");
   const uid = bfHand(s, ["cm"])[0];
@@ -139,11 +139,11 @@ test("Zeus — Static Field: «рядом INT» — сосед слева/спр
   assert(!bfStep(none, "Zeus: +2"), "INT нет вовсе — молчит");
 });
 
-test("Dawnbreaker — Solar Guardian: +1 множитель за каждого Универсала (включая себя)", () => {
-  const solo = bfPlay(bfRun("BF11", "formation"), ["dawnbreaker"]);
-  assert(bfStep(solo, "Dawnbreaker: +1 к множителю (1 героев Универсал)"), "соло: +1");
-  const duo = bfPlay(bfRun("BF11b", "formation"), ["dawnbreaker", "primal"]);
-  assert(bfStep(duo, "Dawnbreaker: +2 к множителю (2 героев Универсал)"), "дуо UNI: +2");
+test("Dawnbreaker — Fire Ring: в слоте 4 даёт +1 множитель за Универсала", () => {
+  const ring = bfPlay(bfRun("BF11", "formation"), ["cm", "tusk", "pudge", "dawnbreaker"]);
+  assert(bfStep(ring, "Dawnbreaker: +1 к множителю (1 × Универсал)"), "слот 4: считает себя");
+  const front = bfPlay(bfRun("BF11b", "formation"), ["dawnbreaker", "cm"]);
+  assert(!bfStep(front, "Dawnbreaker: +"), "не в слоте 4 — молчит");
 });
 
 test("Primal — Pulverize: ×2 в центре пятёрки; при 4 героях молчит", () => {
@@ -155,18 +155,15 @@ test("Primal — Pulverize: ×2 в центре пятёрки; при 4 гер�
 
 suite("Аудит способностей — таверна");
 
-test("Undying — Decay: +2 за карту в сбросе; пустой сброс молчит", () => {
+test("Undying — Risen Legion: +4 за соседа-Силовика; дальний Силовик не считается", () => {
   const s = bfRun("BF13");
   bfAdd(s, "undying");
-  const uid = bfHand(s, ["undying"])[0];
-  s.player.discardUids = [s.player.deckUids.pop()];
-  s.combat.selectedUids = [uid];
-  Game.dispatch(s, { type: "CONFIRM_FIGHT" });
-  assert(bfStep(s.combat.lastResolution, "Undying: +2 силы из сброса (1 карт)"), "1 карта в сбросе");
+  const f = bfPlay(s, ["undying", "axe", "cm"]);
+  assert(bfStep(f, "Undying: +4 силы"), "сосед Axe (Сила)");
   const s2 = bfRun("BF13b");
   bfAdd(s2, "undying");
-  const no = bfPlay(s2, ["undying"]);
-  assert(!bfStep(no, "Undying: +"), "сброс пуст — молчит");
+  const no = bfPlay(s2, ["undying", "cm", "tusk"]);
+  assert(!bfStep(no, "Undying: +"), "Tusk (Сила) не сосед — молчит");
 });
 
 test("Ogre Magi — Multicast: 25% шанс форсируется «Счастливым случаем»", () => {
@@ -177,15 +174,15 @@ test("Ogre Magi — Multicast: 25% шанс форсируется «Счаст�
   assert(bfStep(f, "Ogre Magi: +3 к множителю"), "форс гарантирует шанс");
 });
 
-test("Legion — Duel: пара и выше даёт +12; хай-карта молчит", () => {
+test("Legion — Moment of Courage: +10 из слота 2; на краю молчит", () => {
   const s = bfRun("BF15");
-  bfAdd(s, ["legion", "phantom_lancer"]);
-  const f = bfPlay(s, ["legion", "phantom_lancer"]);
-  assert(bfStep(f, "Legion Commander: +12 силы"), "пара 6-6");
+  bfAdd(s, "legion");
+  const f = bfPlay(s, ["cm", "legion"]);
+  assert(bfStep(f, "Legion Commander: +10 силы"), "слот 2");
   const s2 = bfRun("BF15b");
   bfAdd(s2, "legion");
   const no = bfPlay(s2, ["legion", "cm"]);
-  assert(!bfStep(no, "Legion Commander: +12"), "хай-карта — молчит");
+  assert(!bfStep(no, "Legion Commander: +10"), "слот 1 — молчит");
 });
 
 test("Huskar — Berserker's Blood: +3 за потерянную казарму", () => {
@@ -193,22 +190,22 @@ test("Huskar — Berserker's Blood: +3 за потерянную казарму"
   bfAdd(s, "huskar");
   s.run.barracks = 1;
   const f = bfPlay(s, ["huskar", "cm"]);
-  assert(bfStep(f, "Huskar: +3 силы (1 разрушенных казарм)"), "казарма потеряна");
+  assert(bfStep(f, "Huskar: +3 силы (1 разрушенная казарма)"), "казарма потеряна");
   const s2 = bfRun("BF16b");
   bfAdd(s2, "huskar");
   const no = bfPlay(s2, ["huskar", "cm"]);
   assert(!bfStep(no, "Huskar: +"), "казармы целы — молчит");
 });
 
-test("Tidehunter — Kraken Shell: +2 множителя ровно при 5 героях", () => {
+test("Tidehunter — Anchor Smash: +10 из слота 4; в слоте 2 молчит", () => {
   const s = bfRun("BF17");
   bfAdd(s, "tidehunter");
-  const f = bfPlay(s, ["tidehunter", "cm", "tusk", "axe", "juggernaut"]);
-  assert(bfStep(f, "Tidehunter: +2 к множителю"), "5 героев");
+  const f = bfPlay(s, ["cm", "tusk", "pudge", "tidehunter"]);
+  assert(bfStep(f, "Tidehunter: +10 силы"), "слот 4");
   const s2 = bfRun("BF17b");
   bfAdd(s2, "tidehunter");
-  const no = bfPlay(s2, ["tidehunter", "cm", "tusk"]);
-  assert(!bfStep(no, "Tidehunter: +2"), "3 героя — молчит");
+  const no = bfPlay(s2, ["cm", "tidehunter", "tusk"]);
+  assert(!bfStep(no, "Tidehunter: +10"), "слот 2 — молчит");
 });
 
 test("Kunkka — Ghostship: центр при 4+ героях", () => {
@@ -242,34 +239,34 @@ test("Bounty — Track: флаг ласт-хит-золота выставляе
   assert(bfStep(f, "Bounty Hunter: точный ласт-хит принесёт +8 золота"), "флаг в стеке");
 });
 
-test("Slark — Essence Shift: +4 за использованный ТП-сброс волны", () => {
+test("Slark — Essence Shift: +4 за использованный сброс волны", () => {
   const s = bfRun("BF21");
   bfAdd(s, "slark");
   s.player.discardsLeft = 2; // 1 сброс использован
   const f = bfPlay(s, ["slark", "cm"]);
-  assert(bfStep(f, "Slark: +4 силы (1 ТП-сбросов за волну)"), "1 использованный сброс");
+  assert(bfStep(f, "Slark: +4 силы (1 сброс за волну)"), "1 использованный сброс");
   const s2 = bfRun("BF21b");
   bfAdd(s2, "slark");
   const no = bfPlay(s2, ["slark", "cm"]);
   assert(!bfStep(no, "Slark: +"), "сбросы не тратились — молчит");
 });
 
-test("Phantom Lancer — Precision Aura: все сыгранные AGI", () => {
+test("Phantom Lancer — Spirit Lance: +7 из слота 2", () => {
   const s = bfRun("BF22");
   bfAdd(s, "phantom_lancer");
-  const f = bfPlay(s, ["phantom_lancer", "juggernaut", "pa"]);
-  assert(bfStep(f, "Phantom Lancer: +3 к множителю"), "все трое AGI");
+  const f = bfPlay(s, ["cm", "phantom_lancer"]);
+  assert(bfStep(f, "Phantom Lancer: +7 силы"), "слот 2");
   const s2 = bfRun("BF22b");
   bfAdd(s2, "phantom_lancer");
-  const no = bfPlay(s2, ["phantom_lancer", "juggernaut", "cm"]);
-  assert(!bfStep(no, "Phantom Lancer: +3"), "CM ломает мону — молчит");
+  const no = bfPlay(s2, ["phantom_lancer", "cm"]);
+  assert(!bfStep(no, "Phantom Lancer: +7"), "слот 1 — молчит");
 });
 
 test("Anti-Mage — Mana Break: +4 за пустую позицию", () => {
   const s = bfRun("BF23");
   bfAdd(s, "anti_mage");
   const f = bfPlay(s, ["anti_mage", "cm", "juggernaut"]);
-  assert(bfStep(f, "Anti-Mage: +8 силы (2 пустых позиций)"), "3 из 5 слотов");
+  assert(bfStep(f, "Anti-Mage: +8 силы (2 пустых слота)"), "3 из 5 слотов");
   const s2 = bfRun("BF23b");
   bfAdd(s2, "anti_mage");
   const no = bfPlay(s2, ["anti_mage", "cm", "juggernaut", "axe", "tusk"]);
@@ -358,26 +355,26 @@ test("Invoker — Invoke: 3+ разных атрибута", () => {
   assert(!bfStep(no, "Invoker: +3"), "два атрибута — молчит");
 });
 
-test("Storm Spirit — Ball Lightning: +9 из первого слота", () => {
+test("Storm Spirit — Electric Swing: +9 рядом с более сильным героем", () => {
   const s = bfRun("BF32");
   bfAdd(s, "storm_spirit");
-  const f = bfPlay(s, ["storm_spirit", "cm"]);
-  assert(bfStep(f, "Storm Spirit: +9 силы"), "слот 1");
+  const f = bfPlay(s, ["cm", "storm_spirit", "centaur"]);
+  assert(bfStep(f, "Storm Spirit: +9 силы"), "сосед Centaur 10 сильнее Storm 9");
   const s2 = bfRun("BF32b");
   bfAdd(s2, "storm_spirit");
   const no = bfPlay(s2, ["cm", "storm_spirit"]);
-  assert(!bfStep(no, "Storm Spirit: +9"), "слот 2 — молчит");
+  assert(!bfStep(no, "Storm Spirit: +9"), "сосед слабее — молчит");
 });
 
-test("Outworld — Sanity's Eclipse: +12 при 3+ атрибутах", () => {
+test("Outworld — Astral Imprisonment: +12 из слота 4", () => {
   const s = bfRun("BF33");
   bfAdd(s, "outworld");
-  const f = bfPlay(s, ["outworld", "axe", "pa"]);
-  assert(bfStep(f, "Outworld Destroyer: +12 силы"), "три атрибута");
+  const f = bfPlay(s, ["cm", "tusk", "pudge", "outworld"]);
+  assert(bfStep(f, "Outworld Destroyer: +12 силы"), "слот 4");
   const s2 = bfRun("BF33b");
   bfAdd(s2, "outworld");
-  const no = bfPlay(s2, ["outworld", "axe"]);
-  assert(!bfStep(no, "Outworld Destroyer: +12"), "два атрибута — молчит");
+  const no = bfPlay(s2, ["cm", "outworld", "tusk"]);
+  assert(!bfStep(no, "Outworld Destroyer: +12"), "слот 2 — молчит");
 });
 
 test("AA — Ice Blast: на боссе с Aegis отрицает возрождение", () => {
@@ -401,30 +398,31 @@ test("Enigma — Eidolon: иллюзия вступает в бой", () => {
 
 suite("Аудит способностей — универсалы");
 
-test("Io — Tether: «есть герой Силы» — любой в строю (не сосед)", () => {
+test("Io — Tether Pull: +1 множитель за соседа-Силовика (не «есть в строю»)", () => {
   const s = bfRun("BF36");
   bfAdd(s, "io");
   const f = bfPlay(s, ["io", "axe"]);
-  assert(bfStep(f, "Io: +6 силы"), "силовик в строю");
+  assert(bfStep(f, "Io: +1 к множителю"), "сосед Axe (Сила)");
   const sfar = bfRun("BF36b");
   bfAdd(sfar, "io");
-  const far = bfPlay(sfar, ["io", "cm", "tusk"]);
-  assert(bfStep(far, "Io: +6 силы"), "EXISTS: силовик не сосед — всё равно стреляет");
+  const far = bfPlay(sfar, ["io", "cm", "axe"]);
+  assert(!bfStep(far, "Io: +1"), "силовик не сосед — молчит (регрессия EXISTS)");
   const s2 = bfRun("BF36c");
   bfAdd(s2, "io");
   const no = bfPlay(s2, ["io", "cm"]);
-  assert(!bfStep(no, "Io: +6"), "силовиков нет — молчит");
+  assert(!bfStep(no, "Io: +1"), "силовиков нет — молчит");
 });
 
-test("Muerta — Dead Shot: +8 в слоте 3", () => {
+test("Muerta — Pallbearer: +1 множитель и ласт-хит-золото на последней позиции", () => {
   const s = bfRun("BF37");
   bfAdd(s, "muerta");
   const f = bfPlay(s, ["cm", "tusk", "muerta"]);
-  assert(bfStep(f, "Muerta: +8 силы"), "слот 3");
+  assert(bfStep(f, "Muerta: +1 к множителю"), "последняя позиция");
+  assert(bfStep(f, "Muerta: точный ласт-хит принесёт +4 золота"), "флаг ласт-хит-золота");
   const s2 = bfRun("BF37b");
   bfAdd(s2, "muerta");
-  const no = bfPlay(s2, ["cm", "muerta", "tusk"]);
-  assert(!bfStep(no, "Muerta: +8"), "слот 2 — молчит");
+  const no = bfPlay(s2, ["muerta", "cm", "tusk"]);
+  assert(!bfStep(no, "Muerta: +1"), "не последняя — молчит");
 });
 
 test("Marci — Sidekick: сосед другого атрибута", () => {
@@ -449,15 +447,19 @@ test("Snapfire — Gobble & Shoot: +1 множитель на последней
   assert(!bfStep(no, "Snapfire: +1"), "первая позиция — молчит");
 });
 
-test("Void Spirit — Dissimilate: +8 если сильнейший", () => {
+test("Void Spirit — Prism Line: +2 за строй без повторов атрибутов рядом", () => {
   const s = bfRun("BF40");
   bfAdd(s, "void_spirit");
-  const f = bfPlay(s, ["void_spirit", "cm"]);
-  assert(bfStep(f, "Void Spirit: +8 силы"), "6 против 2");
+  const f = bfPlay(s, ["void_spirit", "cm", "axe"]);
+  assert(bfStep(f, "Void Spirit: +2 к множителю"), "UNI-INT-STR: повторов нет");
   const s2 = bfRun("BF40b");
-  bfAdd(s2, "void_spirit");
-  const no = bfPlay(s2, ["void_spirit", "centaur"]);
-  assert(!bfStep(no, "Void Spirit: +8"), "Centaur сильнее — молчит");
+  bfAdd(s2, ["void_spirit", "io"]);
+  const no = bfPlay(s2, ["void_spirit", "io"]);
+  assert(!bfStep(no, "Void Spirit: +2"), "два Универсала рядом — молчит");
+  const s3 = bfRun("BF40c");
+  bfAdd(s3, "void_spirit");
+  const solo = bfPlay(s3, ["void_spirit"]);
+  assert(!bfStep(solo, "Void Spirit: +2"), "соло — молчит");
 });
 
 test("Kez — Echo Slash: средний по рангу (не высший и не низший)", () => {
@@ -475,18 +477,22 @@ test("Beastmaster — Primal Roar: +5 за героя своего ранга", 
   const s = bfRun("BF42");
   bfAdd(s, ["beastmaster", "anti_mage"]);
   const f = bfPlay(s, ["beastmaster", "anti_mage"]);
-  assert(bfStep(f, "Beastmaster: +5 силы (1 героя своего ранга)"), "пара 8-8");
+  assert(bfStep(f, "Beastmaster: +5 силы (1 герой его силы)"), "пара 8-8");
   const s2 = bfRun("BF42b");
   bfAdd(s2, "beastmaster");
   const no = bfPlay(s2, ["beastmaster", "cm"]);
   assert(!bfStep(no, "Beastmaster: +5"), "ранг уникален — молчит");
 });
 
-test("Tiny — Grow: +3 за каждого сыгранного", () => {
+test("Tiny — Rock Slide: +25% силы краёв строя", () => {
   const s = bfRun("BF43");
   bfAdd(s, "tiny");
-  const f = bfPlay(s, ["tiny", "cm"]);
-  assert(bfStep(f, "Tiny: +6 силы (2 героев × 3)"), "дуо: +6");
+  const f = bfPlay(s, ["tiny", "cm", "tusk"]);
+  assert(bfStep(f, "Tiny: края отряда +3 силы (+25%)"), "края 10+3 = 13 → +3");
+  const s2 = bfRun("BF43b");
+  bfAdd(s2, "tiny");
+  const duo = bfPlay(s2, ["tiny", "cm"]);
+  assert(bfStep(duo, "Tiny: края отряда +3 силы (+25%)"), "края 10+2 = 12 → +3");
 });
 
 test("Tinker — Rearm: способности героев звучат дважды", () => {
@@ -562,7 +568,7 @@ test("дубликат героя на руках не ломает бой: ко
 
 suite("Фидбек: награды за неиспользованные ресурсы");
 
-test("Неиспользованные ТП-сбросы волны — +1G каждый при зачистке", () => {
+test("Неиспользованные сбросы волны — +1G каждый при зачистке", () => {
   const s = bfRun("BFD1", "formation");
   s.player.discardsLeft = 3;
   const goldBefore = s.run.gold;

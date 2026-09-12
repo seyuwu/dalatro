@@ -11,60 +11,68 @@
 
   const COMBO_META = {
     high_card: { poker: "Старшая карта", rule: "Любой герой" },
-    pair: { poker: "Пара", rule: "2 героя одного ранга" },
-    two_pair: { poker: "Две пары", rule: "Две пары рангов" },
-    three: { poker: "Тройка", rule: "3 героя одного ранга" },
-    straight: { poker: "Стрит", rule: "5 последовательных рангов" },
+    pair: { poker: "Пара", rule: "2 героя одной силы" },
+    two_pair: { poker: "Две пары", rule: "Две пары героев одинаковой силы" },
+    three: { poker: "Тройка", rule: "3 героя одной силы" },
+    straight: { poker: "Стрит", rule: "Силы 5 героев идут подряд (7-8-9-10-11)" },
     flush: { poker: "Флеш", rule: "5 героев одного атрибута" },
     full_house: { poker: "Фулл-хаус", rule: "Тройка и пара" },
   };
 
   const ABILITY_TEXT = {
     morphling: "копирует атрибут героя слева — порядок важен",
-    pudge: "50%: вернётся в руку при ТП-сбросе",
-    pa: "50%: ×2 множителя в комбо",
-    juggernaut: "в слоте 1: +8 силы",
-    zeus: "рядом INT-герой: +2 множителя",
+    pudge: "50%: вернётся в руку при сбросе",
+    pa: "50%: ×2 к множителю",
+    juggernaut: "сильнейший впереди: +1 к множителю",
+    zeus: "рядом герой Интеллекта: +2 к множителю",
     axe: "комбо «Ганг»: +10 силы",
-    cm: "ТП-сброс: +2 золота",
-    tusk: "катится: +4 силы за каждого соседа по слоту",
-    sven: "сильнейший в бою: ×1.5 множителя",
+    cm: "когда её сбрасывают: +2 золота",
+    tusk: "+4 силы за каждого соседа по слоту",
+    sven: "сильнейший в бою: ×1.5 к множителю",
     centaur: "в слоте 1: +4 силы за каждого героя в бою",
-    dawnbreaker: "+1 множитель за каждого Универсала",
-    primal: "в центре пятёрки: ×2 множителя",
+    dawnbreaker: "в слоте 4: +1 множитель за каждого Универсала",
+    primal: "в центре пятёрки: ×2 к множителю",
     terrorblade: "копирует атрибут соседа справа",
-    rubick: "рядом INT-герой: +9 силы",
-    kez: "средний по рангу в отряде: +10 силы",
+    rubick: "рядом герой Интеллекта: +9 силы",
+    kez: "его сила ровно посередине: +10 силы",
     ancient_apparition: "на боссе: Aegis не сработает",
-    kunkka: "в центре пятёрки при 4+ героях: +2 множителя",
-    ursa: "сильнейший в бою: ×1.8 множителя",
+    kunkka: "в центре пятёрки при 4+ героях: +2 к множителю",
+    ursa: "сильнейший в бою: ×1.8 к множителю",
     enigma: "создаёт иллюзию себя (50% силы)",
     tinker: "способности героев срабатывают дважды",
     // таверна (ростер)
-    undying: "+2 силы за карту в сбросе (до 12)",
+    undying: "сосед-Силовик: +4 силы за каждого",
     ogre_magi: "25%: +3 к множителю",
-    legion: "пара и выше: +12 силы",
-    huskar: "+3 силы за разрушенную казарму",
-    tidehunter: "5 героев: +2 множителя",
-    meepo: "рядом AGI-герой: +6 силы",
+    legion: "в слоте 2: +10 силы",
+    huskar: "+3 силы за потерянную казарму",
+    tidehunter: "в слоте 4: +10 силы",
+    meepo: "рядом герой Ловкости: +6 силы",
     bounty: "точный ласт-хит: +8 золота",
-    slark: "+4 силы за каждый ТП-сброс в этой волне",
-    phantom_lancer: "все сыгранные — Ловкость: +3 множителя",
+    slark: "+4 силы за каждый использованный сброс волны",
+    phantom_lancer: "в слоте 2: +7 силы",
     anti_mage: "+4 силы за пустую позицию",
-    faceless: "на волне босса: +2 множителя",
-    oracle: "если он слабейший в бою: +10 силы",
-    skywrath: "в одиночном рейде: ×2 к множителю",
-    lina: "1–2 героя: +20 силы",
-    invoker: "3+ разных атрибута: +3 множителя",
-    storm_spirit: "в слоте 1: +9 силы",
-    outworld: "3+ разных атрибута: +12 силы",
-    io: "есть герой Силы: +6 силы",
-    muerta: "в слоте 3: +8 силы",
-    marci: "сосед другого атрибута: +8 силы",
-    snapfire: "на последней позиции: +1 множитель",
-    void_spirit: "если он сильнейший в бою: +8 силы",
-    beastmaster: "+5 силы за героя своего ранга",
-    tiny: "+3 силы за каждого сыгранного героя",
+    faceless: "на волне босса: +2 к множителю",
+    oracle: "слабейший в бою: +10 силы",
+    skywrath: "в бою ровно один герой: ×2 к множителю",
+    lina: "1–2 героя в бою: +20 силы",
+    invoker: "3+ разных атрибута: +3 к множителю",
+    storm_spirit: "сосед сильнее него: +9 силы",
+    outworld: "в слоте 4: +12 силы",
+    io: "рядом герой Силы: +1 к множителю",
+    muerta: "последняя позиция: +1 множитель и +4 золота за ласт-хит",
+    marci: "рядом герой другого атрибута: +8 силы",
+    snapfire: "на последней позиции: +1 к множителю",
+    void_spirit: "все соседи разного атрибута: +2 к множителю",
+    beastmaster: "+5 силы за каждого героя той же силы",
+    tiny: "края строя бьют: +25% их силы",
+    // легенды таверны (вне сетки)
+    venomancer: "осадный яд: +7 урона башне после каждого боя",
+    wraith_king: "растёт навсегда: +1 сила за каждый бой с ним (до 12)",
+    magnus: "соседи по слоту: +35% их силы",
+    techies: "провал волны с ним: башня потеряет 10% maxHp",
+    silencer: "скамейка бьёт: +2 силы за каждого героя в руке",
+    chaos_knight: "50/50: ×2 к множителю или +16 силы",
+    pugna: "лечение башни обращается в урон",
   };
 
   const RARITY_NAMES = { common: "Обычный", rare: "Редкий", epic: "Эпический" };
@@ -84,26 +92,26 @@
     mutations1: "Мутации башен: 1 на волну",
     adaptive: "Адаптация мира: частое комбо ×0.85",
     antihero: "Охота на героя: фаворит −2 силы",
-    capClass: "Лимит классов: ≤2 атаки / 2 защиты / 2 утилиты",
-    discards2: "ТП-сбросы 2",
-    tax1: "Налог зачистки −1G",
+    capClass: "Лимит классов: не больше 2 атак, 2 защит и 2 утилит",
+    discards2: "Сбросы: 2 за волну",
+    tax1: "Налог зачистки: −1 золото",
     curseChoice: "Проклятия забега: выбор в начале акта",
-    mutations2: "Reality Break: 2 мутации на волну",
-    fights3: "Тимфайты 3",
-    reroll4: "Реролл 4G",
-    tax2: "Налог зачистки −2G",
+    mutations2: "Реальность трещит: 2 мутации на волну",
+    fights3: "Бои: 3 за волну",
+    reroll4: "Обновление лавки: 4 золота",
+    tax2: "Налог зачистки: −2 золота",
     hand5: "Рука 5 карт",
-    fights2: "Тимфайты 2",
-    discards1: "ТП-сброс 1",
+    fights2: "Бои: 2 за волну",
+    discards1: "Сбросы: 1 за волну",
   };
 
   const TIPS = [
-    { t: "Маленькая синергия. Большая разница.", p: "Поставь Juggernaut первым — получишь +8 силы." },
-    { t: "Morphling — хамелеон.", p: "Он копирует атрибут соседа слева: поставь его после Zeus, чтобы открыть его способность." },
-    { t: "Ставка решает.", p: "Один герой — харас +1 золота. Пятёрка — ×1.25 к урону. Выбирай по ситуации." },
-    { t: "Серия — золото.", p: "Импульс даёт +5% урона за каждую зачищенную волну подряд. Провал сбрасывает серию." },
-    { t: "Точность платит.", p: "Оверкилл конвертируется в золото, а точный ласт-хит даёт +5 сверху." },
-    { t: "Techies не прощают.", p: " bombs закрывают 2 карты руки. Sentry Ward или BKB обезвреживают их." },
+    { t: "Маленькая синергия — большая разница.", p: "Поставь Juggernaut сразу за самым сильным: Escort даст +1 к множителю." },
+    { t: "Morphling — хамелеон.", p: "Копирует атрибут соседа слева: поставь его справа от нужного героя." },
+    { t: "Ставка решает.", p: "Один герой — харас и +1 золото. Пятёрка — ×1.25 к урону. Выбирай по ситуации." },
+    { t: "Серия — золото.", p: "Импульс даёт +5% урона за каждую зачищенную подряд волну. Провал обнуляет серию." },
+    { t: "Точность платит.", p: "Оверкилл превращается в золото, а точный ласт-хит приносит ещё +5." },
+    { t: "Techies не прощают.", p: "Мины закрывают две карты руки. Sentry Ward или BKB обезвреживают их." },
   ];
 
   const UIState = {
@@ -126,6 +134,13 @@
     unlockBanner: null, // имя открытого ранга для плашки на экране победы
     // Стартовый архетип нового забега (спек §7).
     starterDraft: "standard",
+    // Сколько раз кликнули по карточке билда — туториал читает его,
+    // потому что клик по уже активному «Классика» не меняет starterDraft.
+    starterPicks: 0,
+    // Тумблер «Оставить базовых героев»: вкл — гарантированное трио режима,
+    // выкл — все 12 героев случайны (уклон в выбранный отряд, перк остаётся).
+    // Персистится в prefs (main.js).
+    keepBase: true,
     // Фокус лаборатории колоды: train | exile | null (какую кнопку нажали в лавке).
     labFocus: null,
     // Лидерборд (фаза H): копия записей + активный вид.
@@ -161,7 +176,7 @@
 
   function heroDesc(hero) {
     if (hero.ability) return ABILITY_TEXT[hero.id] || hero.ability.name;
-    return "Без способности — играет через ранг и атрибут.";
+    return "Без способности — играет через силу и атрибут.";
   }
 
   // Скипетр «Starbreaker» (Dawnbreaker): Универсал — джокер атрибутов для
@@ -252,6 +267,21 @@
     };
   }
 
+  // Красная связь «правило цели ↔ комбинация»: что эта башня сделает с конкретным
+  // комбо/формацией (Фортификация ×0.5, Память башен ×0.9…). Источник —
+  // Combat.comboRuleMults (зеркало шага 7 скоринга), поэтому панель справа и
+  // приговор боя никогда не расходятся. Бейдж — маленький, красный, как чип
+  // правила на башне: один цвет связывает правило с его жертвами.
+  function comboMultBadges(state, comboId) {
+    const mults = Combat.comboRuleMults ? Combat.comboRuleMults(state, comboId) : [];
+    if (!mults.length) return { html: "", total: 1, mults };
+    const total = mults.reduce((a, m) => a * m.value, 1);
+    const html = mults.map((m) =>
+      `<span class="combo-mult-badge" data-tip>☠ ×${m.value}<span class="pop side"><strong>☠ ${m.name}: ×${m.value}</strong><p>Правило этой цели режет такие комбинации — множитель уже учтён в приговоре.</p><small>Тот же цвет — у правила в шапке сцены</small></span></span>`
+    ).join("");
+    return { html, total, mults };
+  }
+
   // Подзаголовок под названием комбо/формации. У формаций нет покерного
   // эквивалента — читаем правило и тип урона (rules: "formation").
   function comboSubtitle(combo) {
@@ -260,11 +290,15 @@
       return `${combo.rule || ""} · ${dt} урон`;
     }
     const meta = combo ? COMBO_META[combo.type] : null;
-    return meta ? `${meta.poker} · ${meta.rule}` : "Сила героев × множитель";
+    return meta ? `${meta.poker} · ${meta.rule}` : "Сила отряда × множитель";
   }
 
   function toast(state, text) {
     UIState.toast = text;
+    // Тост должен попасть в DOM сразу: часть вызовов идёт после dispatchAndRender,
+    // который уже отрендерил, и без этого тост всплывал бы только при следующем
+    // действии игрока (уже устаревшим).
+    if (window.__dalatroRerender) window.__dalatroRerender();
     clearTimeout(UIState._toastTimer);
     UIState._toastTimer = setTimeout(() => {
       UIState.toast = "";
@@ -300,9 +334,9 @@
         case "BOTH_NEIGHBORS_DIFFER": return "оба соседа другого атрибута";
         case "IS_HIGHEST_RANK": return "быть сильнейшим в строю";
         case "IS_LOWEST_RANK": return "быть слабейшим в строю";
-        case "PLAYED_COUNT_IS": return `строем ровно из ${c.value}`;
-        case "PLAYED_COUNT_ABOVE": return `строем из ${c.value + 1}+ героев`;
-        case "PLAYED_COUNT_BELOW": return `строем до ${c.value} героев`;
+        case "PLAYED_COUNT_IS": return `отряд ровно из ${c.value}`;
+        case "PLAYED_COUNT_ABOVE": return `отряд из ${c.value + 1}+ героев`;
+        case "PLAYED_COUNT_BELOW": return `отряд до ${c.value} героев`;
         case "ALL_ATTRIBUTES": return `весь строй — ${attrName(c.value)}`;
         case "DISTINCT_ATTRIBUTES_ABOVE": return `${c.value + 1}+ разных атрибутов в строю`;
         case "EXISTS_ATTRIBUTE": return `в строю есть ${attrName(c.value)}`;
@@ -324,7 +358,7 @@
     return walk(w);
   }
 
-  function heroCardHtml(state, uid, index) {
+  function heroCardHtml(state, uid, index, hintUids) {
     const hero = Content.heroes.byId[state.cards[uid].heroId];
     const effAttr = Game.heroAttr(state, hero.id);
     const rank = heroRank(state, hero.id);
@@ -336,6 +370,7 @@
       effAttr,
       selected ? "selected" : "",
       mined ? "mined" : "",
+      hintUids && hintUids.has(uid) ? "hinted" : "",
     ].join(" ");
     const lvl = Game.heroLevel(state, hero.id);
     const xp = (state.run.heroXp || {})[hero.id] || 0;
@@ -383,7 +418,7 @@
         <p>${esc(heroDesc(hero))}</p>
         ${hint ? `<span class="abil-hint">🎯 ${hint}${fired === false ? " · сейчас молчит" : ""}</span>` : ""}
         ${augTipLines}
-        <small>Ранг ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${effAttr === "uni"
+        <small>Сила ${rank}${trained ? ` (база ${hero.power})` : ""}${penaltyNote ? ` · ${penaltyNote}` : ""}${favNote ? ` · ${favNote}` : ""}${lvl ? ` · опыт ${xp} (ур. ${lvl})` : ""} · ${effAttr === "uni"
           ? `Универсал — четвёртый цвет: связки и «4+ одного атрибута» считают его только Универсалом${uniWildcardOn(state) ? " · Starbreaker: Универсал — джокер условий" : ""}`
           : `${ATTR_NAMES[effAttr]} — 5 карт одного цвета = флеш`}</small>
       </span>
@@ -391,6 +426,21 @@
   }
 
   // Правила текущей цели — чипы в шапке сцены (читаются перед каждым боем).
+  // Эмодзи и короткая суть правила башни для чипа. Полное объяснение — в
+  // тултипе (def.desc из world.js): чип читается с первого взгляда,
+  // наведение отвечает «а что это значит».
+  const RULE_ICONS = {
+    armor: "🧱", glyph: "🚫", mines: "💣", aegis: "⚱️", adaptation: "🔁", bastion: "🏰",
+    fog: "🌫️", silence: "🤐", disarm: "✋", regen: "💚", reflection: "🪞", enrage: "😡",
+    thorns: "🌵", greed: "🤑", archivist: "📚",
+  };
+  const RULE_SHORT = {
+    armor: "первый бой волны: урон ×0.5",
+    glyph: "каждый 3-й бой = 0 урона (казарму не теряешь)",
+    mines: "2 случайные карты руки не играют",
+    aegis: "возрождается 1 раз с 50% HP",
+  };
+
   function waveRuleChips(state) {
     const wave = state.combat.wave;
     const disarmed = state.player.items.includes("sentry") || state.player.items.includes("bkb");
@@ -402,27 +452,24 @@
       let text = "";
       let used = false;
       let danger = false;
-      if (m.id === "armor") text = state.rules === "formation" ? "Укрепления: первый бой ×0.5" : "Броня: первый бой ×0.5";
-      else if (m.id === "glyph") text = "Глиф: каждый 3-й бой = 0";
+      if (m.id === "armor") text = "Укрепления — первый бой волны: урон ×0.5";
+      else if (m.id === "glyph") text = "Глиф — каждый 3-й бой: урон 0";
       else if (m.id === "mines") {
         used = disarmed;
         danger = !disarmed;
-        text = disarmed ? "Мины обезврежены Sentry/BKB" : "Мины: 2 карты руки закрыты";
+        text = disarmed ? "Мины — обезврежены Sentry/BKB" : "Мины — 2 карты руки не играют";
       } else if (m.id === "aegis") {
         used = wave.aegisUsed;
-        text = wave.aegisUsed ? "Aegis потрачен" : "Aegis: возрождение с 50% HP";
-      } else if (def.curse) {
+        text = wave.aegisUsed ? "Aegis — потрачен" : "Aegis — возрождается с 50% HP";
+      } else if (def.curse || def.mutation) {
         used = bkb;
         danger = !bkb;
-        text = used ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
-      } else if (def.mutation) {
-        // Мутации башен (ранги Божество+): BKB снимает вместе с модификаторами башни.
-        danger = !bkb;
-        text = bkb ? `${def.name}: обезврежено BKB` : `${def.name}: ${def.desc}`;
+        text = used ? `${def.name} — обезврежено BKB` : `${def.name} — ${def.desc}`;
       } else if (def.desc) {
-        text = `${def.name}: ${def.desc}`;
+        text = `${def.name} — ${def.desc}`;
       }
-      chips.push(`<span class="rule-chip ${used ? "done" : ""} ${danger ? "danger" : ""}">${icon("shield", 12)}<span>${text}</span></span>`);
+      chips.push(`<span class="rule-chip ${used ? "done" : ""} ${danger ? "danger" : ""}" data-tip>${RULE_ICONS[m.id] || icon("shield", 12)} <b>${text}</b>
+        <span class="pop"><strong>${RULE_ICONS[m.id] || "🛡"} ${text.split(" — ")[0]} — правило башни</strong><p>${esc(def.desc)}</p><small>Действует до конца волны. ${bkb ? "BKB снимает это правило." : ""}</small></span></span>`);
     }
     if (state.combat.forbiddenSlot) {
       chips.push(`<span class="rule-chip danger">${icon("target", 12)}<span>Нестабильная позиция: слот ${state.combat.forbiddenSlot} — −40% силы герою</span></span>`);
@@ -441,8 +488,9 @@
       if (d && (d.armor || d.mr)) {
         const parts = [];
         if (d.armor) parts.push(`броня ${d.armor}`);
-        if (d.mr) parts.push(`сопротивление ${Math.round(d.mr * 100)}%`);
-        chips.push(`<span class="rule-chip ${bkb ? "done" : ""}">${icon("shield", 12)}<span>Защита: ${parts.join(" · ")}${bkb ? " — снимает BKB" : ""}</span></span>`);
+        if (d.mr) parts.push(`маг. сопр ${Math.round(d.mr * 100)}%`);
+        chips.push(`<span class="rule-chip ${bkb ? "done" : ""}" data-tip>${icon("shield", 12)}<b>Защита: ${parts.join(" · ")}</b>${bkb ? " — снимает BKB" : ""}
+          <span class="pop"><strong>🛡 Броня и сопротивление башни</strong><p>Броня плоско режет физический урон (не больше половины удара). Сопротивление режет магический урон в процентах. Тип урона отряда показан в формуле боя.</p><small>${bkb ? "BKB снимает защиту." : "Чистый урон игнорирует и то, и другое."}</small></span></span>`);
       }
     }
     if (wave.elite) {
@@ -535,30 +583,40 @@
       && u.activation.context === context && !!u.activation.target === withTarget);
   }
 
-  // Мастер-панель в сайдбаре: что куплено, сколько зарядов/лимитов осталось.
+  // Мастер-панель в сайдбаре: плитки-иконки. Свечение = «можно применить
+  // прямо сейчас» (активка без цели, контекст и ресурс доступны) — клик по
+  // плитке и применяет. При наведении — имя, описание и статус.
   function upgradesPanelHtml(state) {
     const owned = Upgrades.ownedDefs(state);
     const energy = state.run.energy || 0;
     const fortune = state.run.fortune || 0;
-    const rows = owned.map((u) => {
+    const tiles = owned.map((u) => {
       const inst = Upgrades.instanceOf(state, u.id);
-      const lvl = inst.level > 1 ? ` <b class="upg-lvl">${Upgrades.roman(inst.level)}</b>` : "";
-      let status = "";
-      if (u.type === "active") {
-        const acc = u.activation.access || {};
-        if (acc.charges != null) status = `<span class="upg-status ${inst.charges ? "" : "empty"}">⚡${inst.charges}/${acc.charges}</span>`;
-        else if (acc.act != null) status = `<span class="upg-status ${inst.actUses < acc.act ? "" : "empty"}">${acc.act - inst.actUses}/${acc.act}</span>`;
-        else if (acc.energy != null) status = `<span class="upg-status">⚡${acc.energy}</span>`;
-      }
-      return `<div class="upg-row" data-tip><span class="upg-emoji">${u.emoji}</span>
-        <span class="upg-name">${u.name}${lvl}</span>${status}
-        <span class="pop"><strong>${u.emoji} ${u.name}${lvl}</strong><p>${esc(upDescOf(state, u))}</p>
-        <small>${u.type === "active" ? `Кнопка ${Upgrades.CONTEXT_LABELS[u.activation.context]} · ${Upgrades.accessLabel(u)}` : "Пассивное"}</small></span></div>`;
+      const lvl = inst.level > 1 ? `<i class="up-lvl">${Upgrades.roman(inst.level)}</i>` : "";
+      const isActive = u.type === "active" && !!u.activation;
+      const act = isActive ? Upgrades.canActivate(state, u.id) : { ok: false, reason: "Пассивное улучшение" };
+      // Целевые активки (Торгаш, Картограф…) жмутся на карточках своего
+      // контекста, Пересдача — в модалке провала: плитка их не дублирует.
+      const direct = isActive && !u.activation.target && u.effect && u.effect.type !== "freeRetry";
+      const ready = direct && act.ok;
+      let badge = "";
+      const acc = isActive ? (u.activation.access || {}) : {};
+      if (acc.charges != null) badge = `<i class="up-badge ${inst.charges ? "" : "zero"}">${inst.charges}</i>`;
+      else if (acc.act != null) badge = `<i class="up-badge ${inst.actUses < acc.act ? "" : "zero"}">${Math.max(0, acc.act - inst.actUses)}</i>`;
+      else if (acc.energy != null) badge = `<i class="up-badge">${acc.energy}⚡</i>`;
+      const foot = !isActive ? "Пассивное"
+        : !direct ? `Кнопка ${Upgrades.CONTEXT_LABELS[u.activation.context] || u.activation.context} · ${Upgrades.accessLabel(u)}`
+        : ready ? `Можно применить — клик${acc.energy ? ` (−${acc.energy}⚡)` : ""}`
+        : act.reason;
+      return `<button class="up-tile ${ready ? "ready" : direct ? "blocked" : "passive"}" ${ready ? 'data-action="activate-upgrade"' : ""} data-upgrade="${u.id}" data-tip aria-disabled="${ready ? "false" : "true"}">
+        <span class="up-emoji">${u.emoji}</span>${lvl}${badge}
+        <span class="pop side"><strong>${u.emoji} ${u.name}${lvl}</strong><p>${esc(upDescOf(state, u))}</p>
+        <small>${foot}</small></span></button>`;
     }).join("");
     return `<section class="panel upgrades-panel">
-      <div class="section-label"><span>${icon("sparkles", 13)}УЛУЧШЕНИЯ</span>${energy ? `<span class="energy-badge" data-tip>⚡ ${energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за каждые активации. Тратится Перегрузкой.</p></span></span>` : ""}</div>
-      ${rows || '<div class="effect-row none">Пока ни одного — загляни в лавку</div>'}
-      ${fortune ? `<div class="effect-row momentum"><span>🎰 Фортуна: ${fortune}/5 провалов до мифика в лавке</span></div>` : ""}
+      <div class="section-label"><span>${icon("sparkles", 13)}УЛУЧШЕНИЯ</span>${energy ? `<span class="energy-badge" data-tip>⚡ ${energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за активации улучшений. Тратится Перегрузкой.</p></span></span>` : ""}</div>
+      ${tiles ? `<div class="up-tiles">${tiles}</div>` : '<div class="effect-row none">Пока ни одного — загляни в лавку</div>'}
+      ${fortune ? `<div class="effect-row momentum"><span>🎰 Фортуна: ${fortune}/5 провалов до мифического улучшения в лавке</span></div>` : ""}
     </section>`;
   }
 
@@ -578,8 +636,8 @@
       <div class="run-row"><span>${icon("castle", 14)}Казармы</span><div class="lives">${Array.from({ length: BARRACKS }, (_, i) =>
       `<span class="${i < state.run.barracks ? "alive" : ""}" title="Казармы: ${BARRACKS} жизней забега">${icon("shield", 13)}</span>`).join("")}</div></div>
       ${waveMode ? `
-      <div class="run-row"><span>${icon("swords", 14)}Тимфайты</span><div class="resource-pips">${Array.from({ length: fights }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
-      <div class="run-row"><span>${icon("rotate", 14)}ТП-сбросы</span><div class="resource-pips">${Array.from({ length: discards }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>` : ""}
+      <div class="run-row"><span>${icon("swords", 14)}Бои</span><div class="resource-pips">${Array.from({ length: fights }, (_, i) => `<i class="${i < state.player.fightsLeft ? "filled mint-bg" : ""}"></i>`).join("")}</div></div>
+      <div class="run-row"><span>${icon("rotate", 14)}Сбросы · пересдачи</span><div class="resource-pips">${Array.from({ length: discards }, (_, i) => `<i class="${i < state.player.discardsLeft ? "filled blue-bg" : ""}"></i>`).join("")}</div></div>` : ""}
     </section>
     <section class="panel effects-panel">
       <div class="section-label"><span>${icon("flame", 13)}ЭФФЕКТЫ</span></div>
@@ -617,13 +675,16 @@
     const hp = Math.max(0, state.combat.wave.hp);
     if (preview.blocked) {
       return `<div class="scene-verdict blocked"><b>${icon("skull", 15)} ГЛИФ: УРОН = 0</b><small>Бой заблокирован глифом — играй минимальный отряд</small></div>`;
+    if (preview.damage <= 0) {
+      return `<div class="scene-verdict blocked"><b>${icon("shield", 15)} ЗАЩИТА СЪЕЛА УДАР</b><small>Сила × множ (${fmt(Math.round(preview.power * preview.mult))}) не пробивает защиту башни — нужен другой тип урона (чистый) или больше силы</small></div>`;
+    }
     }
     if (preview.damage >= hp && hp > 0) {
       return `<div class="scene-verdict kill"><b>${icon("check", 15)} БАШНЯ ПАДАЕТ</b><small>${fmt(preview.damage)} урона при ${fmt(hp)} HP цели</small></div>`;
     }
     const remain = hp - preview.damage;
     if (harass >= remain && remain > 0) {
-      return `<div class="scene-verdict harass"><b>${icon("zap", 15)} ДОБЬЁТ ХАРАС</b><small>Лучший харас из руки (${fmt(harass)}) добьёт остаток ${fmt(remain)} HP — не трать коммит</small></div>`;
+      return `<div class="scene-verdict harass"><b>${icon("zap", 15)} ДОБЬЁТ ХАРАС</b><small>Лучший харас из руки (${fmt(harass)}) добьёт остаток ${fmt(remain)} HP — не отправляй весь отряд</small></div>`;
     }
     return `<div class="scene-verdict normal"><b>${icon("target", 15)} ОСТАНЕТСЯ ${fmt(remain)} HP</b><small>Этого удара мало — добивай харасом или собирай жирнее</small></div>`;
   }
@@ -670,7 +731,7 @@
           <span class="pop"><strong>${hero.name}</strong><p>${esc(heroDesc(hero))}</p><small>${forbidden ? "⚠ Нестабильная позиция: −40% силы · " : ""}Слот ${i + 1} · зажми и перетащи — герой встанет на это место в бою</small></span>
         </div>`;
       }
-      return `<div class="formation-slot ${forbidden ? "forbidden" : ""}" data-idx="${i}">${forbidden ? '<span class="forbidden-mark">✕</span>' : icon("plus", 14)}<span class="slot-idx">${i + 1}</span>
+      return `<div class="formation-slot ${forbidden ? "forbidden" : ""}" data-idx="${i}"${forbidden ? " data-tip" : ""}>${forbidden ? '<span class="forbidden-mark">✕</span>' : icon("plus", 14)}<span class="slot-idx">${i + 1}</span>
         ${forbidden ? '<span class="pop"><strong>Нестабильная позиция</strong><p>Герой в этом слоте волны даёт −40% силы.</p></span>' : ""}</div>`;
     }).join("");
     const combo = preview ? preview.combo : null;
@@ -696,9 +757,11 @@
               ${dmgPct > 0 ? `<div class="hp-damage" style="left:${remainPct}%;width:${dmgPct}%"></div>` : ""}
             </div>
           </div>
-          <div class="scene-reward"><span>Награда</span><b>${icon("coins", 13)}${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}+</b></div>
+          <div class="scene-reward" data-tip><span>Награда</span><b>${icon("coins", 13)}${Game.waveClearGold(state)}+</b>
+            <span class="pop"><strong>Награда за зачистку</strong><p>${Game.waveClearGold(state)}G — база. «+» — бонусы: +1G за каждый неиспользованный бой и сброс, плюс золото с оверкилла.</p></span></div>
         </header>
         <div class="rule-chips">${waveRuleChips(state)}</div>
+        ${state.run.routeUndo && !state.combat.outcome ? `<div class="undo-route-row"><button class="secondary-button" data-action="undo-route">↩️ Отменить тропу</button></div>` : ""}
         <div class="scene-stage">
           <div class="scene-play">
             <div class="scene-formation">
@@ -707,8 +770,8 @@
             </div>
             <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
               <span class="section-label">${combo ? (combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
-              <strong>${combo ? combo.name : "Собери тимфайт"} ${icon("chevron", 14)}</strong>
-              <small>${combo ? comboSubtitle(combo) : "Сила героев × множитель"}</small>
+              <strong>${combo ? combo.name : "Собери отряд"} ${icon("chevron", 14)}</strong>
+              <small>${combo ? comboSubtitle(combo) : "Сила отряда × множитель"}</small>
             </button>
             <div class="scene-formula">
               <div class="score-formula">
@@ -718,6 +781,10 @@
                 <span class="equals">=</span>
                 <div class="total-score"><strong>${fmt(damage)}</strong><span>УРОНА</span></div>
               </div>
+              ${(() => {
+                const badge = combo && preview ? comboMultBadges(state, combo.type) : null;
+                return badge && badge.mults.length ? `<div class="formula-mults">${badge.html}</div>` : "";
+              })()}
             </div>
           </div>
           <div class="scene-side">
@@ -725,7 +792,8 @@
             ${commitInfoHtml(state, preview)}
             <div class="action-buttons">
               <button class="primary-button attack-button" ${canFight ? "" : "disabled"} data-action="fight">${icon("swords", 17)}В бой<kbd>↵</kbd></button>
-              <button class="discard-button" ${canDiscard ? "" : "disabled"} data-action="discard">${icon("rotate", 14)}ТП-сброс<kbd>R</kbd></button>
+              <button class="discard-button" ${canDiscard ? "" : "disabled"} data-action="discard" data-tip>${icon("rotate", 14)}Пересдать руку<kbd>R</kbd>
+                <span class="pop"><strong>Пересдача руки</strong><p>Заменяет выбранных героев и сдаёт руку заново. Тратит 1 сброс из запаса волны (синие пипсы в панели «Сбросы»).</p></span></button>
             </div>
             ${(() => {
               const acts = ownedActives(state, "wave").map((u) => activeBtnHtml(state, u)).join("");
@@ -741,10 +809,12 @@
   // ---------- right context panel ----------
 
   function activeScoreBlock(state, preview) {
+    const badge = comboMultBadges(state, preview.combo.type);
     return `<div class="active-formation">
       <strong>${preview.combo.name}</strong>
       <small>${comboSubtitle(preview.combo)}</small>
       <div class="active-value"><b class="mint">${preview.power}</b><span>×</span><b class="gold">${Math.round(preview.mult * 100) / 100}</b><em>= ${fmt(preview.damage)}</em></div>
+      ${badge.mults.length ? `<div class="active-rule-mults">${badge.html}</div>` : ""}
     </div>`;
   }
 
@@ -775,18 +845,34 @@
     } else {
       active = contextEmptyHtml("Выбери героев — собранная формация и её связки появятся здесь.");
     }
+    // Подсказка «до цели один обмен»: движок перебирает перестановки слотов и
+    // находит первый обмен с ростом урона — возвращает игроку агентность
+    // («я переставил — сработало»), это и есть урок формации.
+    let swapHint = "";
+    if (state.combat.selectedUids.length >= 2 && typeof Combat.swapHint === "function") {
+      const hint = Combat.swapHint(state);
+      if (hint) {
+        swapHint = `<div class="swap-hint" data-tip>${icon("sparkles", 13)} <span>Поменяй <b>${esc(hint.a)}</b> ↔ <b>${esc(hint.b)}</b> — соберётся «${esc(hint.formation)}» <b class="gold">+${fmt(hint.gain)}</b> урона</span><span class="pop side"><strong>Подсказка построения</strong><p>Обмен слотами меняет, какие формации доступны: перестановка — это тоже решение.</p><small>Оценка по «сырым» героям: копии атрибутов и wild-ранги могут немного поменять цифру</small></span></div>`;
+      }
+    }
     let alts = "";
     if (combo && combo.alternatives && combo.alternatives.length > 1) {
-      const rows = combo.alternatives.slice().sort((a, b) => b.damage - a.damage).slice(0, 5).map((f) =>
-        `<div class="combo-row ${f.id === combo.type ? "hit" : ""}" data-tip>
-          <div class="combo-row-name"><strong>${f.name}</strong><small>${dtName(f.damageType)}${f.positional ? " · порядок" : ""}</small></div>
-          <div class="combo-row-value"><b class="gold">${fmt(f.damage)}</b><span>урона</span></div>
-          <span class="pop side"><strong>${f.name}</strong><p>${esc(f.rule)}</p><small>${dtName(f.damageType)} урон против защиты этой башни</small></span>
-        </div>`).join("");
+      // Урон альтернатив домножается на красные правила цели (Фортификация и
+      // т.п.) — сравнение с приговором остаётся честным: строка «хит» сходится
+      // с цифрой активной формации выше.
+      const rows = combo.alternatives.slice().sort((a, b) => b.damage - a.damage).slice(0, 5).map((f) => {
+        const badge = comboMultBadges(state, f.id);
+        const dmg = Math.max(1, Math.round(f.damage * badge.total));
+        return `<div class="combo-row ${f.id === combo.type ? "hit" : ""} ${badge.mults.length ? "penalized" : ""}" data-tip>
+          <div class="combo-row-name"><strong>${f.name}</strong><small>${esc(f.short || dtName(f.damageType))}${f.positional ? " · порядок" : ""}</small></div>
+          <div class="combo-row-value"><b class="gold">${fmt(dmg)}</b><span>урона</span>${badge.html}</div>
+          <span class="pop side"><strong>${f.name}</strong><p>${esc(f.rule)}</p><small>${dtName(f.damageType)} урон против защиты этой башни${badge.mults.length ? ` · правило цели: ${badge.mults.map((m) => `${m.name} ×${m.value}`).join(", ")}` : ""}</small></span>
+        </div>`;
+      }).join("");
       alts = `<section class="panel context-inner">
         <div class="section-label"><span>${icon("swords", 13)}ПРОТИВ ЭТОЙ ЦЕЛИ</span></div>
         <div class="combo-rows">${rows}</div>
-        <div class="combo-legend"><span>Базы формаций — без способностей и ставки, сравнивай их между собой</span><span>Переставляй героев — урон меняется</span></div>
+        <div class="combo-legend"><span>В цифрах — только база формации, без способностей и ставки: проще сравнивать</span><span>Переставляй героев — урон изменится сразу</span></div>
       </section>`;
     }
     return `<aside class="context-panel">
@@ -794,6 +880,7 @@
         <div class="section-label"><span>${icon("target", 13)}ТВОЯ ФОРМАЦИЯ</span></div>
         ${active}
         ${uniNote}
+        ${swapHint}
       </section>
       ${alts}
       <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Все формации ${icon("chevron", 13)}</button>
@@ -806,10 +893,11 @@
     const rows = Content.combos.list.map((c) => {
       const meta = COMBO_META[c.id];
       const cls = c.id === current ? "hit" : ready[c.id] ? "ready" : "";
-      return `<div class="combo-row ${cls}" data-tip>
+      const badge = comboMultBadges(state, c.id);
+      return `<div class="combo-row ${cls} ${badge.mults.length ? "penalized" : ""}" data-tip>
         <div class="combo-row-name"><strong>${c.name}</strong><small>${meta.poker}</small></div>
-        <div class="combo-row-value"><b class="mint">${c.basePower}</b><span>×</span><b class="gold">${c.baseMult}</b></div>
-        <span class="pop side"><strong>${c.name}</strong><p>${esc(meta.rule)}</p><small>${c.basePower} силы × ${c.baseMult} множитель</small></span>
+        <div class="combo-row-value"><b class="mint">${c.basePower}</b><span>×</span><b class="gold">${c.baseMult}</b>${badge.html}</div>
+        <span class="pop side"><strong>${c.name}</strong><p>${esc(meta.rule)}</p><small>${c.basePower} силы × ${c.baseMult} множитель${badge.mults.length ? ` · правило цели: ${badge.mults.map((m) => `${m.name} ×${m.value}`).join(", ")}` : ""}</small></span>
       </div>`;
     }).join("");
     const active = preview
@@ -826,6 +914,7 @@
         <div class="combo-legend">
           <span><i class="dot hit"></i>собрано</span>
           <span><i class="dot ready"></i>есть в руке</span>
+          <span><i class="dot penalized"></i>режет правило цели</span>
         </div>
       </section>
       <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Справочник ${icon("chevron", 13)}</button>
@@ -846,7 +935,7 @@
           ${next ? `<div class="next-hp"><b class="mint">${fmt(nextHp)}</b><span>HP</span></div>` : ""}
           ${next ? `<small>${waveRuleText(next)}</small>` : ""}
         </div>
-        <div class="effect-row none">${icon("rotate", 12)}<span>Товары обновятся, если не залочены</span></div>
+        <div class="effect-row none">${icon("rotate", 12)}<span>Товары обновятся, если не закрепить их замком</span></div>
       </section>
       <button class="context-all" data-action="open-modal" data-modal="help">${icon("book", 14)}Справочник ${icon("chevron", 13)}</button>
     </aside>`;
@@ -869,7 +958,7 @@
         const item = Content.items.byId[id];
         slots.push(`<button class="build-icon ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${id}" data-tip>
           ${Art.itemIcon(item)}
-          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
+          <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>Клик — полный разбор и продажа за ${Economy.sellValue(id, state)} G</small></span>
         </button>`);
       } else {
         slots.push(`<button class="build-icon empty" data-action="item-hint" data-tip>${icon("plus", 13)}
@@ -880,7 +969,59 @@
     return `<div class="band-build"><span class="band-label">${icon("bag", 12)}БИЛД</span><div class="build-strip ${UIState.animInv ? "" : "no-anim"}">${slots.join("")}</div></div>`;
   }
 
-  function bottomBandHtml(state) {
+  // ---------- подсказки «что собирается из руки» ----------
+
+  // Активные пилюли из run.formationHints.current: убираем уже собранную
+  // текущим выбором формацию и подсказки с невыбираемыми героями (заминирован,
+  // запрет маршрута, повтор прошлого боя). Коллизии наборов не прячем — те же
+  // карты в другом порядке дают другую формацию, обе пилюли честны.
+  function visibleFormationHints(state, preview) {
+    const fh = state.run.formationHints;
+    if (!fh || !fh.current || !fh.current.length) return [];
+    if (state.phase !== "wave" || state.combat.outcome) return [];
+    const wave = state.combat.wave || {};
+    const mined = state.combat.minedUids || [];
+    const slots = Game.maxSlots(state);
+    const curType = preview && preview.combo ? preview.combo.type : null;
+    const selectable = (uid) => {
+      if (!state.player.handUids.includes(uid) || mined.includes(uid)) return false;
+      const card = state.cards[uid];
+      if (!card) return false;
+      const heroId = card.heroId;
+      if (wave.bannedHeroId === heroId) return false;
+      if (wave.banAttrs && wave.banAttrs.includes(Game.heroAttr(state, heroId))) return false;
+      if (wave.noRepeat && (wave.lastFightHeroes || []).includes(heroId)) return false;
+      return true;
+    };
+    return fh.current.filter((p) =>
+      p.id !== curType && p.uids.length <= slots && p.uids.every(selectable));
+  }
+
+  function formationHintsHtml(state, preview) {
+    const hints = visibleFormationHints(state, preview);
+    if (!hints.length) return "";
+    const pills = hints.map((p, i) => {
+      const chain = p.uids
+        .map((uid) => (Content.heroes.byId[state.cards[uid].heroId] || {}).name || "герой")
+        .map((nm) => esc(nm))
+        .join(p.positional ? " → " : " · ");
+      const order = p.positional
+        ? `<p>Порядок слотов готов: <b>${chain}</b>.</p>`
+        : `<p>Герои: <b>${chain}</b>.</p>`;
+      return `<button class="form-hint ${i === 0 ? "primary" : ""}" data-action="apply-hint" data-uids="${p.uids.join("|")}" data-tip>
+        ${icon("sparkles", 12)}<b>${esc(p.name)}</b>
+        <span class="fh-chain">${chain}</span>
+        <b class="gold">~${fmt(Math.round(p.damage))}</b>
+        <span class="pop side"><strong>${esc(p.name)} — ${esc(p.rule || p.short || "")}</strong>${order}<p>${esc(p.why || "")}</p><small>Прикидка по «сырым» героям против защиты этой башни: без способностей и ставки. Клик — выставить отряд в этом порядке.</small></span>
+      </button>`;
+    }).join("");
+    return `<div class="formation-hints">
+      <span class="fh-label">${icon("sparkles", 12)}В руке собирается:</span>
+      ${pills}
+    </div>`;
+  }
+
+  function bottomBandHtml(state, preview) {
     if (state.phase === "shop") {
       const items = state.player.items;
       const cap = Game.itemCapacity(state);
@@ -899,7 +1040,7 @@
             <div class="item-art">${Art.itemIcon(item)}</div>
             <span><strong>${item.name}</strong><small>${esc(item.desc)}</small></span>
             <span class="item-slot-dot"></span>
-            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(id)} G</small></span>
+            <span class="pop"><strong>${item.name}</strong><p>${esc(item.desc)}</p><small>${RARITY_NAMES[item.rarity]} · Клик — полный разбор и продажа за ${Economy.sellValue(id, state)} G</small></span>
           </button>`);
         } else {
           slots.push(`<button class="item-slot empty-slot" data-action="item-hint" data-tip><span>${icon("plus", 18)}</span><span>Слот предмета</span>
@@ -919,12 +1060,13 @@
     }
     if (state.phase !== "wave") return "";
     const order = handOrder(state);
+    const hintUids = new Set(visibleFormationHints(state, preview).flatMap((p) => p.uids));
     const sortBtn = (mode, label) =>
       `<button class="sort-button ${UIState.sort === mode ? "active" : ""}" data-action="sort" data-mode="${mode}">${label}</button>`;
     return `<section class="bottom-band">
       <div class="band-top">
         <h2 class="band-hand-title">Твоя рука <span>${state.player.handUids.length}<small> / ${DeckSys.handSize(state)}</small></span></h2>
-        <span class="hand-instruction">Выбери до ${Game.maxSlots(state)} героев для тимфайта</span>
+        <span class="hand-instruction">Выбери до ${Game.maxSlots(state)} героев для боя</span>
         <span class="spacer"></span>
         ${buildStripHtml(state)}
         <div class="hand-tools"><span>Сортировка</span>
@@ -932,11 +1074,12 @@
           <button class="deck-button" data-action="open-collection-deck" title="Посмотреть колоду">${icon("layers", 16)}<span>${state.player.deckUids.length}</span></button>
         </div>
       </div>
-      <div class="hero-hand ${UIState.animHand ? "" : "no-anim"}">${order.map((uid, i) => heroCardHtml(state, uid, i)).join("")}</div>
+      ${formationHintsHtml(state, preview)}
+      <div class="hero-hand ${UIState.animHand ? "" : "no-anim"}">${order.map((uid, i) => heroCardHtml(state, uid, i, hintUids)).join("")}</div>
       <div class="under-hand">
         <span><span class="selection-dot"></span>Выбрано <strong>${state.combat.selectedUids.length} / ${Combat.MAX_SLOTS}</strong>
           ${state.combat.selectedUids.length ? '<button data-action="clear-selection">Снять выбор</button>' : ""}</span>
-        <span><kbd>1</kbd>–<kbd>${DeckSys.HAND_SIZE}</kbd> выбрать героя <span class="keyboard-divider">·</span> наведи, чтобы узнать способность</span>
+        <span><kbd>1</kbd>–<kbd>${Math.min(9, DeckSys.handSize(state))}</kbd> выбрать героя <span class="keyboard-divider">·</span> наведи, чтобы узнать способность</span>
       </div>
     </section>`;
   }
@@ -991,20 +1134,39 @@
 
   // Пикер стартового архетипа (спек §7): трио задаёт направление,
   // остальная колода добирается из тематического пула по сиду.
+  // Под каждым режимом — его базовые герои; с выключенным тумблером
+  // «Оставить базовых героев» подпись честно предупреждает о полной случайности.
   function starterPickerHtml() {
+    const keep = UIState.keepBase !== false;
     const draft = UIState.starterDraft || "standard";
     return `<div class="starter-picker">${Content.archetypes.list.map((a) => {
       const active = a.id === draft;
       const trio = a.guaranteed.length
         ? a.guaranteed.map((id) => Content.heroes.byId[id].name).join(" · ")
         : "Классическая двенадцатка";
+      const trioLine = keep ? `<b>Базовые герои:</b> ${trio}` : `Все 12 — случайные · уклон в «${a.name}»`;
       return `<button class="starter-card ${active ? "active" : ""}" style="--accent:${a.color}" data-action="pick-starter" data-starter="${a.id}" title="«${a.name}» — ${a.quote || ""}">
         <span class="starter-emoji">${a.emoji}</span>
         <span class="starter-name">${a.name}</span>
-        <small class="starter-trio">${trio}</small>
+        <small class="starter-trio">${trioLine}</small>
         <small class="starter-perk">${a.perk ? a.perkDesc : "без перка"}</small>
       </button>`;
     }).join("")}</div>`;
+  }
+
+  // Секция «Стартовый отряд» с тумблером «Оставить базовых героев»:
+  // вкл — трио режима гарантировано; выкл — весь ростер случайный, но перк
+  // отряда сохраняется, а ролл слегка склоняется к выбранному направлению.
+  function starterSectionHtml() {
+    const keep = UIState.keepBase !== false;
+    return `<div class="starter-section-head">
+      <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
+      <button class="keep-base-toggle ${keep ? "on" : ""}" data-action="toggle-keep-base" data-tip role="switch" aria-checked="${keep}">
+        <span class="kb-track"><i></i></span>Оставить базовых героев
+        <span class="pop side"><strong>Оставить базовых героев</strong><p>Вкл: базовые герои режима гарантированно стартуют в колоде.</p><p>Выкл: все 12 героев случайны, но перк отряда остаётся, а случайность чуть-чуть склоняется в сторону выбранного отряда.</p></span>
+      </button>
+    </div>
+    ${starterPickerHtml()}`;
   }
 
   // Ядро скоринга одно — формации. Тумблер «Классика/Формации» выпилен:
@@ -1013,7 +1175,7 @@
     return `<div class="title-rules">
       <div class="rule-choice active-rule">
         <strong>Формации</strong>
-        <small>Строй тимфайт: порядок слотов решает, связки складываются все, урон встречает броню башни.</small>
+        <small>Строй решает: порядок слотов важен, связки складываются все, а урон встречает броню башни.</small>
       </div>
     </div>`;
   }
@@ -1058,16 +1220,16 @@
       <div class="title-inner">
         <a class="brand big">${brandMark()}<span>dotora<span class="brand-dot">.</span></span></a>
         <p class="title-caption">DOTA В КАРТАХ.<br/>ВЕЗЕНИЕ — В ТВОИХ РУКАХ.</p>
-        <div class="title-formula">
-          <div class="score-block power"><strong>69</strong><span>СИЛА</span></div>
+        <div class="title-formula" title="Пример удара: сила отряда героев × множитель собранной формации">
+          <div class="score-block power"><strong>69</strong><span>СИЛА ОТРЯДА</span></div>
           <span class="times">${icon("x", 14)}</span>
-          <div class="score-block multiplier"><strong>6</strong><span>МНОЖ.</span></div>
+          <div class="score-block multiplier"><strong>6</strong><span>МНОЖ. ФОРМАЦИИ</span></div>
           <span class="equals">=</span>
           <div class="total-score"><strong>414</strong><span>УРОНА</span></div>
         </div>
+        <p class="title-hint">так выглядит один удар: собираешь отряд из руки — сила × множитель = урон башне</p>
         ${rulesBlockHtml()}
-        <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
-        ${starterPickerHtml()}
+        ${starterSectionHtml()}
         <span class="section-label">ЛИГА dotora · РАНГ СЛОЖНОСТИ</span>
         ${rankPickerHtml()}
         <div class="seed-row">
@@ -1094,12 +1256,18 @@
     hand: "Стиль волны",
   };
 
-  function routeCardHtml(state, opt, route, lines, index) {
+  function routeCardHtml(state, opt, route, card, index) {
     const cls = opt.id === "camp" ? "camp" : opt.id === "normal" ? "normal" : route.group;
+    const { lines, desc } = card;
+    // desc — подпись под фактами, а не ещё одна строка-пилюля; но когда
+    // эффектов нет (кэмп), desc и есть содержимое карточки — не глушим.
+    const descHtml = !desc ? "" : lines.length
+      ? `<span class="route-desc">${desc}</span>`
+      : `<span>${desc}</span>`;
     return `<button class="route-card ${cls}" data-action="take-route" data-kind="${opt.id}">
       <span class="route-emoji">${route.emoji}</span>
       <strong>${route.name}</strong>
-      <div class="route-lines">${lines.map((l) => `<span>${l}</span>`).join("")}</div>
+      <div class="route-lines">${lines.map((l) => `<span>${l}</span>`).join("")}${descHtml}</div>
       <small>${ROUTE_GROUP_FOOT[route.group] || "Путь"} <kbd>${index + 1}</kbd></small>
     </button>`;
   }
@@ -1112,7 +1280,7 @@
       lines.push(`${nextDef.name} · ${fmt(nextHp)} HP`);
       lines.push(baseRules);
       lines.push("Полный темп забега");
-      return lines;
+      return { lines, desc: "" };
     }
     if (route.hp) lines.push(`HP ×${route.hp} → ${fmt(Math.round(nextHp * route.hp))} HP`);
     if (route.randomHp) lines.push(`HP случайно ×${route.randomHp[0]}–×${route.randomHp[1]}`);
@@ -1136,7 +1304,7 @@
     if (route.shopSlots) lines.push(route.shopSlots < 0 ? `Товаров в лавке ${route.shopSlots}` : `Товаров в лавке +${route.shopSlots}`);
     if (route.shopInflation) lines.push(`Первая покупка −2G, дальше +1G`);
     if (route.hand) lines.push(route.hand > 0 ? `+${route.hand} карты в руке на волну` : `${route.hand} карта в руке на волну`);
-    if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} тимфайт` : `−${-route.fights} тимфайт`);
+    if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} боя` : `−${-route.fights} боя`);
     if (route.power) lines.push(`+${route.power} силы каждому бою`);
     if (route.itemRarity) lines.push(`В лавке ждёт ${route.itemRarity === "epic" ? "эпик" : "редкий"} товар`);
     if (route.extraRecruit) lines.push(`Таверна: +${route.extraRecruit} герой`);
@@ -1159,7 +1327,7 @@
     if (route.exileWeakestPower) lines.push(`Слабейший колоды уходит: +${route.exileWeakestPower} силы`);
     if (route.returnHero) lines.push(`Последний уволенный вернётся бесплатно`);
     if (route.secondLife) lines.push(`Раз за забег провал спасёт казарму; награды −25%`);
-    if (route.sin) lines.push(`Навсегда: +${route.sin.dmg}% урона, ${route.sin.discards} ТП-сброс`);
+    if (route.sin) lines.push(`Навсегда: +${route.sin.dmg}% урона, ${route.sin.discards} сброс`);
     if (route.routeUndo) lines.push(`Путь можно один раз отменить`);
     if (route.scout) lines.push(`Покажет следующие 3 башни`);
     if (route.shopPeek) lines.push(`Покажет товары следующей лавки`);
@@ -1170,22 +1338,14 @@
       lines.push(`Проклятие: ${curse.name} — ${curse.desc}`);
     }
     if (route.mods) lines.push("Правила: " + route.mods.map((id) => Content.modifiers.byId[id].name).join(", "));
-    if (route.modsRandom) lines.push(`Случайных правил на бой: ${route.modsRandom}`);
     if (route.reward && route.hp) lines.push(`Награда ×${route.reward}`);
-    if (route.gold) lines.push(route.gold > 0 ? `Сразу +${route.gold} золота` : `Сразу ${route.gold} золота`);
-    if (route.gamble) lines.push(`${Math.round(route.gamble.chance * 100)}%: +${route.gamble.win} золота, иначе пусто`);
     if (route.shopPrice) lines.push(route.shopPrice < 1
       ? `Следующая лавка −${Math.round((1 - route.shopPrice) * 100)}%`
       : `Следующая лавка +${Math.round((route.shopPrice - 1) * 100)}%`);
-    if (route.hand) lines.push(route.hand > 0 ? `+${route.hand} карты в руке на волну` : `${route.hand} карта в руке на волну`);
-    if (route.fights) lines.push(route.fights > 0 ? `+${route.fights} тимфайт` : `−${-route.fights} тимфайт`);
-    if (route.power) lines.push(`+${route.power} силы каждому бою`);
-    if (route.itemRarity) lines.push(`В лавке ждёт ${route.itemRarity === "epic" ? "эпик" : "редкий"} товар`);
     // «Подсмотр»: вскрытые жребии развилки показываются точно.
     if (route.randomHp && opt.hpMultRoll != null) lines.push(`👁️ Точный HP: ${fmt(Math.round(nextHp * route.hp * opt.hpMultRoll))}`);
     if (opt.pinnedMods) lines.push("👁️ Правила: " + opt.pinnedMods.map((id) => Content.modifiers.byId[id].name).join(", "));
-    lines.push(route.desc);
-    return lines;
+    return { lines, desc: route.desc };
   }
 
   function renderRoute(state) {
@@ -1244,7 +1404,7 @@
           ${battleSceneHtml(state, preview, harass)}
           ${contextPanelHtml(state, preview)}
         </div>
-        ${bottomBandHtml(state)}
+        ${bottomBandHtml(state, preview)}
       </main>
       ${debugPanelHtml(state)}
       ${outcomeModalHtml(state)}
@@ -1256,7 +1416,6 @@
   }
 
   function renderShop(state) {
-    const inflation = Ranks.has(state, "inflation") ? (state.run.inflationBuys || 0) : 0;
     const cap = Game.itemCapacity(state);
     // Следующая цель в шапке лавки (§1.4): башню видно до выхода в бой,
     // сайдбар и шапка никогда не показывают мёртвую башню.
@@ -1278,19 +1437,19 @@
           <span class="pop side"><strong>${u.emoji} ${u.name}</strong><p>${esc(u.desc)}</p>${ok ? "" : `<small>Недоступно: ${Upgrades.canActivate(state, u.id).reason}</small>`}</span>
         </button>`;
       }).join("");
-      return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
+      return `<div class="shop-card ${item.rarity === "epic" ? "legendary" : ""} ${o.locked ? "has-locked" : ""}" data-action="item-open" data-id="${item.id}" title="Клик — полный разбор предмета">
         <div class="shop-card-top">
           <span class="rarity">${RARITY_NAMES[item.rarity]}</span>
           <span class="item-actives">${itemActs}</span>
-          <button class="icon-button small lock-btn ${o.locked ? "locked" : ""}" data-action="lock" data-id="${item.id}" data-tip>${o.locked ? "🔒" : "🔓"}
-            <span class="pop side"><strong>${o.locked ? "Залочен" : "Свободен"}</strong><p>Зафиксируй товар — он сохранится при обновлении лавки, остальные слоты перевыбросятся.</p></span>
+          <button class="icon-button small lock-btn ${o.locked ? "locked" : ""}" data-action="lock" data-id="${item.id}" data-tip aria-pressed="${o.locked ? "true" : "false"}">${o.locked ? "🔒" : "🔓"}
+            <span class="pop side"><strong>${o.locked ? "Зафиксирован" : "Свободен"}</strong><p>Зафиксируй товар — он сохранится при обновлении лавки, остальные слоты перевыбросятся.</p></span>
           </button>
         </div>
         <div class="shop-card-art">${Art.itemIcon(item)}</div>
         <h3>${item.name}</h3>
         <p>${esc(item.desc)}</p>
         <span class="slot-class-tag">${SLOT_CLASS_ICONS[item.slotClass]} ${SLOT_CLASS_NAMES[item.slotClass]}</span>
-        ${cost !== item.cost ? `<span class="price-note">${o.free ? "🎁 Сюрприз: бесплатно" : cost < item.cost ? "голод: −20%" : `инфляция: +${inflation}G`}</span>` : ""}
+        ${cost !== item.cost ? `<span class="price-note">${o.free ? "🎁 Сюрприз: бесплатно" : cost < item.cost ? `скидка: −${item.cost - cost}G` : `дороже: +${cost - item.cost}G`}</span>` : ""}
         <button class="buy-button" ${afford && !blocked ? "" : "disabled"} data-action="buy" data-id="${item.id}">
           <span>${o.free ? "Забрать" : blocked && blockedLabel ? blockedLabel : afford ? "Купить" : "Дорого"}</span><span>${cost} ${icon("coins", 13)}</span>
         </button>
@@ -1314,25 +1473,11 @@
             <div class="shop-items ${UIState.animShop ? "" : "no-anim"}">${offers || '<div class="empty-shop">Всё раскуплено. Обнови товары или отправляйся в бой.</div>'}</div>
             <div class="shop-upgrades">
               <div class="shop-section-title upgrade-title"><h3>🔧 Улучшения лавки <small class="upgrade-note">не занимают слоты предметов · кнопки активируются на своих экранах</small></h3>
-                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Лапка, Клевер) и Пактом с Фортуны. Жирнее редкости предложений: с удачи 3 — пятая карточка, с 6 — шестая.</p></span></span>
-                <span class="upgrade-owned">${(() => {
-    const counts = {};
-    for (const u of Upgrades.ownedDefs(state)) counts[u.id] = (counts[u.id] || 0) + 1;
-    return Object.entries(counts).map(([id, n]) => {
-      const u = Content.upgrades.byId[id];
-      if (!u) return "";
-      const inst = Upgrades.instanceOf(state, id);
-      const lvl = inst.level > 1 ? ` ${Upgrades.roman(inst.level)}` : "";
-      const acc = u.type === "active"
-        ? ` · осталось: ${u.activation.access.charges != null ? `⚡${inst.charges}` : `${u.activation.access.act - inst.actUses}/${u.activation.access.act}`}`
-        : "";
-      return `<span class="upgrade-chip" data-tip>${u.emoji}${lvl}${n > 1 ? `<b>×${n}</b>` : ""}<span class="pop"><strong>${u.emoji} ${u.name}${lvl}${n > 1 ? " ×" + n : ""}</strong><p>${esc(upDescOf(state, u))}</p><small>${acc || "пассивное"}</small></span></span>`;
-    }).join("");
-  })()}</span>
+                <span class="luck-badge" data-tip>🍀 Удача ${Upgrades.luck(state)}<span class="pop side"><strong>Удача ${Upgrades.luck(state)}</strong><p>Копится улучшениями (Подкова, Кроличья лапка, Клевер) и Пактом Фортуны. Делает полку жирнее: с удачи 3 — пятая карточка, с 6 — шестая.</p></span></span>
                   ${(state.run.handSlots || 0) ? `<span class="upgrade-chip" data-tip>🎒<span class="pop"><strong>Запасные слоты ×${state.run.handSlots}</strong><p>Рука больше на ${state.run.handSlots} карты. Следующий уровень — ${Upgrades.handSlotDef(state).cost} G.</p></span></span>` : ""}
                   ${(state.run.attrCharges || 0) ? `<span class="upgrade-chip" data-tip>🧪<span class="pop"><strong>Зелья атрибута: ${state.run.attrCharges}</strong><p>Заряды смены атрибута — трать в лаборатории колоды (кнопки ◆ ✦ ✺ ◈ у героя).</p></span></span>` : ""}
                 ${ownedActives(state, "shop").filter((u) => !u.activation.target).map((u) => activeBtnHtml(state, u)).join("")}
-                ${(state.run.energy || 0) ? `<span class="energy-badge" data-tip>⚡ ${state.run.energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за активации. Тратится Перегрузкой.</p></span></span>` : ""}
+                ${(state.run.energy || 0) ? `<span class="energy-badge" data-tip>⚡ ${state.run.energy}<span class="pop side"><strong>Энергия</strong><p>Копится Конденсатором за активации улучшений. Тратится Перегрузкой.</p></span></span>` : ""}
                 <button class="secondary-button upgrade-reroll" data-action="reroll-upgrades" ${state.run.gold >= Upgrades.REROLL_COST || (Game.hasItemRule(state, "freeUpgradeReroll") && !state.run.ledgerRerollUsed) ? "" : "disabled"}>${icon("rotate", 12)}Обновить <span>${Game.hasItemRule(state, "freeUpgradeReroll") && !state.run.ledgerRerollUsed ? "0" : Upgrades.REROLL_COST} ${icon("coins", 11)}</span></button>
               </div>
               <div class="upgrade-row ${UIState.animShop ? "" : "no-anim"}">
@@ -1391,14 +1536,14 @@
               <div class="shop-lab-head">
                 <h3>${icon("layers", 14)} Лаборатория колоды</h3>
                 <span class="lab-shop-actions">
-                  <button class="secondary-button train-button" data-action="open-training" title="Тренировка: +1 к рангу героя навсегда">🏋️ Тренировать · ${Game.TRAIN_COST} ${icon("coins", 12)}</button>
+                  <button class="secondary-button train-button" data-action="open-training" title="Тренировка: +1 к силе героя навсегда">🏋️ Тренировать · ${Game.TRAIN_COST} ${icon("coins", 12)}</button>
                   <button class="secondary-button exile-button" data-action="open-collection-deck" title="Безвозвратное удаление героя из колоды">${state.run.campBoon ? "Уволить бесплатно 🏕️" : `Уволить · ${Game.EXILE_COST} ${icon("coins", 12)}`}</button>
                 </span>
               </div>
               <div class="recruit-row ${UIState.animLab ? "" : "no-anim"}">
                 ${(state.shop.recruits || []).length ? state.shop.recruits.map((heroId) => {
       const hr = Content.heroes.byId[heroId];
-      const price = Game.recruitPrice(heroId);
+      const price = Game.recruitPrice(heroId, state);
       const afford = state.run.gold >= price;
       return `<div class="recruit-card ${hr.attr}" data-tip>
                       <div class="recruit-portrait">${Art.heroArt(hr)}<b>${hr.power}</b></div>
@@ -1410,9 +1555,9 @@
                       </button>
                       <span class="pop"><strong>${hr.name}</strong><p>${esc(heroDesc(hr))}</p><small>${ATTR_NAMES[hr.attr]}, сила ${hr.power} · попадёт в колоду</small></span>
                     </div>`;
-    }).join("") : '<span class="muted-note">Таверна пуста — все ростерные герои уже у тебя.</span>'}
+    }).join("") : '<span class="muted-note">Таверна пуста — все герои ростера уже у тебя.</span>'}
               </div>
-              <small class="shop-hint left">Нанятые герои попадают в колоду. В коллекции (вкладка «Колода») можно тренировать героев: +1 ранг за ${Game.TRAIN_COST} 💰.</small>
+              <small class="shop-hint left">Нанятые герои попадают в колоду. В коллекции (вкладка «Колода») можно тренировать героев: +1 к силе за ${Game.TRAIN_COST} 💰.</small>
             </div>
             <div class="shop-bottom">
               <span class="shop-hint-row"><kbd>1</kbd>–<kbd>5</kbd> купить <span class="keyboard-divider">·</span> <kbd>R</kbd> обновить <span class="keyboard-divider">·</span> <kbd>↵</kbd> следующая волна</span>
@@ -1433,13 +1578,26 @@
   }
 
   function waveRuleText(def) {
+    // Короткие подписи правил для «следующей цели»: без сырых id —
+    // раньше проклятия и мутации показывались как "adaptation · regen".
     const map = {
-      armor: "Первая атака наносит половину урона",
-      glyph: "Каждый 3-й бой блокируется глифом",
-      mines: "Минирует 2 карты руки каждый бой — Sentry/BKB решают",
-      aegis: "Возрождается с половиной здоровья",
+      armor: "первый бой: урон ×0.5",
+      glyph: "каждый 3-й бой заблокирован",
+      mines: "мины: 2 карты руки не играют",
+      aegis: "возрождение с 50% HP",
+      adaptation: "повтор комбо ×0.5",
+      bastion: "малые комбо ×0.5",
+      fog: "герои силы ≤4 не бьют",
+      silence: "способности героев off",
+      disarm: "не больше 4 героев",
+      regen: "лечится после каждого боя",
+      reflection: "чётные бои ×0.75",
+      enrage: "лечение ниже 25% HP",
+      thorns: "4–5 героев ×0.85",
+      greed: "слабый бой кормит башню",
+      archivist: "частое комбо ×0.75",
     };
-    const mods = (def.modifiers || []).map((m) => map[m.id] || m.id);
+    const mods = (def.modifiers || []).map((m) => map[m.id] || (Content.modifiers.byId[m.id] ? Content.modifiers.byId[m.id].name : m.id));
     return mods.length ? mods.join(" · ") : "Без модификаторов";
   }
 
@@ -1514,7 +1672,7 @@
                 <div><strong>${Game.scoreOf(state).toLocaleString("ru")}</strong><span>Счёт${UIState.newRecord ? ' <b class="record-badge">🏆 рекорд</b>' : ""}</span></div>
                 <div><strong>${state.run.waveIndex + (won ? 1 : 0)}</strong><span>Волн пройдено</span></div>
                 <div><strong>${state.stats.totalDamage.toLocaleString("ru")}</strong><span>Всего урона</span></div>
-                <div><strong>${state.stats.biggestHit.toLocaleString("ru")}</strong><span>Лучший тимфайт</span></div>
+                <div><strong>${state.stats.biggestHit.toLocaleString("ru")}</strong><span>Лучший удар</span></div>
               </div>
               ${(() => { const n = (((state.run.upgradeState || {}).vozvrat || {}).charges) || 0; return n ? `<small class="end-note">Включая +${(n * 100).toLocaleString("ru")} очков за неиспользованные заряды «Второго дыхания»</small>` : ""; })()}
               ${leaderboardHtml()}
@@ -1559,7 +1717,7 @@
         <span class="section-label mint">ВОЛНА ЗАЧИЩЕНА</span>
         <h2>${state.combat.wave.isBoss ? (state.run.waveIndex >= Content.waves.order.length - 1 ? "Трон пал!" : "Акт пройден!") : "Башня пала."}</h2>
         <div class="outcome-rows">
-          <div><span>Зачистка</span><b>${icon("coins", 13)}+${state.combat.wave.gold || Game.WAVE_CLEAR_GOLD}</b></div>
+          <div><span>Зачистка</span><b>${icon("coins", 13)}+${Game.waveClearGold(state)}</b></div>
           ${state.combat.wave.isBoss && state.run.waveIndex < Content.waves.order.length - 1 ? `<div><span>Акт пройден</span><b>${icon("coins", 13)}+10 · ${icon("shield", 13)}+1 казарма</b></div>` : ""}
           ${res && res.goldGained ? `<div><span>Оверкилл / ласт-хит</span><b>${icon("coins", 13)}+${res.goldGained}</b></div>` : ""}
           ${mom > 0 ? `<div><span>Импульс</span><b class="momentum-text">${icon("flame", 13)}${mom} волн подряд</b></div>` : ""}
@@ -1572,10 +1730,11 @@
       <span class="section-label lose-text">ПУШ ПРОВАЛЕН</span>
       <h2>Казарма разрушена</h2>
       <div class="outcome-rows">
-        <div><span>Осталось казарм</span><b>${state.run.barracks} / ${BARRACKS}</b></div>
+        <div><span>Новая попытка стоит казармы</span><b>останется ${Math.max(0, state.run.barracks - 1)} из ${BARRACKS}</b></div>
+        <div><span>Башня</span><b>${Ranks.has(state, "mercy") ? "отстроится на 70% (Милосердие ранга)" : "отстроится заново (полное HP)"}</b></div>
         <div><span>Импульс</span><b class="lose-text">серия сброшена</b></div>
         ${state.player.items.includes("rapier") || (state.combat.wave.enemyItems || []).includes("rapier")
-      ? `<div><span>Divine Rapier</span><b class="lose-text">у врага: урон ×0.5</b></div>` : ""}
+      ? `<div><span>Divine Rapier</span><b class="lose-text">у башни: твой урон ×0.5</b></div>` : ""}
       </div>
       <button class="primary-button full-width" data-action="retry">Новая попытка ${icon("rotate", 15)}</button>
       ${(() => {
@@ -1632,31 +1791,31 @@
       {
         title: "Цифра — это сила героя",
         icon: "zap",
-        body: "Ранг (число на карте) добавляется к силе тимфайта. Одинаковые ранги собирают комбинации: две пятёрки — «Дуо», три — «Ганг». Соседние ранги (7-8-9-10-11) собирают «Смок» — стрит.",
+        body: "Отряд бьёт суммой сил выбранных героев. Одинаковые силы собирают комбо: два героя одной силы — «Дуо на линии» и связка «Ганг» (+6 силы), три одной силы — «Ганг». А силы по порядку (7-8-9-10-11) собирают «Смок на Рошана».",
         demo: "ranks",
       },
       {
         title: "Цвет — это атрибут",
         icon: "sparkles",
-        body: "Атрибут — это цвет рамки: Сила ◆, Ловкость ✦, Интеллект ✺, Универсал ◈. Пять героев одного цвета собирают флеш «Тимфайт атрибута». Способности тоже смотрят на цвета: Zeus даёт +2 множителя рядом с INT-героем.",
+        body: "Атрибут — это цвет рамки: Сила ◆, Ловкость ✦, Интеллект ✺, Универсал ◈. Пять героев одного цвета собирают «Командный флеш». Способности тоже смотрят на цвета: Zeus даёт +2 к множителю рядом с героем Интеллекта.",
         demo: "attrs",
       },
       {
         title: "Порядок клика — позиции в бою",
         icon: "target",
-        body: "Кого выбрал первым — тот стоит в слоте 1. Juggernaut даёт +8 силы только из первого слота. Morphling копирует атрибут соседа слева: поставь его справа от нужного героя.",
+        body: "Кого выбрал первым — тот стоит в первом слоте. Juggernaut даёт +8 силы только из первого слота. Morphling копирует атрибут соседа слева: поставь его справа от нужного героя.",
         demo: "slots",
       },
       {
         title: "Сила × Множитель = урон",
         icon: "swords",
-        body: "Комбинация даёт базу и множитель, герои и предметы добавляют своё. Умножение — и башня получает урон. Превью перед боем показывает весь расчёт шаг за шагом.",
+        body: "Формация даёт базу и множитель, герои и предметы добавляют своё — умножение и есть удар по башне. Превью перед боем показывает весь расчёт шаг за шагом.",
         demo: "formula",
       },
       {
         title: "Ставка, импульс и развилки",
         icon: "flame",
-        body: "1 герой — харас (+1 золото), 4 героя — ×1.1, 5 героев — ×1.25 к урону. Зачищай волны подряд: серия даёт +5% урона. После каждой лавки — развилка: обычная башня, элитка с проклятием (жирнее награда) или крип-лагерь (+6 золота, +1 казарма). В лавке — таверна: нанимай новых героев в колоду.",
+        body: "Ставка решает: один герой — харас и +1 золото, четыре — ×1.1 к урону, пять — ×1.25. Зачищай волны подряд: импульс даёт +5% урона за волну серии. После лавки — развилка: обычный путь, рискованная элитка или привал в крип-лагере. А в лавке — таверна: нанимай новых героев в колоду.",
         demo: "risk",
       },
     ];
@@ -1677,14 +1836,11 @@
         <span class="demo-attr agi">✦ Ловкость — криты и морфы</span>
         <span class="demo-attr int">✺ Интеллект — множители</span>
         <span class="demo-attr uni">◈ Универсал — джокер в стрите</span></div>
-        <div class="demo-row">${mini("tusk")}${mini("axe")}${mini("pudge")}${mini("sven")}${mini("centaur")}<span class="demo-eq">→</span><span class="demo-combo">Тимфайт атрибута<small>флеш · 35 × 4</small></span></div>`;
+        <div class="demo-row">${mini("tusk")}${mini("axe")}${mini("pudge")}${mini("sven")}${mini("centaur")}<span class="demo-eq">→</span><span class="demo-combo">Командный флеш<small>5 героев одного цвета · 35 × 4</small></span></div>`;
     }
     if (demo === "slots") {
-      const j = Content.heroes.byId.juggernaut;
-      const m = Content.heroes.byId.morphling;
-      const z = Content.heroes.byId.zeus;
       return `<div class="demo-slots">
-        <span class="demo-slot">1 ${mini("juggernaut")}<em>+8 силы</em></span>
+        <span class="demo-slot">1 ${mini("centaur")}<em>+4 за героя</em></span>
         <span class="demo-slot">2 ${mini("zeus")}<em>+2 множ.</em></span>
         <span class="demo-slot">3 ${mini("morphling")}<em>копирует INT</em></span>
         <span class="demo-slot empty">4</span>
@@ -1708,12 +1864,14 @@
 
   function onboardingHtml() {
     const steps = onboardingSteps();
-    const step = steps[UIState.onboardingStep];
-    const dots = steps.map((_, i) => `<i class="${i === UIState.onboardingStep ? "on" : i < UIState.onboardingStep ? "done" : ""}"></i>`).join("");
-    const last = UIState.onboardingStep === steps.length - 1;
+    // Кламп: Enter/→ с клавиатуры гонит шаг за пределы массива — падение рендера.
+    const idx = Math.max(0, Math.min(UIState.onboardingStep, steps.length - 1));
+    const step = steps[idx];
+    const dots = steps.map((_, i) => `<i class="${i === idx ? "on" : i < idx ? "done" : ""}"></i>`).join("");
+    const last = idx === steps.length - 1;
     return `<div class="modal-backdrop onboarding" data-action="modal-backdrop"><section class="modal onboarding-modal" role="dialog" aria-modal="true">
       <button class="modal-close icon-button" data-action="onboard-close">${icon("x", 20)}</button>
-      <span class="section-label mint">${icon("book", 15)}ОНБОРДИНГ · ${UIState.onboardingStep + 1} / ${steps.length}</span>
+      <span class="section-label mint">${icon("book", 15)}ОНБОРДИНГ · ${idx + 1} / ${steps.length}</span>
       <h2>${step.title}</h2>
       <div class="onboarding-body">
         <div class="onboarding-demo">${onboardingDemoHtml(step.demo)}</div>
@@ -1722,7 +1880,7 @@
       <div class="onboarding-foot">
         <div class="dots">${dots}</div>
         <div class="onboarding-actions">
-          ${UIState.onboardingStep > 0 ? `<button class="secondary-button" data-action="onboard-prev">Назад</button>` : ""}
+          ${idx > 0 ? `<button class="secondary-button" data-action="onboard-prev">Назад</button>` : ""}
           <button class="primary-button" data-action="${last ? "onboard-close" : "onboard-next"}">${last ? "В бой" : "Дальше"} ${icon("arrow", 15)}</button>
         </div>
       </div>
@@ -1740,24 +1898,26 @@
       }).join("");
     return `<span class="section-label mint">${icon("book", 15)}СПРАВОЧНИК</span>
       <h2>Формации. Порядок решает.</h2>
-      <p class="modal-description">Формация — одна лучшая по итоговому урону против цели: часть правил читает порядок слотов. Связки активны все сразу и складываются. Тип урона встречается с защитой башни: физический — минус броня, магический — минус сопротивление, чистый — игнорирует всё. Альтернативы и связки видны в панели справа.</p>
+      <p class="modal-description">Формация — самый выгодный строй против текущей цели: часть формаций читает порядок слотов. Связки действуют все сразу и складываются. Тип урона встречается с защитой башни: физический режется бронёй, магический — сопротивлением, чистый игнорирует всё. Все альтернативы видны в панели справа.</p>
       <div class="help-steps">${steps.map((s, i) => `<div><span>0${i + 1}</span><strong>${s.title}</strong><p>${s.body}</p></div>`).join("")}</div>
       <div class="combo-table">
         <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>
         ${comboRows}
       </div>
-      <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> ТП-сброс (R) заменит выбранных героев, не расходуя тимфайт. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>
+      <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> Сброс (R) заменит выбранных героев, не расходуя бои. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>
       <span class="section-label mint">${icon("book", 15)}СЛОВАРЬ</span>
       <div class="glossary">
+        <div><strong>Сила</strong><p>Число на карте героя. Отряд бьёт суммой сил выбранных героев, а одинаковые силы и силы по порядку собирают комбо.</p></div>
+        <div><strong>Бой</strong><p>Одна попытка на башню. На волну даётся несколько боёв, и урон между ними не пропадает: башня помнит остаток HP.</p></div>
         <div><strong>Кэрри</strong><p>Главный герой отряда — самый сильный. В «4 Protect 1» он стоит в центре, а четыре героя-свиты его прикрывают.</p></div>
         <div><strong>Свита</strong><p>Четыре героя вокруг кэрри. Им не нужно быть сильными — они дают формацию, связки и свои способности.</p></div>
         <div><strong>Слот / позиция</strong><p>Порядок, в котором ты выбрал героев: первый выбранный — слот 1. Часть формаций и способностей читает позицию: «Фронт» — слоты 1–2, «Тыл» — два последних, «Клин» — центр строя.</p></div>
         <div><strong>Фронт / Тыл</strong><p>Связки: «Фронт» — два Силовика в первых слотах (+сила), «Тыл» — два Интеллекта в последних (+множитель).</p></div>
-        <div><strong>Ганг</strong><p>Связка за пару героев одинакового ранга: сходили вдвоём на одного — получи +силы.</p></div>
-        <div><strong>Цепочка</strong><p>Связка за три ранга подряд (например 4-5-6) в любой позиции строя.</p></div>
-        <div><strong>Флеш («Тимфайт атрибута»)</strong><p>Пять героев одного цвета-атрибута. Даёт большой бонус и тип урона по доминирующему атрибуту отряда.</p></div>
-        <div><strong>Тимвайп</strong><p>«Убийство всей команды». Формация-топ: полная пятёрка с пятью рангами подряд и тремя атрибутами.</p></div>
-        <div><strong>Тип урона</strong><p>Физический — режется бронёй, магический — сопротивлением, чистый — игнорирует всё. Смотри «Следующую цель»: против брони бери чистый или магический, против сопротивления — физический.</p></div>
+        <div><strong>Ганг</strong><p>Связка за двух героев одинаковой силы: сходили вдвоём на одного — получи +силы.</p></div>
+        <div><strong>Цепочка</strong><p>Связка за три силы подряд (например 4-5-6) в любом порядке слотов.</p></div>
+        <div><strong>Командный флеш</strong><p>Пять героев одного цвета-атрибута. Даёт большой бонус и магический урон.</p></div>
+        <div><strong>Тимвайп</strong><p>«Убийство всей команды». Формация-топ: полная пятёрка с силами подряд и тремя разными атрибутами.</p></div>
+        <div><strong>Тип урона</strong><p>Физический режется бронёй, магический — сопротивлением, чистый игнорирует всё. Смотри «Следующую цель»: против брони бери чистый или магический, против сопротивления — физический.</p></div>
         <div><strong>Ставка</strong><p>Сколько героев отправил в бой: 1 — харас (+1 золото), 4 — ×1.1 к урону, 5 — ×1.25. Больше героев — больше урона, но рука пустеет.</p></div>
         <div><strong>Импульс</strong><p>Серия зачищенных волн подряд: +5% урона за каждую. Провал сбрасывает серию.</p></div>
       </div>
@@ -1823,10 +1983,10 @@
                 ${state.run.campBoon ? "Уволить бесплатно" : `Уволить · ${Game.EXILE_COST} G`}</button>
               <button class="lab-button" data-action="train" data-id="${hr.id}" ${canTrain ? "" : "disabled"}
                 title="${rank >= Game.TRAIN_RANK_MAX
-                  ? `Кап тренировок: ранг ${Game.TRAIN_RANK_MAX}. Дальше герой растёт только боевым опытом`
+                  ? `Предел тренировок: сила ${Game.TRAIN_RANK_MAX}. Дальше герой растёт только боевым опытом`
                   : state.run.gold < Game.TRAIN_COST
                     ? `Не хватает золота: нужно ${Game.TRAIN_COST}G, есть ${state.run.gold}G`
-                    : "Постоянно +1 к рангу героя"}">Тренировать +1 · ${Game.TRAIN_COST} G</button>
+                    : "Постоянно +1 к силе героя"}">Тренировать +1 · ${Game.TRAIN_COST} G</button>
             </div>` : ""}
           </div></div>`;
       }).join("");
@@ -1845,13 +2005,13 @@
       }).join("");
     }
     return `<span class="section-label mint">${icon("layers", 15)}КОЛЛЕКЦИЯ</span>
-      <h2>${tab === "deck" ? (state.phase === "shop" ? "Лаборатория колоды" : "Твоя колода") : "Всё для идеального тимфайта"}</h2>
+      <h2>${tab === "deck" ? (state.phase === "shop" ? "Лаборатория колоды" : "Твоя колода") : "Всё для идеального боя"}</h2>
       <div class="collection-toolbar">
         <div class="tabs">${tabs}</div>
         <input aria-label="Поиск в коллекции" placeholder="Найти по имени..." value="${esc(UIState.search)}" data-action-input="search">
       </div>
       ${tab === "deck" ? `<div class="deck-summary"><span>В руке <b>${state.player.handUids.length}</b></span><span>В колоде <b>${state.player.deckUids.length}</b></span><span>В сбросе <b>${state.player.discardUids.length}</b></span></div>` : ""}
-      ${state.phase === "shop" && UIState.labFocus === "train" ? `<div class="lab-focus-banner train">🏋️ Режим тренировки: +1 к рангу героя за ${Game.TRAIN_COST} G — навсегда, влияет на силу в бою.</div>` : ""}
+      ${state.phase === "shop" && UIState.labFocus === "train" ? `<div class="lab-focus-banner train">🏋️ Режим тренировки: +1 к силе героя за ${Game.TRAIN_COST} G — навсегда, действует в каждом бою.</div>` : ""}
       ${state.phase === "shop" && UIState.labFocus === "exile" ? `<div class="lab-focus-banner exile">⚔️ Режим увольнения: герой покинет колоду${state.run.campBoon ? " бесплатно (привал лагеря)" : ` за ${Game.EXILE_COST} G`}.</div>` : ""}
       <div class="collection-grid">${grid || '<div class="empty-search">Ничего не найдено. Попробуй другое имя.</div>'}</div>`;
   }
@@ -1865,8 +2025,8 @@
         <button class="toggle ${UIState.motion ? "on" : ""}" data-action="toggle-motion" role="switch" aria-checked="${UIState.motion}"><span></span></button></div>
       <div class="settings-shortcuts"><h3>Горячие клавиши</h3>
         <p><span>Выбрать героя</span><kbd>1 – ${DeckSys.HAND_SIZE}</kbd></p>
-        <p><span>Начать тимфайт</span><kbd>Enter</kbd></p>
-        <p><span>ТП-сброс</span><kbd>R</kbd></p>
+        <p><span>Начать бой</span><kbd>Enter</kbd></p>
+        <p><span>Пересдать руку</span><kbd>R</kbd></p>
         <p><span>Лавка: купить / обновить / дальше</span><kbd>1–5 · R · ↵</kbd></p>
         <p><span>Развилка: выбрать тропу</span><kbd>1 – 3</kbd></p>
         <p><span>Debug-песочница</span><kbd>D</kbd></p>
@@ -1889,8 +2049,7 @@
     return `<div class="reset-icon">${icon("rotate", 28)}</div>
       <h2>Ещё один забег?</h2>
       <p class="modal-description">Текущий прогресс будет сброшен. Тот же seed — тот же забег: удачи можно проверить дважды.</p>
-      <span class="section-label">СТАРТОВЫЙ ОТРЯД</span>
-      ${starterPickerHtml()}
+      ${starterSectionHtml()}
       <span class="section-label">РАНГ СЛОЖНОСТИ</span>
       ${rankPickerHtml()}
       <input id="seed-input-modal" class="seed-modal-input" placeholder="Seed (пусто = случайный)" maxlength="12">
@@ -1918,14 +2077,14 @@
     const synergies = Advisor.itemSynergy(item.id, state);
     const owned = state.player.items.includes(item.id);
     const inShop = state.phase === "shop";
-    const sellValue = Economy.sellValue(item.id);
+    const sellValue = Economy.sellValue(item.id, state);
     return `<div class="item-detail-image">${Art.itemIcon(item)}</div>
       <span class="section-label gold">${RARITY_NAMES[item.rarity]} предмет · ${item.cost} G</span>
       <h2>${item.name}</h2>
       <p class="modal-description">${esc(item.desc)}</p>
       ${synergies.length ? `<div class="detail-synergies"><span class="section-label">ЧТО ДАСТ ТВОЕМУ ЗАБЕГУ</span>
         ${synergies.map((s) => `<div class="inspect-line">${icon("sparkles", 11)} ${esc(s)}</div>`).join("")}</div>` : ""}
-      <div class="detail-tip">${icon("sparkles", 18)}<p>Предмет действует на каждый тимфайт. Его вклад виден в превью и в расчёте (кнопка с названием комбинации).</p></div>
+      <div class="detail-tip">${icon("sparkles", 18)}<p>Предмет действует в каждом бою. Его вклад виден в превью и в расчёте (кнопка с названием формации).</p></div>
       ${owned && inShop
       ? `<button class="secondary-button full-width" data-action="sell" data-id="${item.id}">Продать за ${sellValue} ${icon("coins", 14)}</button>`
       : owned ? '<div class="muted-note">Продажа доступна в лавке между волнами.</div>' : ""}`;
@@ -2014,6 +2173,91 @@
     timers.push(setTimeout(finish, 300 + resolution.steps.length * 140 + 500));
   }
 
+  // ---------- тултипы у края экрана ----------
+
+  // .pop живёт внутри якоря [data-tip] и у края вьюпорта обрезается: первая
+  // плитка панели «Улучшения» в сайдбаре выдавала тултип за левый край экрана.
+  // Позиция зависит от якоря, так что чистый CSS тут бессилен — по наведению
+  // замеряем всплывший .pop и досдвигаем его в экран свойством translate:
+  // оно складывается с transform-центрированием и одинаково работает для
+  // вариантов .pop (left:50%) и .pop.side (right:2px). У верхней кромки
+  // разворачиваем тултип вниз (.pop.flip-down).
+  let clampedPop = null;
+
+  // Ближайший предок, который реально режет тултип (overflow hidden/auto):
+  // иначе кламп по вьюпорту не спасает — подсказка слота 1 формации целиком
+  // в экране, но вылезает за battle-scene и обрезается его overflow: hidden.
+  function clipperOf(pop) {
+    let el = pop.parentElement;
+    while (el && el !== document.body) {
+      const cs = getComputedStyle(el);
+      if (/(hidden|clip|auto|scroll)/.test(cs.overflowX + cs.overflowY)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function clampPop(pop) {
+    const op = pop.offsetParent;
+    if (!op || !pop.offsetWidth) { clampedPop = null; return; }
+    const opr = op.getBoundingClientRect();
+    const top = opr.top + pop.offsetTop;
+    const clip = clipperOf(pop);
+    const cr = clip ? clip.getBoundingClientRect() : null;
+    const minL = Math.max(8, cr ? cr.left + 1 : 8);
+    const maxR = Math.min(document.documentElement.clientWidth - 8, cr ? cr.right - 1 : Infinity);
+    pop.style.removeProperty("translate");
+    // Тултип шире своего контейнера (узкий сайдбар при узком окне): любые
+    // сдвиги оставляют вылезание за край — сжимаем по ширине контейнера.
+    const innerW = maxR - minL;
+    if (innerW > 40 && pop.offsetWidth > innerW) pop.style.width = Math.round(innerW) + "px";
+    // Горизонталь — по визуальному боксу: центрирующий transform увёл
+    // offsetLeft от фактического положения, и кламп по offsetLeft не замечал,
+    // что тултип вылез за левый край battle-scene (слот 1 формации). Наш же
+    // прошлый translate перед замером сбрасываем — пересчёт не накапливается.
+    const pr = pop.getBoundingClientRect();
+    const left = pr.left;
+    const w = pop.offsetWidth;
+    const dx = left < minL ? minL - left
+      : left + w > maxR ? maxR - (left + w)
+      : 0;
+    if (dx) pop.style.translate = Math.round(dx) + "px 0";
+    const topLimit = Math.max(8, cr ? cr.top + 1 : 8);
+    pop.classList.toggle("flip-down", top < topLimit);
+    clampedPop = (dx || top < topLimit) ? pop : null;
+  }
+
+  function releasePop(pop) {
+    pop.style.removeProperty("translate");
+    pop.style.removeProperty("width");
+    pop.classList.remove("flip-down");
+    if (clampedPop === pop) clampedPop = null;
+  }
+
+  function bindPopClamp() {
+    document.addEventListener("mouseover", (e) => {
+      const tip = e.target.closest && e.target.closest("[data-tip]");
+      if (!tip) return;
+      const pop = tip.querySelector(".pop");
+      if (!pop) return;
+      // Мерим сразу: hover-стили к моменту mouseover уже применены. rAF —
+      // страховка на случай, когда pop ещё display:none (фоновая вкладка
+      // душит rAF, так что без синхронного замера кламп бы просто не сработал).
+      clampPop(pop);
+      if (!pop.getBoundingClientRect().width) requestAnimationFrame(() => clampPop(pop));
+    });
+    document.addEventListener("mouseout", (e) => {
+      const tip = e.target.closest && e.target.closest("[data-tip]");
+      if (!tip) return;
+      const pop = tip.querySelector(".pop");
+      if (pop) releasePop(pop);
+    });
+    // Скролл и ресайз двигают якорь: пока ховер жив, коррекция считается заново
+    const reclamp = () => { if (clampedPop) clampPop(clampedPop); };
+    window.addEventListener("resize", reclamp);
+    window.addEventListener("scroll", reclamp, true);
+  }
+
   // ---------- entry ----------
 
   function app() {
@@ -2042,6 +2286,8 @@
     if (modal && modalScroll) modal.scrollTop = modalScroll;
     if (window.Tutorial) Tutorial.observe(state); // TUTORIAL: интерактивный онбординг
   }
+
+  bindPopClamp();
 
   return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
 })();

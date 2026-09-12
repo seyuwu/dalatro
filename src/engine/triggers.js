@@ -37,20 +37,42 @@ const Triggers = (function () {
       }
       return sources;
     }
+    // ON_HELD: бой начался — триггеры героев, ОСТАВШИХСЯ В РУКЕ (скамейка
+    // бьёт, docs/PROPOSALS_FUN_BUILDS.md §0.1 Silencer), плюс предметы-слушатели.
+    if (eventName === "ON_HELD") {
+      const sources = [];
+      const selected = new Set(state.combat.selectedUids || []);
+      for (const uid of state.player.handUids) {
+        if (selected.has(uid)) continue;
+        const card = state.cards[uid];
+        const hero = card && Content.heroes.byId[card.heroId];
+        if (!hero || card.illusion) continue;
+        for (const agh of aghSources(state, hero)) sources.push({ ...agh, card, slotIndex: -1, hero });
+        if (hero.ability) {
+          sources.push({ kind: "hero", card, slotIndex: -1, hero, def: { ...hero.ability, sourceId: hero.id, sourceName: hero.name } });
+        }
+      }
+      state.player.items.forEach((itemId) => {
+        const item = Content.items.byId[itemId];
+        if (item && item.ability && item.ability.event === "ON_HELD") {
+          sources.push({ kind: "item", hero: null, card: null, slotIndex: -1, item, def: { ...item.ability, sourceId: item.id, sourceName: item.name } });
+        }
+      });
+      return sources;
+    }
     // Heroes in slot order, then items in acquisition order, then shop
     // upgrades (фаза F), then tower/boss modifiers.
     const sources = [];
     playedCards.forEach((card, slotIndex) => {
       const hero = Content.heroes.byId[card.heroId];
       if (!hero || card.illusion) return; // illusions never activate abilities
-      const aghs = aghSources(state, hero);
-      // Скипетр с override заменяет базовую способность героя.
-      const overridden = state.run.aghanims && state.run.aghanims[hero.id] && state.run.aghanims[hero.id].scepter &&
-        Content.aghanims.byId[state.run.aghanims[hero.id].scepter] &&
-        Content.aghanims.byId[state.run.aghanims[hero.id].scepter].override;
+      // Аугмент с override (скипетр или осколок) заменяет базовую способность.
+      const ownedAug = state.run.aghanims && state.run.aghanims[hero.id];
+      const overridden = !!(ownedAug && ["scepter", "shard"].some((k) => ownedAug[k] && Content.aghanims.byId[ownedAug[k]] && Content.aghanims.byId[ownedAug[k]].override));
       if (hero.ability && !overridden) {
         sources.push({ kind: "hero", card, slotIndex, hero, def: { ...hero.ability, sourceId: hero.id, sourceName: hero.name } });
       }
+      const aghs = aghSources(state, hero);
       for (const agh of aghs) {
         sources.push({ ...agh, card, slotIndex, hero });
       }
@@ -117,12 +139,6 @@ const Triggers = (function () {
 
       if (def.when && !Cond.evaluate(def.when, ctxBase)) continue;
 
-      // Скипетр «Grand Magus» (Rubick) читает, чьи способности уже сработали.
-      if (source.kind === "hero" && source.hero) {
-        resolution.heroTriggers = resolution.heroTriggers || [];
-        if (!resolution.heroTriggers.includes(source.hero.id)) resolution.heroTriggers.push(source.hero.id);
-      }
-
       // Synergy feedback: если условие стало выполнимым ТОЛЬКО из-за копий
       // атрибута (Morphling) — пометить цепочку в стеке.
       if (assistedByCopy(def.when, ctxBase, payload.scoring && payload.scoring.copyLog)) {
@@ -162,6 +178,13 @@ const Triggers = (function () {
         ctxBase.note = "крит!";
         // Явный флаг для UI: после боя показывается крупный «КРИТ!».
         (resolution.crits = resolution.crits || []).push(def.sourceName);
+      }
+
+      // Скипетр «Grand Magus» (Rubick) читает, чьи способности уже сработали.
+      // Записываем после проверки шанса: промах — не «сработавшая» способность.
+      if (source.kind === "hero" && source.hero) {
+        resolution.heroTriggers = resolution.heroTriggers || [];
+        if (!resolution.heroTriggers.includes(source.hero.id)) resolution.heroTriggers.push(source.hero.id);
       }
 
       for (const effect of def.effects || []) {

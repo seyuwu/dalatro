@@ -23,7 +23,7 @@ test("Крит ПА попадает в resolution.crits и подтвержда
   assert(found.s.log.some((l) => l.indexOf("КРИТ!") !== -1), "журнал содержит строку «КРИТ!»");
 });
 
-test("ТП-сброс убирает героев из слотов боя (фидбек)", () => {
+test("Сброс убирает героев из слотов боя (фидбек)", () => {
   const s = vaRun("VADISC");
   const uids = s.player.handUids.slice(0, 2);
   for (const uid of uids) Game.dispatch(s, { type: "SELECT_CARD", uid });

@@ -69,8 +69,8 @@ UI (State → Render)  →  Action  →  Game.dispatch
    затем Armor (×0.5 первый бой) / Glyph (каждый 3-й бой = 0).
 8. **Damage** = round(power × mult × finalMult × towerMult).
 9. **Death/Aegis** — revive один раз на 50%.
-10. **Gold** — оверкилл с затуханием (первые 50% maxHP по курсу 1/20,
-    дальше 1/40, ×Midas) + точный ласт-хит +5 + харас +1.
+10. **Gold** — оверкилл с затуханием (первые 50% maxHP по курсу 1/60,
+    дальше 1/120, жёсткий кап 5g, ×Midas) + точный ласт-хит +5 + харас +1.
 
 Важно: `ADD_MULT` у героев применяется ДО `MULT_MULT` предметов — это
 осознанный баланс (героев усиливают предметы, а не наоборот).
@@ -85,7 +85,7 @@ UI (State → Render)  →  Action  →  Game.dispatch
   ability: {
     name: "Counter Helix",
     event: "COMBO_DETECTED",            // PRE_DETECT | ON_PLAY | COMBO_DETECTED |
-                                        // FIGHT_SCORING | ON_DISCARD | ON_DEATH
+                                        // FIGHT_SCORING | ON_DISCARD
     when: { type: "COMBO_IS", value: "three" },  // см. conditions.js
     chance: 0.5,                        // опционально, честный seeded rng
     effects: [{ type: "ADD_POWER", value: 10 }], // см. effects.js
@@ -102,7 +102,8 @@ PRE_DETECT-семейство (`COPY_ATTRIBUTE, CREATE_ILLUSION, WILD_RANK`), к
 
 Башни/боссы — тот же формат: `waves: [{ id, hp, isBoss, miniBoss,
 modifiers: [{id}] }]`, модификаторы живут в `content/world.js` и
-исполняются движком как обычные триггеры (Aegis = `ON_DEATH → REVIVE`).
+исполняются движком как обычные триггеры (Aegis — модификатор с полем
+`hpPercent`, движок применяет эффект REVIVE в фазе смерти).
 Исключение — **мины Techies**: они меняют, какие карты вообще можно
 выбрать, поэтому назначаются движком (`Game.assignMines`, 2 случайные
 карты руки на каждый бой) до детекции, а Sentry/BKB выключают их до
@@ -110,8 +111,8 @@ modifiers: [{id}] }]`, модификаторы живут в `content/world.js`
 
 ## Тесты
 
-`npm test` — раннер грузит те же файлы, что и браузер, в том же порядке в
-node:vm и гоняет `tests/*.test.js` внутри контекста. 51 тест покрывает:
+`npm test` — раннер берёт список скриптов из index.html (без main.js/audio.js)
+и гоняет `tests/*.test.js` в node:vm. 341 тест покрывает:
 покер (все комбо + detectPower), детекционные хуки (Morph/Butterfly/Manta),
 математику боя, позиции, Refresher, Armor/BKB, Glyph, Aegis, ласт-хит,
 оверкилл-затухание, Rapier-цикл, цикл колоды, магазин, сбросы,
@@ -137,9 +138,10 @@ node:vm и гоняет `tests/*.test.js` внутри контекста. 51 т
 → `main.js` (делегирование data-action, клавиши 1–7/Enter/R/Esc/D, звук
 WebAudio, флаги настроек в localStorage). Комбинации — постоянная правая
 колонка с подсветкой «собрано/есть в руке» (`handComboState` — статический
-анализ руки, не движок). Онбординг — 5 шагов с демо-картами, флаг
-`dalatro_onboard_v3`. Фон линии `images/battlefield.jpg` копируется сборкой
-в `dist/images/`. Превью боя по-прежнему `Sim.simulate` — UI только читает.
+анализ руки, не движок). Онбординг — интерактивный сценарий `ui/tutorial.js`
+(свой слой вне `#app`, шаги-спотлайты, флаг `dotora_tut_v1`), модалка
+«5 шагов» — справка по кнопке. Фон линии `images/battlefield.jpg` копируется
+сборкой в `dist/images/`. Превью боя по-прежнему `Sim.simulate` — UI только читает.
 
 ## Известные упрощения v0.2
 
