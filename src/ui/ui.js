@@ -2042,22 +2042,52 @@
     </section></div>`;
   }
 
+  // Чип примера в справочнике: портрет героя + сила, для позиционных строёв —
+  // номер слота в углу. Порядок чипов = порядок слотов.
+  function guideChip(ids, slots) {
+    return ids.map((id, i) => {
+      const hero = Content.heroes.byId[id];
+      return `<span class="fg-chip ${hero.attr}" title="${hero.name} · ${ATTR_NAMES[hero.attr]}">${Art.heroArt(hero)}<b>${hero.power}</b>${slots ? `<i>${i + 1}</i>` : ""}</span>`;
+    }).join("");
+  }
+
   function helpModalHtml(state) {
     const steps = onboardingSteps();
-    const comboRows = Content.formations.list.map((f) => `<div><span><strong>${f.name}</strong><small>${Content.damageTypeNames[f.damageType] || f.damageType}${f.positional ? " · порядок" : ""}</small></span><span>${f.rule}</span>
-          <span><b class="mint">${f.basePower}</b><span class="table-x">✕</span><b class="gold">${f.baseMult}</b></span></div>`).join("")
-      + Content.bonds.list.map((b) => {
-        const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
-        return `<div><span><strong>Связка «${b.trait}»</strong><small>складывается</small></span><span>${val || "—"}</span>
-          <span><b class="gold">${val}</b></span></div>`;
-      }).join("");
+    const formationRows = Content.formations.list.map((f) => {
+      const tags = [
+        f.damageType === "byAttribute" ? "по атрибуту" : Content.damageTypeNames[f.damageType] || f.damageType,
+        f.positional ? "порядок слотов" : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="fg-row">
+        <div class="fg-head"><strong>${f.name}</strong><small>${tags}</small></div>
+        <div class="fg-example">${guideChip(f.example, f.positional)}</div>
+        <p class="fg-desc"><b>${f.rule}.</b> ${f.desc}</p>
+        <div class="fg-nums"><span><b class="mint">${f.basePower}</b><span class="table-x">✕</span><b class="gold">${f.baseMult}</b></span></div>
+      </div>`;
+    }).join("");
+    const bondRows = Content.bonds.list.map((b) => {
+      const val = [b.power ? `+${b.power} силы` : "", b.mult ? `+${b.mult} множ.` : ""].filter(Boolean).join(", ");
+      return `<div class="fg-row bond">
+        <div class="fg-head"><strong>«${b.trait}»</strong><small>складывается</small></div>
+        <div class="fg-example">${guideChip(b.example, false)}</div>
+        <p class="fg-desc">${b.note}.</p>
+        <div class="fg-nums"><b class="gold">${val || "—"}</b></div>
+      </div>`;
+    }).join("");
     return `<span class="section-label mint">${icon("book", 15)}СПРАВОЧНИК</span>
       <h2>Формации. Порядок решает.</h2>
       <p class="modal-description">Формация — самый выгодный строй против текущей цели: часть формаций читает порядок слотов. Связки действуют все сразу и складываются. Тип урона встречается с защитой башни: физический режется бронёй, магический — сопротивлением, чистый игнорирует всё. Все альтернативы видны в панели справа.</p>
       <div class="help-steps">${steps.map((s, i) => `<div><span>0${i + 1}</span><strong>${s.title}</strong><p>${s.body}</p></div>`).join("")}</div>
-      <div class="combo-table">
-        <div class="table-head"><span>КОМБИНАЦИЯ</span><span>УСЛОВИЕ</span><span>СИЛА ✕ МНОЖ.</span></div>
-        ${comboRows}
+      <span class="section-label mint">${icon("swords", 15)}ФОРМАЦИИ · ПРИМЕРЫ СБОРА</span>
+      <p class="fg-legend">Под каждой формацией — собранный пример: герои стоят в порядке слотов, цифра на чипе — сила героя, номер в углу — слот.</p>
+      <div class="fg-table">
+        <div class="table-head"><span>ФОРМАЦИЯ</span><span>ПРИМЕР</span><span>СИЛА ✕ МНОЖ.</span></div>
+        ${formationRows}
+      </div>
+      <span class="section-label mint">${icon("sparkles", 15)}СВЯЗКИ · СКЛАДЫВАЮТСЯ ВСЕ СРАЗУ</span>
+      <div class="fg-table">
+        <div class="table-head"><span>СВЯЗКА</span><span>ПРИМЕР</span><span>БОНУС</span></div>
+        ${bondRows}
       </div>
       <div class="help-note">${icon("help", 17)}<p><strong>Не нравится рука?</strong> Сброс (R) заменит выбранных героев, не расходуя бои. Сброс с Crystal Maiden приносит +2 золота. Оверкилл — золото, точный ласт-хит — ещё +5.</p></div>
       <span class="section-label mint">${icon("book", 15)}СЛОВАРЬ</span>
