@@ -232,33 +232,43 @@ function dashboard(d) {
 
 let PROMO_CFG = null;
 
+// Декод файла картинки: blob: URL в некоторых браузерах (встроенный ZCode)
+// заблокирован, поэтому в обход — createImageBitmap, затем FileReader data-URL.
+function decodeImageFile(file) {
+  if (typeof createImageBitmap === "function") return createImageBitmap(file);
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("файл не распознан как картинка"));
+      img.src = fr.result;
+    };
+    fr.onerror = () => reject(new Error("не удалось прочитать файл"));
+    fr.readAsDataURL(file);
+  });
+}
+
 // Сжатие картинки в браузере: эмблеме хватает 512px, зато аплоад маленький
 // и не упирается в лимиты nginx. PNG/Webp-исходники сохраняют прозрачность
 // (webp), JPEG — конвертируется в jpeg.
 function shrinkImage(file, maxSide = 512) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    const fail = (why) => { URL.revokeObjectURL(url); reject(new Error(why)); };
-    img.onload = () => {
-      try {
-        URL.revokeObjectURL(url);
-        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-        const w = Math.max(1, Math.round(img.naturalWidth * scale));
-        const h = Math.max(1, Math.round(img.naturalHeight * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        const keepAlpha = file.type === "image/png" || file.type === "image/webp";
-        canvas.toBlob((blob) => {
-          if (!blob) return fail("сжатие не удалось");
-          const ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
-          resolve({ blob, ext });
-        }, keepAlpha ? "image/webp" : "image/jpeg", 0.9);
-      } catch (e) { fail(e.message); }
-    };
-    img.onerror = () => fail("файл не распознан как картинка");
-    img.src = url;
+  return decodeImageFile(file).then((src) => {
+    const w = src.width || src.naturalWidth;
+    const h = src.height || src.naturalHeight;
+    const scale = Math.min(1, maxSide / Math.max(w, h));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(w * scale));
+    canvas.height = Math.max(1, Math.round(h * scale));
+    canvas.getContext("2d").drawImage(src, 0, 0, canvas.width, canvas.height);
+    const keepAlpha = file.type === "image/png" || file.type === "image/webp";
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error("сжатие не удалось"));
+        const ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
+        resolve({ blob, ext });
+      }, keepAlpha ? "image/webp" : "image/jpeg", 0.9);
+    });
   });
 }
 
