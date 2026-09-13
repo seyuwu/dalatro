@@ -476,8 +476,8 @@
     const shades = shadesHtml(def, hasTarget);
     const hole = (def.mode === "spot" || def.clickAnywhere) && hasTarget ? `<div class="tut-ring"></div>` : "";
     const pulse = def.mode === "pulse" && hasTarget ? `<div class="tut-pulse"></div>` : "";
-    // Каждый шаг: слева явная кнопка «Пропустить обучение», справа — «не сейчас»
-    // (если шаг можно отложить) или подпись-подсказка. Авто-шагам («способность
+    // Каждый шаг: слева «Далее» (пропустить шаг), в шапке справа — маленькое
+    // «Пропустить обучение» (гасит сценарий целиком). Авто-шагам («способность
     // звезды», волновые записки) — подпись «клик — продолжить»: карточка
     // закрывается ЛКМ в любом месте или исчезает по таймеру сама.
     const autoNote = def.auto && def.later ? `<span class="tut-caption">клик — продолжить</span>` : "";
@@ -491,11 +491,12 @@
       <aside class="tut-card${def.num ? " num" : ""}">
         <header class="tut-head">
           <span class="tut-kicker">ОБУЧЕНИЕ</span>
+          <button class="tut-skip" title="Завершить обучение целиком">Пропустить обучение</button>
         </header>
         <h3>${def.title}</h3>
         <p>${def.body}</p>
         <footer class="tut-foot">
-          <button class="tut-skip">Пропустить обучение</button>
+          <button class="tut-next">Далее</button>
           ${later}
         </footer>
       </aside>`;
@@ -541,6 +542,8 @@
     }
     const skip = layer.querySelector(".tut-skip");
     if (skip) skip.addEventListener("click", (e) => { e.stopPropagation(); finish("skip"); });
+    const next = layer.querySelector(".tut-next");
+    if (next) next.addEventListener("click", (e) => { e.stopPropagation(); go(); });
     const later = layer.querySelector(".tut-later");
     if (later) later.addEventListener("click", (e) => { e.stopPropagation(); advance(typeof def.next === "function" ? def.next(lastState) : def.next); });
     if (def.auto && card) {

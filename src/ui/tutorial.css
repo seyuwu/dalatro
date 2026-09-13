@@ -56,10 +56,10 @@
 .tut-kicker { font-size: 8px; font-weight: 800; letter-spacing: 1.7px; color: #8fb492; }
 .tut-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; min-height: 22px; }
 .tut-foot-right { display: flex; align-items: center; gap: 10px; }
-.tut-skip {
-  font-size: 11px; font-weight: 700; color: #b9c2ac;
-  border: 1px solid #4a5744; border-radius: 7px; padding: 4px 10px; background: #ffffff08;
-}
+.tut-skip { font-size: 9.5px; color: #75816f; background: none; border: none; padding: 2px 0; cursor: pointer; opacity: .8; }
+.tut-skip:hover { color: #b9c2ac; opacity: 1; text-decoration: underline; }
+.tut-next { font-size: 11px; font-weight: 800; letter-spacing: .5px; color: #e9c98f; background: #3c331d; border: 1px solid #7a6437; border-radius: 4px; padding: 6px 16px; cursor: pointer; }
+.tut-next:hover { color: #ffd98f; border-color: #e9c98f; }
 .tut-skip:hover { color: #eceada; border-color: #7d8f70; background: #ffffff10; }
 .tut-later { font-size: 11px; color: #869187; border-bottom: 1px dotted #5a665a; padding: 2px 0; }
 .tut-later:hover { color: #b9c2ac; }
