@@ -108,6 +108,16 @@ export function adminPageHtml() {
   .tag.loss { color: var(--red); border-color: #6b3a2a; }
   .tag.err { color: var(--red); }
   .tag.ok { color: var(--green); }
+  .pr { border: 1px solid var(--line); border-radius: 5px; margin-bottom: 8px; background: #16201a66; }
+  .pr summary { cursor: pointer; padding: 8px 12px; font-size: 12px; }
+  .pr-body { padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pr-body label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .pr-body input, .pr-body textarea { background: #141c15; border: 1px solid #3e5134; border-radius: 4px; padding: 7px 9px; color: var(--text); font: inherit; }
+  .pr-body .wide { grid-column: 1 / -1; }
+  .pr-actions { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pr-thumb { width: 46px; height: 46px; object-fit: cover; border-radius: 5px; border: 1px solid var(--line); }
+  .pr-status { font-size: 11px; color: var(--green); }
+  @media (max-width: 720px) { .pr-body { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -198,6 +208,7 @@ function dashboard(d) {
       card(t.avgLatencyMs + " мс", "Средняя задержка") +
       card(errRate, "Доля ошибок", t.errors > 0) +
     "</div>" +
+    '<section><h2>Промо-башни (реклама волн)</h2><div id="promo-rows" class="muted">Загрузка…</div></section>' +
     '<section><h2>Трафик по часам (48 ч)</h2>' + barChart(hours, "requests", "api", "все запросы", "API") + "</section>" +
     '<div class="grid2">' +
       '<section><h2>Топ путей (сегодня)</h2>' + tableView(d.topPaths, [["path", "Путь"], ["count", "Запросов", 1, (r) => fmtN(r.count)]]) + "</section>" +
@@ -219,11 +230,76 @@ function dashboard(d) {
     "</div>";
 }
 
+let PROMO_CFG = null;
+const esc2 = esc;
+
+async function loadPromoEditor() {
+  try {
+    PROMO_CFG = await api("/api/promo-config");
+    const host = document.getElementById("promo-rows");
+    if (!host) return;
+    host.className = "";
+    host.innerHTML = PROMO_CFG.waves.map((w) => {
+      const p = (PROMO_CFG.promos[w.id]) || {};
+      const badge = w.boss ? " · босс акта" : w.miniBoss ? " · мини-босс" : "";
+      const thumb = p.hasImage ? '<img class="pr-thumb" src="/promo-image/' + w.id + '?v=' + Date.now() + '">' : "";
+      return '<details class="pr" data-wave="' + w.id + '"><summary>Акт ' + w.act + ' · ' + esc(w.name) + badge + (p.name ? ' — <b style="color:var(--gold)">' + esc(p.name) + '</b>' : '') + '</summary>' +
+        '<div class="pr-body">' +
+        '<label>Название проекта (пусто = убрать промо)<input class="pr-name" maxlength="40" value="' + esc(p.name || "") + '"></label>' +
+        '<label>Ссылка (https://…)<input class="pr-url" value="' + esc(p.url || "") + '" placeholder="https://…"></label>' +
+        '<label>Жёлтый заголовок<input class="pr-tag" maxlength="140" value="' + esc(p.tagline || "") + '"></label>' +
+        '<label>Жёлтый текст<textarea class="pr-desc" maxlength="300" rows="2">' + esc(p.desc || "") + '</textarea></label>' +
+        '<div class="pr-actions">' + thumb +
+        '<label style="flex-direction:row;align-items:center;gap:6px;text-transform:none;letter-spacing:0">Картинка (PNG/JPG ≤400КБ): <input type="file" class="pr-file" accept="image/png,image/jpeg"></label>' +
+        (p.hasImage ? '<button class="pr-imgdel">Убрать картинку</button>' : "") +
+        '<button class="pr-save">Сохранить</button><span class="pr-status"></span></div>' +
+        '</div></details>';
+    }).join("") + '<button id="promo-reload">Обновить</button>';
+    document.getElementById("promo-reload").onclick = loadPromoEditor;
+    host.querySelectorAll(".pr").forEach((row) => {
+      const waveId = row.dataset.wave;
+      row.querySelector(".pr-save").onclick = async () => {
+        const st = row.querySelector(".pr-status");
+        st.textContent = "сохраняем…"; st.style.color = "var(--muted)";
+        const res = await api("/api/admin/promo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+          waveId,
+          name: row.querySelector(".pr-name").value,
+          url: row.querySelector(".pr-url").value.trim(),
+          tagline: row.querySelector(".pr-tag").value,
+          desc: row.querySelector(".pr-desc").value,
+        }) }).catch((e) => ({ error: e.message }));
+        if (res && res.ok) { st.style.color = "var(--green)"; st.textContent = res.deleted ? "промо убрано" : "сохранено"; setTimeout(() => refresh(), 600); }
+        else { st.style.color = "var(--red)"; st.textContent = (res && res.error) || "ошибка"; }
+      };
+      row.querySelector(".pr-file").onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const st = row.querySelector(".pr-status");
+        st.textContent = "загружаем картинку…"; st.style.color = "var(--muted)";
+        const buf = await file.arrayBuffer();
+        const res = await fetch("/api/admin/promo-image/" + waveId, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: buf })
+          .then((r) => r.json()).catch((e2) => ({ error: e2.message }));
+        if (res && res.ok) { st.style.color = "var(--green)"; st.textContent = "картинка загружена"; setTimeout(() => refresh(), 600); }
+        else { st.style.color = "var(--red)"; st.textContent = (res && res.error) || "ошибка"; }
+      };
+      const del = row.querySelector(".pr-imgdel");
+      if (del) del.onclick = async () => {
+        await fetch("/api/admin/promo-image-remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ waveId }) }).catch(() => {});
+        refresh();
+      };
+    });
+  } catch (e) {
+    const host = document.getElementById("promo-rows");
+    if (host) host.textContent = "Не загрузился конфиг: " + e.message;
+  }
+}
+
 async function refresh() {
   try {
     const d = await api("/api/admin/stats");
     document.getElementById("updated").textContent = "обновлено " + fmtTime(Date.now());
     dashboard(d);
+    loadPromoEditor();
   } catch (e) {
     if (e.status === 401) { loginView(); return; }
     app.innerHTML = '<div class="card bad"><b>—</b><span>Сервер не ответил: ' + esc(e.message) + '</span></div>';

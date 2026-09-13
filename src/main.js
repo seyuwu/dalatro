@@ -162,6 +162,7 @@
     }
     if (INV_REFRESH.has(action.type)) UI.UIState.animInv = true;
     if (LAB_REFRESH.has(action.type)) UI.UIState.animLab = true;
+    if (action.type === "LEAVE_SHOP" || action.type === "TAKE_ROUTE") Net.fetchPromoConfig(true); // свежий промо на следующую волну
     if (action.type === "LEAVE_SHOP") UI.UIState.animRoute = true;
 
     state = Game.dispatch(state, action);
@@ -522,15 +523,15 @@
         rerender();
         break;
       case "promo-visit": {
-        const promo = Content.promo.byId[el.dataset.promo];
+        const promo = Net.getPromo(el.dataset.promo);
         if (promo) {
           Net.trackPromo(el.dataset.promo, "visit");
-          window.open(promo.url, "_blank", "noopener");
+          if (promo.url) window.open(promo.url, "_blank", "noopener");
         }
         break;
       }
       case "promo-view": {
-        if (Content.promo.byId[el.dataset.promo]) Net.trackPromo(el.dataset.promo, "view");
+        if (Net.getPromo(el.dataset.promo)) Net.trackPromo(el.dataset.promo, "view");
         break;
       }
       case "auth-submit": submitAuth(); break;
@@ -730,6 +731,7 @@
       UI.UIState.unlockedRank = Net.state.me.unlockedRank;
       saveUnlockedRank(Net.state.me.unlockedRank);
     }
+    Net.fetchPromoConfig().then(() => { if (state.phase === "wave") rerender(); });
     const p = state.phase;
     if (p === "title" || p === "victory" || p === "gameover" || UI.UIState.modal === "account" || UI.UIState.modal === "leaders") rerender();
   });

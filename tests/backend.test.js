@@ -308,3 +308,29 @@ test("promo: клики по промо-боссам считаются в ан�
   b.call("POST", "/promo", { body: { promo: "pfinal", target: "visit" }, cookie: "dalatro_sess=" + token });
   assertEq(events[2].name, "Clicker");
 });
+
+test("promo-config: список волн публичен, записи пустые по умолчанию", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+  const cfg = b.call("GET", "/promo-config").json;
+  assertEq(cfg.waves.length, 15);
+  assert(cfg.waves.some((w) => w.id === "roshan" && w.boss));
+  assertEq(Object.keys(cfg.promos).length, 0);
+});
+
+test("admin promo: сохранение/удаление записи волны, только для админа", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir() });
+  assertEq(b.call("POST", "/admin/promo", { body: { waveId: "t1", name: "X" } }).status, 401, "без админа нельзя");
+  const ok = b.call("POST", "/admin/promo", { body: { waveId: "t1", name: "Мой проект", url: "https://example.com", tagline: "Заголовок", desc: "Текст" }, isAdmin: true });
+  assertEq(ok.status, 200);
+  let cfg = b.call("GET", "/promo-config").json;
+  assertEq(cfg.promos.t1.name, "Мой проект");
+  assertEq(cfg.promos.t1.tagline, "Заголовок");
+  // javascript:-URL отклонён
+  assertEq(b.call("POST", "/admin/promo", { body: { waveId: "t1", name: "X", url: "javascript:alert(1)" }, isAdmin: true }).status, 400, "не-https ссылка");
+  // неизвестная волна
+  assertEq(b.call("POST", "/admin/promo", { body: { waveId: "нет", name: "X" }, isAdmin: true }).status, 400);
+  // пустое имя удаляет запись
+  assertEq(b.call("POST", "/admin/promo", { body: { waveId: "t1", name: "" }, isAdmin: true }).json.deleted, true);
+  cfg = b.call("GET", "/promo-config").json;
+  assertEq(cfg.promos.t1, undefined);
+});

@@ -730,8 +730,9 @@
     const kill = live && preview.damage >= hp;
     const isBoss = !!wave.isBoss;
     // Промо-босс (src/content/promo.js): враг = проект-партнёр, клик = переход.
-    const promo = isBoss ? Content.promo.byId[wave.towerId] : null;
-    const faction = isBoss || wave.miniBoss ? (promo ? "ПРОЕКТ-БОСС" : "БОСС АКТА") : "ПОСТРОЙКА СВЕТА";
+    const promo = Net.getPromo(wave.towerId);
+    const faction = isBoss || wave.miniBoss ? (promo ? "ПРОЕКТ-БОСС" : "БОСС АКТА") : promo ? "ПРОЕКТ-БАШНЯ" : "ПОСТРОЙКА СВЕТА";
+    const promoImg = promo && promo.img ? `<img class="promo-emblem-img" src="${promo.img}" alt="">` : "";
     const slots = Array.from({ length: max }, (_, i) => {
       const uid = state.combat.selectedUids[i];
       const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
@@ -755,7 +756,7 @@
       <div class="scene-shade"></div>
       <div class="scene-inner">
         <header class="scene-target">
-          <div class="scene-emblem ${isBoss ? "boss" : ""}" ${promo ? `data-action="promo-view" data-promo="${wave.towerId}" title="Клик по врагу — интерес учтён"` : ""}>${isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30)}</div>
+          <div class="scene-emblem ${isBoss ? "boss" : ""}" ${promo ? `data-action="promo-view" data-promo="${wave.towerId}" title="Клик по врагу — интерес учтён"` : ""}>${promoImg || (isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30))}</div>
           <div class="scene-title">
             <span class="section-label">${faction} · ВОЛНА ${state.run.waveIndex % 5 + 1}/5</span>
             ${promo
@@ -773,10 +774,10 @@
           <div class="scene-reward" data-tip><span>Награда</span><b>${icon("coins", 13)}${Game.waveClearGold(state)}+</b>
             <span class="pop"><strong>Награда за зачистку</strong><p>${Game.waveClearGold(state)}G — база. «+» — бонусы: +1G за каждый неиспользованный бой и сброс, плюс золото с оверкилла.</p></span></div>
         </header>
-        ${promo ? `<div class="promo-ribbon" data-action="promo-view" data-promo="${wave.towerId}">
+        ${promo && (promo.tagline || promo.desc) ? `<div class="promo-ribbon" data-action="promo-view" data-promo="${wave.towerId}">
           <span class="promo-emoji">📣</span>
-          <div class="promo-text"><b>${esc(promo.tagline)}</b><span>${esc(promo.desc)}</span></div>
-          <button class="secondary-button promo-link" data-action="promo-visit" data-promo="${wave.towerId}">Перейти на сайт ${icon("arrow", 13)}</button>
+          <div class="promo-text">${promo.tagline ? `<b>${esc(promo.tagline)}</b>` : ""}<span>${esc(promo.desc || "")}</span></div>
+          ${promo.url ? `<button class="secondary-button promo-link" data-action="promo-visit" data-promo="${wave.towerId}">Перейти на сайт ${icon("arrow", 13)}</button>` : ""}
         </div>` : ""}
         <div class="rule-chips">${waveRuleChips(state)}</div>
         ${state.run.routeUndo && !state.combat.outcome ? `<div class="undo-route-row"><button class="secondary-button" data-action="undo-route">↩️ Отменить тропу</button></div>` : ""}

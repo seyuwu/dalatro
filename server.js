@@ -18,7 +18,7 @@ import { createAdminAuth, adminPageHtml, ADMIN_COOKIE } from "./admin.js";
 // Ре-экспорт для тестов: vm-раннер инжектит только server.js (как Backend).
 export { createAnalytics } from "./analytics.js";
 export { createAdminAuth, ADMIN_COOKIE } from "./admin.js";
-export { staticPathAllowed };
+export { staticPathAllowed, WAVE_META };
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const SESSION_TTL = 30 * 24 * 3600 * 1000; // 30 дней
@@ -96,10 +96,24 @@ function pruneMap(map, maxAgeMs) {
 // ---------- API-ядро (синхронное) ----------
 // call(method, path, { body, cookie, bearer }) → { status, json, setCookie? }
 // onEvent — крючок аналитики: register/login/run уходят в analytics.js.
+// Метаданные волн для редактора промо (зеркало WAVES_DATA из world.js —
+// id/название/акт; при добавлении волн не забывать сюда).
+const WAVE_META = [
+  { id: "t1", act: 1, name: "T1 Башня" }, { id: "t2", act: 1, name: "T2 Башня" }, { id: "t3", act: 1, name: "T3 Башня" },
+  { id: "techies", act: 1, name: "Techies", miniBoss: true }, { id: "roshan", act: 1, name: "Roshan", boss: true },
+  { id: "f1", act: 2, name: "Руины" }, { id: "f2", act: 2, name: "Сторожевой лагерь" }, { id: "f3", act: 2, name: "Цитадель" },
+  { id: "fmini", act: 2, name: "Сапёры", miniBoss: true }, { id: "fboss", act: 2, name: "Древний Рошан", boss: true },
+  { id: "p1", act: 3, name: "Пепелище" }, { id: "p2", act: 3, name: "Бастион" }, { id: "p3", act: 3, name: "Сердце тьмы" },
+  { id: "pmini", act: 3, name: "Шахты Трона", miniBoss: true }, { id: "pfinal", act: 3, name: "Трон", boss: true },
+];
+
 export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, onEvent = () => {}, runGapMs = 15 * 1000 } = {}) {
   const store = makeStore(dataDir);
   const accounts = store.load("accounts.json", {}); // ключ — имя в нижнем регистре
   const runs = store.load("runs.json", { list: [], counter: 0 });
+  const promoStore = store.load("promo.json", { waves: {} }); // промо-башни из админки
+
+  function savePromo() { store.save("promo.json", promoStore); }
 
   function saveAccounts() { store.save("accounts.json", accounts); }
   function saveRuns() { store.save("runs.json", runs); }
@@ -215,7 +229,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
   }
 
   // ---- роут ----
-  function call(method, path, { body = undefined, cookie = "", bearer = "", ip = "-", secure = false } = {}) {
+  function call(method, path, { body = undefined, cookie = "", bearer = "", ip = "-", secure = false, isAdmin = false } = {}) {
     const send = (status, json, setCookie) => ({ status, json, setCookie });
     const token = bearer || cookieToken(cookie);
     const me = accountByToken(token);
@@ -353,6 +367,44 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
         result.player = publicPlayer(me);
       }
       return send(200, result);
+    }
+
+    // Промо-конфиг для боя: метаданные волн + записи из админки.
+    if (method === "GET" && path === "/promo-config") {
+      return send(200, { waves: WAVE_META, promos: promoStore.waves });
+    }
+
+    // Сохранение промо-волны из админки (пустое name = убрать промо).
+    if (method === "POST" && path === "/admin/promo") {
+      if (!isAdmin) return send(401, { error: "требуется вход админа" });
+      const waveId = body && body.waveId;
+      if (!WAVE_META.some((w) => w.id === waveId)) return send(400, { error: "нет такой волны" });
+      const name = typeof body.name === "string" ? body.name.trim().slice(0, 40) : "";
+      const url = typeof body.url === "string" ? body.url.trim() : "";
+      const tagline = typeof body.tagline === "string" ? body.tagline.trim().slice(0, 140) : "";
+      const desc = typeof body.desc === "string" ? body.desc.trim().slice(0, 300) : "";
+      if (!name) {
+        delete promoStore.waves[waveId];
+        savePromo();
+        return send(200, { ok: true, deleted: true });
+      }
+      if (url && !/^https:\/\/\S{1,200}$/.test(url)) return send(400, { error: "ссылка должна начинаться с https://" });
+      const prev = promoStore.waves[waveId] || {};
+      promoStore.waves[waveId] = { name, url, tagline, desc, hasImage: !!prev.hasImage };
+      savePromo();
+      return send(200, { ok: true });
+    }
+
+    // Метка о загруженной картинке (файл пишет HTTP-слой, тут только стейт).
+    if (method === "POST" && path === "/admin/promo-image") {
+      if (!isAdmin) return send(401, { error: "требуется вход админа" });
+      const waveId = body && body.waveId;
+      if (!WAVE_META.some((w) => w.id === waveId)) return send(400, { error: "нет такой волны" });
+      const entry = promoStore.waves[waveId] || { name: waveId, url: "", tagline: "", desc: "" };
+      entry.hasImage = !!body.hasImage;
+      promoStore.waves[waveId] = entry;
+      savePromo();
+      return send(200, { ok: true });
     }
 
     // Клик по промо-боссу: анонимно, без состояния — просто счётчик интереса.
@@ -722,6 +774,73 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         return;
       }
       res.writeHead(200, headers).end(JSON.stringify({ ...analytics.snapshot(), store: backend.counts(), players: backend.players() }));
+      return;
+    }
+
+    // ---- админ: промо-башни (картинки приходят сырым телом) ----
+    let m2;
+    if ((m2 = url.pathname.match(/^\/api\/admin\/promo-image\/([a-z0-9_]{1,20})$/)) && req.method === "POST") {
+      const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      if (!admin.validate(adminCookieToken(req.headers.cookie || ""))) {
+        res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
+        return;
+      }
+      const waveId = m2[1];
+      let raw;
+      try { raw = await readBody(req, 400 * 1024); } catch { raw = null; }
+      const buf = raw ? Buffer.from(raw, "binary") : Buffer.alloc(0);
+      const isPng = buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+      const isJpg = buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8;
+      if (!isPng && !isJpg) {
+        res.writeHead(400, headers).end(JSON.stringify({ error: "нужен PNG или JPEG до 400 КБ" }));
+        return;
+      }
+      const ext = isPng ? "png" : "jpg";
+      const imgDir = join(dataDir, "promo-img");
+      mkdirSync(imgDir, { recursive: true });
+      for (const old of ["png", "jpg"]) { try { rmSync(join(imgDir, waveId + "." + old)); } catch {} }
+      writeFileSync(join(imgDir, waveId + "." + ext), buf);
+      const marked = backend.call("POST", "/admin/promo-image", { body: { waveId, hasImage: true }, isAdmin: true });
+      res.writeHead(marked.status, headers).end(JSON.stringify(marked.json));
+      return;
+    }
+    if (url.pathname === "/api/admin/promo-image-remove" && req.method === "POST") {
+      const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      if (!admin.validate(adminCookieToken(req.headers.cookie || ""))) {
+        res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
+        return;
+      }
+      let body = {};
+      try { body = JSON.parse((await readBody(req)) || "{}"); } catch {}
+      const waveId = typeof body.waveId === "string" && /^[a-z0-9_]{1,20}$/.test(body.waveId) ? body.waveId : null;
+      if (waveId) for (const ext of ["png", "jpg"]) { try { rmSync(join(dataDir, "promo-img", waveId + "." + ext)); } catch {} }
+      const marked = backend.call("POST", "/admin/promo-image", { body: { waveId, hasImage: false }, isAdmin: true });
+      res.writeHead(marked.status, headers).end(JSON.stringify(marked.json));
+      return;
+    }
+    // Публичная раздача промо-картинок из data/promo-img
+    if ((m2 = url.pathname.match(/^\/promo-image\/([a-z0-9_]{1,20})$/)) && req.method === "GET") {
+      for (const ext of ["png", "jpg"]) {
+        try {
+          const data = readFileSync(join(dataDir, "promo-img", m2[1] + "." + ext));
+          res.writeHead(200, { ...baseHeaders, "Content-Type": ext === "png" ? "image/png" : "image/jpeg", "Cache-Control": "public, max-age=120" });
+          res.end(data);
+          return;
+        } catch {}
+      }
+      res.writeHead(404, { ...baseHeaders }).end("404");
+      return;
+    }
+    // Админ-сохранение текстов промо — через ядро с флагом isAdmin
+    if (url.pathname === "/api/admin/promo" && req.method === "POST") {
+      const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      if (!admin.validate(adminCookieToken(req.headers.cookie || ""))) {
+        res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
+        return;
+      }
+      try { body = JSON.parse((await readBody(req)) || "{}"); } catch { body = {}; }
+      const result = backend.call("POST", "/admin/promo", { body, isAdmin: true });
+      res.writeHead(result.status, headers).end(JSON.stringify(result.json));
       return;
     }
 

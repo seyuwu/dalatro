@@ -12,6 +12,7 @@ const Net = (function () {
     error: "",       // последняя ошибка для модалки аккаунта
     authMode: "login",
     busy: false,
+    promoConfig: null, // { data: { waves, promos }, at } — серверный конфиг промо
     boards: {},      // ключ "view|rank" → { rows } | { error }
     boardsLoading: false,
     profiles: {},    // имя → профиль (для модалки аккаунта)
@@ -108,6 +109,27 @@ const Net = (function () {
       .catch(() => null);
   }
 
+  // Промо-конфиг волн (из админки): тянем раз в минуту, чтобы правки
+  // администратора доезжали без перезагрузки страницы.
+  async function fetchPromoConfig(force) {
+    if (!state.online) return;
+    if (!force && state.promoConfig && Date.now() - state.promoConfig.at < 60000) return;
+    const data = await api("GET", "/api/promo-config").catch(() => null);
+    if (data) state.promoConfig = { data, at: Date.now() };
+  }
+
+  // Промо волны: серверная запись (админка) важнее дефолтов из content.
+  function getPromo(towerId) {
+    const fromServer = state.promoConfig && state.promoConfig.data && state.promoConfig.data.promos[towerId];
+    if (fromServer) {
+      return {
+        ...fromServer,
+        img: fromServer.hasImage ? "/promo-image/" + towerId + "?v=" + Math.floor((state.promoConfig.at || 0) / 60000) : null,
+      };
+    }
+    return (typeof Content !== "undefined" && Content.promo.byId[towerId]) || null;
+  }
+
   // Клик по промо-боссу: "visit" — переход на сайт партнёра, "view" —
   // просто кликнул на врага. Фаер-энд-форжет: игре сеть не важна.
   function trackPromo(promo, target) {
@@ -137,5 +159,5 @@ const Net = (function () {
       .catch(() => {});
   }
 
-  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile, trackPromo };
+  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile, trackPromo, fetchPromoConfig, getPromo };
 })();

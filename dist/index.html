@@ -1450,6 +1450,7 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .promo-text { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 11px; line-height: 1.45; color: #c9d3bd; min-width: 0; }
 .promo-text b { color: #e9c98f; font-size: 11px; }
 .promo-link { flex-shrink: 0; font-size: 11px; padding: 7px 11px; }
+.promo-emblem-img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; display: block; }
 
 /* dotora — tutorial: слой интерактивного онбординга. Живёт вне #app,
    z-стек: под тостами (100), над модалками (50). Отдельный файл — чтобы
@@ -9383,6 +9384,7 @@ const Net = (function () {
     error: "",       // последняя ошибка для модалки аккаунта
     authMode: "login",
     busy: false,
+    promoConfig: null, // { data: { waves, promos }, at } — серверный конфиг промо
     boards: {},      // ключ "view|rank" → { rows } | { error }
     boardsLoading: false,
     profiles: {},    // имя → профиль (для модалки аккаунта)
@@ -9479,6 +9481,27 @@ const Net = (function () {
       .catch(() => null);
   }
 
+  // Промо-конфиг волн (из админки): тянем раз в минуту, чтобы правки
+  // администратора доезжали без перезагрузки страницы.
+  async function fetchPromoConfig(force) {
+    if (!state.online) return;
+    if (!force && state.promoConfig && Date.now() - state.promoConfig.at < 60000) return;
+    const data = await api("GET", "/api/promo-config").catch(() => null);
+    if (data) state.promoConfig = { data, at: Date.now() };
+  }
+
+  // Промо волны: серверная запись (админка) важнее дефолтов из content.
+  function getPromo(towerId) {
+    const fromServer = state.promoConfig && state.promoConfig.data && state.promoConfig.data.promos[towerId];
+    if (fromServer) {
+      return {
+        ...fromServer,
+        img: fromServer.hasImage ? "/promo-image/" + towerId + "?v=" + Math.floor((state.promoConfig.at || 0) / 60000) : null,
+      };
+    }
+    return (typeof Content !== "undefined" && Content.promo.byId[towerId]) || null;
+  }
+
   // Клик по промо-боссу: "visit" — переход на сайт партнёра, "view" —
   // просто кликнул на врага. Фаер-энд-форжет: игре сеть не важна.
   function trackPromo(promo, target) {
@@ -9508,7 +9531,7 @@ const Net = (function () {
       .catch(() => {});
   }
 
-  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile, trackPromo };
+  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile, trackPromo, fetchPromoConfig, getPromo };
 })();
 
 </script>
@@ -9653,7 +9676,10 @@ const Art = (function () {
     huskar: "huskar", tidehunter: "tidehunter",
     meepo: "meepo", bounty: "bounty_hunter", slark: "slark",
     phantom_lancer: "phantom_lancer", anti_mage: "antimage", faceless: "faceless_void",
-    terrorblade: "terrorblade",
+    terrorblade: "terrorblade", kunkka: "kunkka", ursa: "ursa", enigma: "enigma",
+    tinker: "tinker", venomancer: "venomancer", wraith_king: "wraith_king",
+    magnus: "magnataur", techies: "techies", silencer: "silencer",
+    chaos_knight: "chaos_knight", pugna: "pugna",
     oracle: "oracle", skywrath: "skywrath_mage", lina: "lina", rubick: "rubick",
     invoker: "invoker", storm_spirit: "storm_spirit", outworld: "obsidian_destroyer",
     ancient_apparition: "ancient_apparition",
@@ -10523,8 +10549,9 @@ const Art = (function () {
     const kill = live && preview.damage >= hp;
     const isBoss = !!wave.isBoss;
     // Промо-босс (src/content/promo.js): враг = проект-партнёр, клик = переход.
-    const promo = isBoss ? Content.promo.byId[wave.towerId] : null;
-    const faction = isBoss || wave.miniBoss ? (promo ? "ПРОЕКТ-БОСС" : "БОСС АКТА") : "ПОСТРОЙКА СВЕТА";
+    const promo = Net.getPromo(wave.towerId);
+    const faction = isBoss || wave.miniBoss ? (promo ? "ПРОЕКТ-БОСС" : "БОСС АКТА") : promo ? "ПРОЕКТ-БАШНЯ" : "ПОСТРОЙКА СВЕТА";
+    const promoImg = promo && promo.img ? `<img class="promo-emblem-img" src="${promo.img}" alt="">` : "";
     const slots = Array.from({ length: max }, (_, i) => {
       const uid = state.combat.selectedUids[i];
       const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
@@ -10548,7 +10575,7 @@ const Art = (function () {
       <div class="scene-shade"></div>
       <div class="scene-inner">
         <header class="scene-target">
-          <div class="scene-emblem ${isBoss ? "boss" : ""}" ${promo ? `data-action="promo-view" data-promo="${wave.towerId}" title="Клик по врагу — интерес учтён"` : ""}>${isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30)}</div>
+          <div class="scene-emblem ${isBoss ? "boss" : ""}" ${promo ? `data-action="promo-view" data-promo="${wave.towerId}" title="Клик по врагу — интерес учтён"` : ""}>${promoImg || (isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30))}</div>
           <div class="scene-title">
             <span class="section-label">${faction} · ВОЛНА ${state.run.waveIndex % 5 + 1}/5</span>
             ${promo
@@ -10566,10 +10593,10 @@ const Art = (function () {
           <div class="scene-reward" data-tip><span>Награда</span><b>${icon("coins", 13)}${Game.waveClearGold(state)}+</b>
             <span class="pop"><strong>Награда за зачистку</strong><p>${Game.waveClearGold(state)}G — база. «+» — бонусы: +1G за каждый неиспользованный бой и сброс, плюс золото с оверкилла.</p></span></div>
         </header>
-        ${promo ? `<div class="promo-ribbon" data-action="promo-view" data-promo="${wave.towerId}">
+        ${promo && (promo.tagline || promo.desc) ? `<div class="promo-ribbon" data-action="promo-view" data-promo="${wave.towerId}">
           <span class="promo-emoji">📣</span>
-          <div class="promo-text"><b>${esc(promo.tagline)}</b><span>${esc(promo.desc)}</span></div>
-          <button class="secondary-button promo-link" data-action="promo-visit" data-promo="${wave.towerId}">Перейти на сайт ${icon("arrow", 13)}</button>
+          <div class="promo-text">${promo.tagline ? `<b>${esc(promo.tagline)}</b>` : ""}<span>${esc(promo.desc || "")}</span></div>
+          ${promo.url ? `<button class="secondary-button promo-link" data-action="promo-visit" data-promo="${wave.towerId}">Перейти на сайт ${icon("arrow", 13)}</button>` : ""}
         </div>` : ""}
         <div class="rule-chips">${waveRuleChips(state)}</div>
         ${state.run.routeUndo && !state.combat.outcome ? `<div class="undo-route-row"><button class="secondary-button" data-action="undo-route">↩️ Отменить тропу</button></div>` : ""}
@@ -13257,6 +13284,7 @@ const Art = (function () {
     }
     if (INV_REFRESH.has(action.type)) UI.UIState.animInv = true;
     if (LAB_REFRESH.has(action.type)) UI.UIState.animLab = true;
+    if (action.type === "LEAVE_SHOP" || action.type === "TAKE_ROUTE") Net.fetchPromoConfig(true); // свежий промо на следующую волну
     if (action.type === "LEAVE_SHOP") UI.UIState.animRoute = true;
 
     state = Game.dispatch(state, action);
@@ -13617,15 +13645,15 @@ const Art = (function () {
         rerender();
         break;
       case "promo-visit": {
-        const promo = Content.promo.byId[el.dataset.promo];
+        const promo = Net.getPromo(el.dataset.promo);
         if (promo) {
           Net.trackPromo(el.dataset.promo, "visit");
-          window.open(promo.url, "_blank", "noopener");
+          if (promo.url) window.open(promo.url, "_blank", "noopener");
         }
         break;
       }
       case "promo-view": {
-        if (Content.promo.byId[el.dataset.promo]) Net.trackPromo(el.dataset.promo, "view");
+        if (Net.getPromo(el.dataset.promo)) Net.trackPromo(el.dataset.promo, "view");
         break;
       }
       case "auth-submit": submitAuth(); break;
@@ -13825,6 +13853,7 @@ const Art = (function () {
       UI.UIState.unlockedRank = Net.state.me.unlockedRank;
       saveUnlockedRank(Net.state.me.unlockedRank);
     }
+    Net.fetchPromoConfig().then(() => { if (state.phase === "wave") rerender(); });
     const p = state.phase;
     if (p === "title" || p === "victory" || p === "gameover" || UI.UIState.modal === "account" || UI.UIState.modal === "leaders") rerender();
   });
