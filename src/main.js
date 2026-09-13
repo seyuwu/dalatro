@@ -494,6 +494,7 @@
         UI.UIState.modal = "collection";
         UI.UIState.collectionTab = "heroes";
         UI.UIState.search = "";
+        if (typeof Tutorial !== "undefined" && Tutorial.note) Tutorial.note("coll", "📚", "Коллекция — это и прокачка: героев можно нанимать, тренировать (+1 ранг) и усиливать аугментами.");
         rerender();
         break;
       case "open-collection-deck":
@@ -501,6 +502,7 @@
         UI.UIState.collectionTab = "deck";
         UI.UIState.labFocus = "exile";
         UI.UIState.search = "";
+        if (typeof Tutorial !== "undefined" && Tutorial.note) Tutorial.note("coll", "📚", "Коллекция — это и прокачка: героев можно нанимать, тренировать (+1 ранг) и усиливать аугментами.");
         rerender();
         break;
       case "score-view":

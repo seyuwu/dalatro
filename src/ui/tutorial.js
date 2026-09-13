@@ -3,7 +3,8 @@
 // Режим проведения: на каждом шаге заблокирован весь экран, кроме цели
 // шага (4 шторы вокруг неё); следующее наступает само от действия игрока.
 // Слой живёт вне #app (перерендеры не стирают), факты — в localStorage
-// "dotora_tut_v1" (JSON: { main, shop, route, mines, flash }). Точка входа
+// "dotora_tut_v1" (JSON: { main, shop, route, mines, flash, upg, buffs, coll }).
+// Точка входа
 // одна: ui.js в конце render() зовёт Tutorial.observe(state). // TUTORIAL
 //
 // Главный сценарий (идёт один раз, на первой волне):
@@ -192,6 +193,8 @@
       outcome: state.combat.outcome || null,
       dbInHand: handHas(state, "dawnbreaker"),
       mined: !!(wave && (wave.modifiers || []).some((m) => m.id === "mines")),
+      upgrades: (state.run.upgrades || []).length,
+      buffs: !!(wave && (wave.modifiers || []).length),
       fightOverlay: !!document.querySelector(".fight-overlay"),
       starter: (() => {
         try {
@@ -740,9 +743,15 @@
 
   function observeNotes(state, sig) {
     if (!notesOn) return;
-    if (sig.phase === "shop") { showNote("shop", "🛒", "Предметы — в слоты билда. Герои из таверны — в колоду."); return; }
+    if (sig.phase === "shop") {
+      showNote("shop", "🛒", "Предметы — в слоты билда. Герои из таверны — в колоду.");
+      // Первая купленная улучшка: объясняем, что это постоянный баф забега.
+      if (sig.upgrades > 0) showNote("upg", "🔧", "Улучшение — постоянный баф забега: работает до конца, «II» удваивает эффект.");
+      return;
+    }
     if (sig.phase === "route") { showNote("route", "🧭", "Развилка: риск = награда. Выбирай путь."); return; }
     if (sig.phase === "wave" && sig.mined) { showNote("mines", "💣", "Рука заминирована: эти карты не играют. Sentry Ward или BKB обезвреживают мины."); return; }
+    if (sig.phase === "wave" && !sig.outcome && sig.buffs) { showNote("buffs", "🛡", "У башен есть бафы — чипы над строем (броня, Aegis…). Читай их до боя: они меняют расчёт."); return; }
     // flash: цвет собирается сам — говорим только после первого боя. Термин —
     // по ядру забега: в формациях аналог флеша называется «Фаланга».
     if (sig.phase === "wave" && !sig.outcome && pendingPostEver) {
@@ -842,6 +851,9 @@
   // Для отладки в консоли: Tutorial.reset() — показать обучение заново.
   window.Tutorial = {
     observe,
+    // Императивная записка первого раза (из main.js — по клику, не из сигналов).
+    // «Пропустить обучение» гасит и эти подсказки.
+    note(id, emoji, text) { if (!notesOn) return; showNote(id, emoji, text); },
     reset() { try { localStorage.removeItem(KEY); } catch (e) {} armed = false; active = false; notesOn = false; currentNote = null; dropLayer(); },
   };
 })();
