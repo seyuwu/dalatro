@@ -199,8 +199,11 @@
     return Game.heroAttr(state, Content.heroes.byId[state.cards[uid].heroId].id);
   }
 
+  // Сила для сортировки руки: ЭФФЕКТИВНАЯ (Game.rankOf — тренировка, XP-уровни,
+  // штрафы, скипетр), а не база из контента — иначе тренированные герои
+  // сортируются по старому числу и «странно» встают относительно карточек.
   function rankOf(state, uid) {
-    return Content.heroes.byId[state.cards[uid].heroId].power;
+    return Game.rankOf(state, state.cards[uid].heroId);
   }
 
   // Displayed hand order (respect sort). Selection and hotkeys use it.
@@ -251,7 +254,12 @@
 
   // Which combos the CURRENT HAND could assemble (not just the selection).
   function handComboState(state) {
-    const heroes = state.player.handUids.map((uid) => Content.heroes.byId[state.cards[uid].heroId]);
+    // Ранги/атрибуты руки — те же, что видит детектор боя (Game.rankOf /
+    // Game.heroAttr): тренировка и смена атрибута меняют панель комбо сразу.
+    const heroes = state.player.handUids.map((uid) => ({
+      power: Game.rankOf(state, state.cards[uid].heroId),
+      attr: Game.heroAttr(state, state.cards[uid].heroId),
+    }));
     const byRank = new Map();
     const byAttr = new Map();
     for (const hr of heroes) {
@@ -2476,5 +2484,5 @@
 
   bindPopClamp();
 
-  return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
+  return { render, UIState, handOrder, handComboState, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
 })();

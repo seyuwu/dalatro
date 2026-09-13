@@ -296,10 +296,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .card-foot kbd { font-size: 8px; background: #0e16114f; border-color: #74816b28; min-width: 12px; height: 13px; line-height: 11px; padding: 0; text-align: center; color: #718068; }
 .selection-order { position: absolute; top: -11px; right: -5px; height: 20px; min-width: 30px; border: 2px solid #141c14; border-radius: 5px; background: #dac292; color: #313425; z-index: 4; display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 9px; font-weight: 800; }
 .mine-mark { position: absolute; inset: 0; margin: auto; width: 46px; height: 46px; z-index: 5; display: flex; align-items: center; justify-content: center; color: #e08a7a; background: rgba(8, 12, 9, .82); border: 1.5px solid #a3544455; border-radius: 50%; box-shadow: 0 0 14px #0009; cursor: help; }
-/* поповер бейджа (мина Techies, усталость) должен перекрывать тултип героя:
-   бейдж держит свой стек на z-index:5, и вложенный .pop (z-60) без этого
-   не поднимался над тултипом (z-40) — окно способностей его прятало */
-.hero-card .mine-mark:hover, .hero-card .fatigue-mark:hover, .hero-card .augh-mark:hover { z-index: 45; }
+/* поповер бейджа (мина Techies, усталость, аугменты Аганима) должен быть
+   поверх тултипа героя: оба .pop и .hero-tooltip держат z-index:95, но тултип
+   героя позже в DOM и при равном стеке рисуется сверху, а бейдж запирает
+   вложенный .pop в своём стеке — поднимать надо сам бейдж выше 95 */
+.hero-card .mine-mark:hover, .hero-card .fatigue-mark:hover, .hero-card .augh-mark:hover { z-index: 96; }
 
 /* мягкий тултип над картой: особенность героя без системного title */
 .hero-tooltip { display: none; position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); width: 208px; padding: 12px 13px; background: linear-gradient(150deg, #2b352c, #222b24); border: 1px solid #5b6b52; border-radius: 10px; box-shadow: 0 12px 30px #000a; z-index: 95; pointer-events: none; text-align: left; }
@@ -10139,8 +10140,11 @@ const Art = (function () {
     return Game.heroAttr(state, Content.heroes.byId[state.cards[uid].heroId].id);
   }
 
+  // Сила для сортировки руки: ЭФФЕКТИВНАЯ (Game.rankOf — тренировка, XP-уровни,
+  // штрафы, скипетр), а не база из контента — иначе тренированные герои
+  // сортируются по старому числу и «странно» встают относительно карточек.
   function rankOf(state, uid) {
-    return Content.heroes.byId[state.cards[uid].heroId].power;
+    return Game.rankOf(state, state.cards[uid].heroId);
   }
 
   // Displayed hand order (respect sort). Selection and hotkeys use it.
@@ -10191,7 +10195,12 @@ const Art = (function () {
 
   // Which combos the CURRENT HAND could assemble (not just the selection).
   function handComboState(state) {
-    const heroes = state.player.handUids.map((uid) => Content.heroes.byId[state.cards[uid].heroId]);
+    // Ранги/атрибуты руки — те же, что видит детектор боя (Game.rankOf /
+    // Game.heroAttr): тренировка и смена атрибута меняют панель комбо сразу.
+    const heroes = state.player.handUids.map((uid) => ({
+      power: Game.rankOf(state, state.cards[uid].heroId),
+      attr: Game.heroAttr(state, state.cards[uid].heroId),
+    }));
     const byRank = new Map();
     const byAttr = new Map();
     for (const hr of heroes) {
@@ -12416,7 +12425,7 @@ const Art = (function () {
 
   bindPopClamp();
 
-  return { render, UIState, handOrder, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
+  return { render, UIState, handOrder, handComboState, playFightAnimation, toast, tipText: (i) => TIPS[i % TIPS.length].t + " " + TIPS[i % TIPS.length].p };
 })();
 
 </script>

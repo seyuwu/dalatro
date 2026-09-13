@@ -2,116 +2,33 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>tooltip clamp harness</title>
+<title>hero badge tooltip harness</title>
 <link rel="stylesheet" href="src/ui/styles.css">
 <style>
   body { margin: 0; background: #141a12; }
-  /* карман сайдбара у левого края вьюпорта — как панель «Улучшения» в игре */
-  #sidebar { position: fixed; left: 8px; top: 150px; width: 280px; }
+  /* сцена руки героя: карточка в нижней трети, сверху место для тултипов */
+  #wrap { position: fixed; left: 430px; top: 420px; width: 200px; }
+  #wrap .hero-card { width: 200px; display: block; }
+  #wrap .hero-art { height: 120px; background: #223; }
 </style>
 </head>
 <body>
-<div id="sidebar">
-  <section class="panel upgrades-panel">
-    <div class="section-label"><span>УЛУЧШЕНИЯ</span></div>
-    <div class="up-tiles">
-      <button class="up-tile passive" data-upgrade="podkova" data-tip>
-        <span class="up-emoji">🧲</span>
-        <span class="pop side"><strong>🧲 Подкова</strong><p>+1 удача: полки улучшений становятся богаче.</p><small>Пассивное</small></span>
-      </button>
+<div id="wrap">
+  <button class="hero-card int">
+    <div class="hero-art"><span class="hero-vignette"></span><span class="hero-name">Invoker</span></div>
+    <div class="hero-card-bottom">
+      <span class="hero-attribute">◆ Интеллект</span>
+      <span class="hero-ability">Invoke <span class="augh-mark" data-tip>🧪<span class="pop"><strong>🧪 Quick Cast</strong><p>Осколок Аганима: длинное описание штуки. Этот тултип должен открыться ПОВЕРХ тултипа героя, а не за ним.</p><small>Осколок Аганима</small></span></span></span>
+      <div class="card-foot"><span>9 <svg width="10" height="10"></svg></span><kbd>1</kbd></div>
     </div>
-  </section>
+    <span class="hero-tooltip">
+      <strong>Invoke</strong>
+      <p>Описание способности героя: большой тултип над картой. Его нижний правый угол в игре перекрывает тултип бейджа аугмента.</p>
+      <div class="augh-tip owned">🧪 <b>Осколок Аганима · Quick Cast</b><span class="augh-desc">Каталог аугментов героя в тултипе.</span></div>
+      <div class="augh-tip">✨ <b>Скипетр Аганима · Invoke Mastery</b><span class="augh-desc">Ещё одна строка каталога.</span></div>
+      <small>Сила 9 · Интеллект — 5 карт одного цвета = флеш</small>
+    </span>
+  </button>
 </div>
-<script>
-// ==== дословная копия клампера тултипов из src/ui/ui.js ====
-let clampedPop = null;
-
-function clipperOf(pop) {
-  let el = pop.parentElement;
-  while (el && el !== document.body) {
-    const cs = getComputedStyle(el);
-    if (/(hidden|clip|auto|scroll)/.test(cs.overflowX + cs.overflowY)) return el;
-    el = el.parentElement;
-  }
-  return null;
-}
-
-function clampPop(pop) {
-  const op = pop.offsetParent;
-  if (!op || !pop.offsetWidth) { clampedPop = null; return; }
-  const opr = op.getBoundingClientRect();
-  const top = opr.top + pop.offsetTop;
-  const clip = clipperOf(pop);
-  const cr = clip ? clip.getBoundingClientRect() : null;
-  const minL = Math.max(8, cr ? cr.left + 1 : 8);
-  const maxR = Math.min(document.documentElement.clientWidth - 8, cr ? cr.right - 1 : Infinity);
-  pop.style.removeProperty("translate");
-  const innerW = maxR - minL;
-  if (innerW > 40 && pop.offsetWidth > innerW) pop.style.width = Math.round(innerW) + "px";
-  const pr = pop.getBoundingClientRect();
-  const left = pr.left;
-  const w = pop.offsetWidth;
-  const dx = left < minL ? minL - left
-    : left + w > maxR ? maxR - (left + w)
-    : 0;
-  if (dx) pop.style.translate = Math.round(dx) + "px 0";
-  const topLimit = Math.max(8, cr ? cr.top + 1 : 8);
-  pop.classList.toggle("flip-down", top < topLimit);
-  clampedPop = (dx || top < topLimit) ? pop : null;
-}
-
-function releasePop(pop) {
-  pop.style.removeProperty("translate");
-  pop.style.removeProperty("width");
-  pop.classList.remove("flip-down");
-  if (clampedPop === pop) clampedPop = null;
-}
-
-function bindPopClamp() {
-  document.addEventListener("mouseover", (e) => {
-    const tip = e.target.closest && e.target.closest("[data-tip]");
-    if (!tip) return;
-    const pop = tip.querySelector(".pop");
-    if (!pop) return;
-    clampPop(pop);
-    if (!pop.getBoundingClientRect().width) requestAnimationFrame(() => clampPop(pop));
-  });
-  document.addEventListener("mouseout", (e) => {
-    const tip = e.target.closest && e.target.closest("[data-tip]");
-    if (!tip) return;
-    const pop = tip.querySelector(".pop");
-    if (pop) releasePop(pop);
-  });
-  const reclamp = () => { if (clampedPop) clampPop(clampedPop); };
-  window.addEventListener("resize", reclamp);
-  window.addEventListener("scroll", reclamp, true);
-}
-
-bindPopClamp();
-
-window.armLog = function () {
-  window.__log = [];
-  const pop = document.querySelector('.pop');
-  const t0 = performance.now();
-  (function loop() {
-    const r = pop.getBoundingClientRect();
-    window.__log.push([Math.round(performance.now() - t0), Math.round(r.left), Math.round(r.top), Math.round(r.width)]);
-    if (performance.now() - t0 < 8000) requestAnimationFrame(loop);
-  })();
-  return true;
-};
-window.tileCenter = function () {
-  const r = document.querySelector('.up-tile').getBoundingClientRect();
-  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
-};
-window.logStats = function () {
-  const vis = window.__log.filter(e => e[3] > 0);
-  if (!vis.length) return { visibleFrames: 0 };
-  const lefts = vis.map(e => e[1]);
-  const distinct = lefts.filter((v, i, a) => i === 0 || v !== a[i - 1]);
-  const changes = vis.filter((e, i) => i && e[1] !== vis[i - 1][1]).map(e => ({ t: e[0], left: e[1] }));
-  return { visibleFrames: vis.length, firstLeft: lefts[0], lastLeft: lefts[lefts.length - 1], distinctLefts: distinct, changes };
-};
-</script>
 </body>
 </html>
