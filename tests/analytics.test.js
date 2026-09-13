@@ -116,3 +116,25 @@ test("backend: counts отдаёт живые счётчики для админ
   assertEq(b.counts().accounts, 1);
   assertEq(b.counts().runs, 1);
 });
+
+test("reset: трафик обнуляется, промо-клики и их журнал сохраняются", () => {
+  const a = Backend.createAnalytics({});
+  const now = Date.now();
+  a.record({ method: "GET", path: "/", status: 200, ms: 2, ip: "1.1.1.1", t: now });
+  a.event({ type: "promo", promo: "roshan", target: "visit", name: "Pudge" }, now);
+  a.event({ type: "login", name: "Pudge" }, now);
+  a.reset(true);
+  const snap = a.snapshot(now);
+  assertEq(snap.today.views, 0, "трафик обнулён");
+  assertEq(snap.events.promo, 1, "промо-счётчик выжил");
+  assertEq(snap.events.login, undefined, "остальные события обнулены");
+  assertEq(snap.eventsLog.length, 1);
+  assertEq(snap.eventsLog[0].type, "promo", "журнал промо сохранён");
+  assertEq(snap.today.promoClicks, 0, "сегодняшний бакет чист — счётчик живёт в events.promo");
+  // полный сброс без сохранения промо
+  a.record({ method: "GET", path: "/", status: 200, ms: 1, ip: "1.1.1.1", t: now });
+  a.event({ type: "promo", promo: "x", target: "view" }, now);
+  a.reset(false);
+  const s2 = a.snapshot(now);
+  assertEq(s2.events.promo, undefined, "полный сброс чистит и промо");
+});

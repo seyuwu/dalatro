@@ -126,6 +126,7 @@ export function adminPageHtml() {
   <small id="updated"></small>
   <span class="spacer"></span>
   <button id="refresh">Обновить</button>
+  <button id="reset-analytics">Сбросить аналитику</button>
   <button id="logout">Выйти</button>
 </header>
 <main id="app"></main>
@@ -202,7 +203,7 @@ function dashboard(d) {
       card(fmtN(t.uniquePlayers), "Игроки (аккаунты)") +
       card(fmtN(t.registers), "Регистрации") +
       card(fmtN(t.runs), "Забегов сегодня") +
-      card(fmtN(t.promoClicks), "Клики по промо") +
+      card(fmtN((d.events || {}).promo || 0), "Клики по промо (всего)") +
       card(fmtN(s.accounts), "Аккаунтов всего") +
       card(fmtN(s.runs), "Забегов всего") +
       card(t.avgLatencyMs + " мс", "Средняя задержка") +
@@ -391,6 +392,20 @@ async function refresh() {
     app.innerHTML = '<div class="card bad"><b>—</b><span>Сервер не ответил: ' + esc(e.message) + '</span></div>';
   }
 }
+
+let resetArmed = false;
+document.getElementById("reset-analytics").onclick = async () => {
+  if (!resetArmed) {
+    resetArmed = true;
+    document.getElementById("reset-analytics").textContent = "Точно обнулить? (промо-клики останутся)";
+    setTimeout(() => { resetArmed = false; const b = document.getElementById("reset-analytics"); if (b) b.textContent = "Сбросить аналитику"; }, 4000);
+    return;
+  }
+  resetArmed = false;
+  document.getElementById("reset-analytics").textContent = "Сбросить аналитику";
+  await fetch("/api/admin/analytics-reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keepPromo: true }) }).catch(() => {});
+  refresh();
+};
 
 document.getElementById("refresh").onclick = refresh;
 document.getElementById("logout").onclick = async () => { await api("/api/admin/logout", { method: "POST" }).catch(() => {}); loginView(); };

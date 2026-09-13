@@ -807,6 +807,19 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
       res.writeHead(marked.status, headers).end(JSON.stringify(marked.json));
       return;
     }
+    if (url.pathname === "/api/admin/analytics-reset" && req.method === "POST") {
+      const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      if (!admin.validate(adminCookieToken(req.headers.cookie || ""))) {
+        res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
+        return;
+      }
+      let body = {};
+      try { body = JSON.parse((await readBody(req)).toString("utf8") || "{}"); } catch { body = {}; }
+      analytics.reset(body.keepPromo !== false); // промо-клики сохраняются по умолчанию
+      analytics.save();
+      res.writeHead(200, headers).end(JSON.stringify({ ok: true }));
+      return;
+    }
     if (url.pathname === "/api/admin/promo-image-remove" && req.method === "POST") {
       const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
       if (!admin.validate(adminCookieToken(req.headers.cookie || ""))) {

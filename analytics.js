@@ -125,6 +125,19 @@ export function createAnalytics({ dataFile, maxDays = 30, maxHours = 48, maxRece
     };
   }
 
+  // Сброс аналитики: трафик (просмотры/запросы/пути/IP) обнуляется,
+  // счётчик промо-кликов и их журнал сохраняются — это метрика рекламы.
+  function reset(keepPromo = true) {
+    const promoTotal = keepPromo ? (state.events.promo || 0) : 0;
+    const promoLog = keepPromo ? state.eventsLog.filter((e) => e.type === "promo") : [];
+    state.days = {};
+    state.hours = {};
+    state.events = keepPromo ? { promo: promoTotal } : {};
+    state.eventsLog = promoLog;
+    state.recent = [];
+    prune();
+  }
+
   function save() {
     if (!dataFile) return;
     try { mkdirSync(dirname(dataFile), { recursive: true }); } catch { /* уже есть */ }
@@ -133,5 +146,5 @@ export function createAnalytics({ dataFile, maxDays = 30, maxHours = 48, maxRece
     renameSync(tmp, dataFile);
   }
 
-  return { record, event, snapshot, save, prune };
+  return { record, event, snapshot, save, prune, reset };
 }
