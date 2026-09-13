@@ -231,6 +231,42 @@ function dashboard(d) {
 }
 
 let PROMO_CFG = null;
+
+// Сжатие картинки в браузере: эмблеме хватает 512px, зато аплоад маленький
+// и не упирается в лимиты nginx. PNG/Webp-исходники сохраняют прозрачность
+// (webp), JPEG — конвертируется в jpeg.
+function shrinkImage(file, maxSide = 512) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    const fail = (why) => { URL.revokeObjectURL(url); reject(new Error(why)); };
+    img.onload = () => {
+      try {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * scale));
+        const h = Math.max(1, Math.round(img.naturalHeight * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        const keepAlpha = file.type === "image/png" || file.type === "image/webp";
+        canvas.toBlob((blob) => {
+          if (!blob) return fail("сжатие не удалось");
+          const ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
+          resolve({ blob, ext });
+        }, keepAlpha ? "image/webp" : "image/jpeg", 0.9);
+      } catch (e) { fail(e.message); }
+    };
+    img.onerror = () => fail("файл не распознан как картинка");
+    img.src = url;
+  });
+}
+
+// Ответ сервера может быть не JSON (страница ошибки nginx) — не роняем JSON.parse.
+async function resJson(res) {
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return { error: "сервер ответил не JSON (HTTP " + res.status + ")" }; }
+}
 const esc2 = esc;
 
 async function loadPromoEditor() {
@@ -253,7 +289,7 @@ async function loadPromoEditor() {
         '<label>Жёлтый заголовок<input class="pr-tag" maxlength="140" value="' + esc(p.tagline || "") + '"></label>' +
         '<label>Жёлтый текст<textarea class="pr-desc" maxlength="300" rows="2">' + esc(p.desc || "") + '</textarea></label>' +
         '<div class="pr-actions">' + thumb +
-        '<label style="flex-direction:row;align-items:center;gap:6px;text-transform:none;letter-spacing:0">Картинка (PNG/JPG ≤400КБ): <input type="file" class="pr-file" accept="image/png,image/jpeg"></label>' +
+        '<label style="flex-direction:row;align-items:center;gap:6px;text-transform:none;letter-spacing:0">Картинка (PNG/JPG/WebP — сожмём до 512px): <input type="file" class="pr-file" accept="image/png,image/jpeg,image/webp"></label>' +
         (p.hasImage ? '<button class="pr-imgdel">Убрать картинку</button>' : "") +
         '<button class="pr-save">Сохранить</button><span class="pr-status"></span></div>' +
         '</div></details>';
@@ -285,10 +321,13 @@ async function loadPromoEditor() {
         const file = e.target.files[0];
         if (!file) return;
         const st = row.querySelector(".pr-status");
-        st.textContent = "загружаем картинку…"; st.style.color = "var(--muted)";
-        const buf = await file.arrayBuffer();
-        const res = await fetch("/api/admin/promo-image/" + waveId, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: buf })
-          .then((r) => r.json()).catch((e2) => ({ error: e2.message }));
+        st.textContent = "сжимаем картинку…"; st.style.color = "var(--muted)";
+        let small;
+        try { small = await shrinkImage(file); }
+        catch (e2) { st.style.color = "var(--red)"; st.textContent = e2.message; return; }
+        st.textContent = "загружаем…";
+        const res = await fetch("/api/admin/promo-image/" + waveId, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: small.blob })
+          .then(resJson).catch((e2) => ({ error: e2.message }));
         if (res && res.ok) {
           st.style.color = "var(--green)"; st.textContent = "картинка загружена";
           if (PROMO_CFG.promos[waveId]) PROMO_CFG.promos[waveId].hasImage = true;
