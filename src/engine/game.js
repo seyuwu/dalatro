@@ -917,6 +917,7 @@ const Game = (function () {
         s.shop.recruits = pickRecruits(s);
         s.shop.upgrades = Upgrades.generateOffers(s, null, [], { consumeGuarantee: true });
         s.shop.aghanims = aghanimOffers(s);
+        s.shop.aughRerolls = 0;
         s.run.shopRerolls = 0;
         s.run.shopBuys = 0;
         s.run.ledgerRerollUsed = false;
@@ -1044,6 +1045,35 @@ const Game = (function () {
 
       // Аугмент Аганима (docs/AGHANIMS.md): покупка на конкретного героя.
       // Не занимает слоты предметов, 1 скептер + 1 осколок на героя.
+      // Реролл агианим-предложений: 3G, ≤2 за визит. Осколок перекидывается
+      // целиком (факт появления 55% + герой), у скипетра факт появления
+      // зафиксирован на визит (после босса — гарантия) — рероллится только герой.
+      case "REROLL_AUGH": {
+        if (s.phase !== "shop") return s;
+        const used = s.shop.aughRerolls || 0;
+        if (used >= 2 || s.run.gold < 3) return s;
+        const prev = s.shop.aghanims || [];
+        const rng = Rng.current();
+        const owned = [...s.player.handUids, ...s.player.deckUids, ...s.player.discardUids]
+          .map((uid) => s.cards[uid].heroId);
+        const uniq = [...new Set(owned)];
+        const equipped = s.run.aghanims || {};
+        const pick = (pool) => pool[Math.floor(rng.next() * pool.length)];
+        const offers = [];
+        const shardPool = uniq.filter((h) => !(equipped[h] && equipped[h].shard) && Content.aghanims.forHero(h, "shard"));
+        if (shardPool.length && rng.chance(0.55)) offers.push({ kind: "shard", heroId: pick(shardPool) });
+        const sc = prev.find((o) => o.kind === "scepter");
+        if (sc) {
+          const scPool = uniq.filter((h) => !(equipped[h] && equipped[h].scepter) && Content.aghanims.forHero(h, "scepter"));
+          if (scPool.length) offers.push({ kind: "scepter", heroId: pick(scPool) });
+        }
+        s.run.gold -= 3;
+        s.shop.aughRerolls = used + 1;
+        s.shop.aghanims = offers;
+        log(s, `Реролл Аганимов (−3 золота): ${offers.length ? offers.map((o) => Content.heroes.byId[o.heroId].name + (o.kind === "scepter" ? " 🔮" : " 🔹")).join(", ") : "предложений нет — не повезло"}`);
+        return s;
+      }
+
       case "BUY_AUGMENT": {
         if (s.phase !== "shop") return s;
         const kind = action.kind === "scepter" ? "scepter" : "shard";

@@ -453,6 +453,11 @@
         dispatchAndRender({ type: "BUY_RECRUIT", heroId: el.dataset.id });
         UI.toast(state, "Герой нанят — он в колоде");
         break;
+      case "reroll-augh": {
+        Sfx.play("click");
+        dispatchAndRender({ type: "REROLL_AUGH" });
+        break;
+      }
       case "buy-augh": {
         Sfx.play("buy");
         const kindWord = el.dataset.kind === "scepter" ? "Скипетр Аганима" : "Осколок Аганима";

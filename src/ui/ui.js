@@ -1544,8 +1544,9 @@
   }).join("") || '<span class="muted-note">Улучшения раскуплены — приходи в следующей лавке или обнови.</span>'}
               </div>
             </div>
-            ${(state.shop.aghanims || []).length ? `<div class="shop-aghanims">
-              <div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">осколок — 55% в каждой лавке · скипетр — гарантия после босса акта · не занимают слоты предметов</small></h3></div>
+            ${(state.shop.aghanims || []).length || (state.shop.aughRerolls || 0) < 2 ? `<div class="shop-aghanims">
+              <div class="shop-section-title"><h3>🟣 Аугменты Аганима <small class="upgrade-note">осколок — 55% в каждой лавке · скипетр — гарантия после босса акта · не занимают слоты предметов</small></h3>
+              <button class="secondary-button augh-reroll" data-action="reroll-augh" ${(state.run.gold < 3 || (state.shop.aughRerolls || 0) >= 2) ? "disabled" : ""} title="Перекинуть осколок (55% появления) и героя скипетра · 3 золота · не больше 2 за визит">🎲 Реролл · 3 ${icon("coins", 12)} <small>осталось ${2 - (state.shop.aughRerolls || 0)}</small></button></div>
               <div class="recruit-row ${UIState.animShop ? "" : "no-anim"}">${state.shop.aghanims.map((o) => {
     const aug = Content.aghanims.forHero(o.heroId, o.kind);
     const hero = Content.heroes.byId[o.heroId];
