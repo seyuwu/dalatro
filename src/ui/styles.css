@@ -319,6 +319,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .pop small { display: block; font-size: 8.5px; letter-spacing: .3px; color: #8a987d; margin-top: 7px; padding-top: 6px; border-top: 1px solid #3a4738; }
 .pop.side { left: auto; right: 2px; transform: none; }
 .pop.side:after { left: auto; right: 24px; margin-left: 0; }
+/* tooltipIn держит translateX(-50%) — для side-варианта (right:2px, transform
+   none) это чужой сдвиг: на время анимации тултип уезжает на полширины влево,
+   клампер в ui.js запекает поправку по анимированному боксу, и по окончании
+   анимации тултип щёлкает вправо. tooltipInL — тот же вход без translateX */
+[data-tip]:hover .pop.side { animation-name: tooltipInL; }
 /* вверх места нет (якорь у верхней кромки) — разворот вниз; класс ставит
    клампер тултипов в ui.js */
 .pop.flip-down { bottom: auto; top: calc(100% + 10px); }

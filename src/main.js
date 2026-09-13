@@ -298,7 +298,17 @@
     const slot = under && under.closest(".formation-slot[data-idx]");
     drag = null;
     clearDragMarks();
-    if (!started || !slot) return;
+    // Клик (без сдвига) по занятому слоту: герой возвращается в руку —
+    // тот же splice, что делает тоггл карты. Перестановкой не считается:
+    // movesUsed кормит аугменты только за честные перестановки.
+    if (!started) {
+      if (slot && !state.combat.outcome) {
+        const uid = state.combat.selectedUids[from];
+        if (uid) dispatchAndRender({ type: "SELECT_CARD", uid });
+      }
+      return;
+    }
+    if (!slot) return;
     const to = Number(slot.dataset.idx);
     if (to !== from) reorderSelection(from, to);
   });

@@ -785,7 +785,7 @@
           <div class="scene-play">
             <div class="scene-formation">
               <div class="formation-cards">${slots}</div>
-              <span class="formation-note">Зажми героя и тащи —<br>порядок слотов = позиции в бою</span>
+              <span class="formation-note">Зажми и тащи — порядок = позиции.<br>Клик по герою в слоте — вернуть в руку</span>
             </div>
             <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
               <span class="section-label">${combo ? (combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>

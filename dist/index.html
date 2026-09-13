@@ -330,6 +330,11 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .pop small { display: block; font-size: 8.5px; letter-spacing: .3px; color: #8a987d; margin-top: 7px; padding-top: 6px; border-top: 1px solid #3a4738; }
 .pop.side { left: auto; right: 2px; transform: none; }
 .pop.side:after { left: auto; right: 24px; margin-left: 0; }
+/* tooltipIn держит translateX(-50%) — для side-варианта (right:2px, transform
+   none) это чужой сдвиг: на время анимации тултип уезжает на полширины влево,
+   клампер в ui.js запекает поправку по анимированному боксу, и по окончании
+   анимации тултип щёлкает вправо. tooltipInL — тот же вход без translateX */
+[data-tip]:hover .pop.side { animation-name: tooltipInL; }
 /* вверх места нет (якорь у верхней кромки) — разворот вниз; класс ставит
    клампер тултипов в ui.js */
 .pop.flip-down { bottom: auto; top: calc(100% + 10px); }
@@ -10720,7 +10725,7 @@ const Art = (function () {
           <div class="scene-play">
             <div class="scene-formation">
               <div class="formation-cards">${slots}</div>
-              <span class="formation-note">Зажми героя и тащи —<br>порядок слотов = позиции в бою</span>
+              <span class="formation-note">Зажми и тащи — порядок = позиции.<br>Клик по герою в слоте — вернуть в руку</span>
             </div>
             <button class="combo-preview" data-action="${preview ? "open-score" : "open-modal"}" ${preview ? "" : 'data-modal="help"'}>
               <span class="section-label">${combo ? (combo.tier != null ? "ТВОЯ ФОРМАЦИЯ" : "ТВОЯ КОМБИНАЦИЯ") : "ТВОЙ СЛЕДУЮЩИЙ ХОД"}</span>
@@ -13578,7 +13583,17 @@ const Art = (function () {
     const slot = under && under.closest(".formation-slot[data-idx]");
     drag = null;
     clearDragMarks();
-    if (!started || !slot) return;
+    // Клик (без сдвига) по занятому слоту: герой возвращается в руку —
+    // тот же splice, что делает тоггл карты. Перестановкой не считается:
+    // movesUsed кормит аугменты только за честные перестановки.
+    if (!started) {
+      if (slot && !state.combat.outcome) {
+        const uid = state.combat.selectedUids[from];
+        if (uid) dispatchAndRender({ type: "SELECT_CARD", uid });
+      }
+      return;
+    }
+    if (!slot) return;
     const to = Number(slot.dataset.idx);
     if (to !== from) reorderSelection(from, to);
   });
