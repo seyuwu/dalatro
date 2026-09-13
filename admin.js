@@ -332,8 +332,8 @@ async function refresh() {
     // Секция промо вынимается перед перерисовкой и возвращается на место:
     // человек мог заполнять поля — автообновление не имеет права их стирать.
     const promoSec = document.getElementById("promo-sec");
-    if (promoSec) promoSec.remove();
-    app.innerHTML = dashboard(d);
+    if (promoSec) promoSec.remove(); // сохранить узел с заполненными полями
+    dashboard(d); // сама пишет app.innerHTML
     const slot = document.getElementById("promo-slot");
     if (promoSec) slot.appendChild(promoSec);
     else loadPromoEditor();
