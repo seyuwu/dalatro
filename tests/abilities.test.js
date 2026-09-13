@@ -214,7 +214,7 @@ test("Drum of Endurance: +0.25 множителя за героя", () => {
   assertEq(res.damage, 206, "(30+15+10 Axe) × 3.75");
 });
 
-test("Акт-переход: босс акта даёт +10 золота и казарму, дальше — новый акт", () => {
+test("Акт-переход: босс акта даёт +5 золота и казарму, дальше — новый акт", () => {
   const s = ablRun("ABL18");
   const goldBefore = s.run.gold;
   s.run.waveIndex = 4;
@@ -224,7 +224,7 @@ test("Акт-переход: босс акта даёт +10 золота и ка
   s.player.discardsLeft = 0; // бонус меткости за сбросы проверяется в bugfix.test.js
   ablPlay(s, ["axe", "morphling", "zeus", "pudge", "juggernaut"]);
   assertEq(s.combat.outcome, "cleared");
-  assertEq(s.run.gold, goldBefore + 10 + 10 + 5 + 3, "зачистка 10 + акт-премия 10 + оверкилл 5 (кап) + бонус скорости 3G");
+  assertEq(s.run.gold, goldBefore + 10 + 5 + 5 + 3, "зачистка 10 + акт-премия 5 + оверкилл 5 (кап) + бонус скорости 3G");
   assert(s.log.some((l) => l.includes("АКТ 1 ПРОЙДЕН")), "лог акта");
   assertEq(s.phase, "wave", "победа только после акта 3");
   Game.dispatch(s, { type: "ENTER_SHOP" });

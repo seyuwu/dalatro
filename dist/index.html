@@ -6381,13 +6381,14 @@ const Game = (function () {
               s.phase = "victory";
               log(s, "ТРОН ПАЛ. ТИ ВЗЯТ!");
             } else {
-              // Акт пройден: премия за переход — золото и восстановление казармы.
-              s.run.gold += 10;
+              // Акт пройден: премия за переход — скромное золото (главная
+              // награда — казарма) и восстановление казармы.
+              s.run.gold += 5;
               s.run.barracks = Math.min(BARRACKS_MAX, s.run.barracks + 1);
               const perAct = Upgrades.sum(s, "goldPerAct");
               if (perAct) s.run.gold += perAct;
               s.run.afterBoss = true;
-              log(s, `АКТ ${s.run.act} ПРОЙДЕН! +10 золота${perAct ? ` (+${perAct} за кошелёк)` : ""}, +1 казарма (восстановление)`);
+              log(s, `АКТ ${s.run.act} ПРОЙДЕН! +5 золота${perAct ? ` (+${perAct} за кошелёк)` : ""}, +1 казарма (восстановление)`);
               // Новый акт: лимиты «за акт» у активок сбрасываются.
               for (const inst of Object.values(s.run.upgradeState || {})) inst.actUses = 0;
               // Лига Титанов: перед новым актом игрок выбирает проклятие забега.
