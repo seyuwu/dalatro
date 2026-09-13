@@ -90,38 +90,123 @@ const ROUTE_SPECIAL_SLOTS = 2;
 // Классика ("classic") эти таблицы не читает. Дизайн и миграция —
 // docs/REDESIGN_ANTI_BALATRO.md §12–13; правило выбора формации — максимум
 // итогового урона, ничья — позиционная. Часть формаций читает ПОРЯДОК слотов.
+// example — собранный образец для справочника (порядок героев = порядок
+// слотов); desc — развёрнутое объяснение там же. rule остаётся кратким
+// условием для панели альтернатив и боевого лога. Примеры подобраны так,
+// чтобы формация в примере реально собиралась (и была лучшей в отряде).
 const FORMATIONS_DATA = [
-  { id: "skirmish", name: "Харас", short: "одиночный рейд", tier: 0, basePower: 5, baseMult: 1, damageType: "physical", rule: "ровно 1 герой в бою", gold: 1, when: { type: "PLAYED_COUNT_IS", value: 1 } },
-  { id: "duel", name: "Дуэль на линии", short: "двое в бою", tier: 1, basePower: 10, baseMult: 1.4, damageType: "physical", rule: "ровно 2 героя", when: { type: "PLAYED_COUNT_IS", value: 2 } },
+  {
+    id: "skirmish", name: "Харас", short: "одиночный рейд", tier: 0,
+    basePower: 5, baseMult: 1, damageType: "physical", rule: "ровно 1 герой в бою", gold: 1,
+    when: { type: "PLAYED_COUNT_IS", value: 1 },
+    example: ["tidehunter"],
+    desc: "Ровно один герой в бою. Урон скромный, зато рука почти не тратится и капает +1 золота: так дешевле всего добивать башню, оставшуюся с прошлых боёв.",
+  },
+  {
+    id: "duel", name: "Дуэль на линии", short: "двое в бою", tier: 1,
+    basePower: 10, baseMult: 1.4, damageType: "physical", rule: "ровно 2 героя",
+    when: { type: "PLAYED_COUNT_IS", value: 2 },
+    example: ["huskar", "ursa"],
+    desc: "Ровно два героя выходят один на один. Тратит меньше руки, чем пятёрка: удобно щипать башню парами, когда больших боёв на волну не осталось.",
+  },
   // Фолбэк: любой отряд 3+ всегда что-то наносит (аналог «старшей карты»).
-  { id: "squad", name: "Отряд", short: "без особого построения", tier: 1, basePower: 12, baseMult: 1.4, damageType: "physical", rule: "3+ героя без выраженной формации", when: { type: "PLAYED_COUNT_ABOVE", value: 2 } },
-  { id: "triangle", name: "Треугольник", short: "три разных атрибута в отряде", tier: 2, basePower: 16, baseMult: 1.9, damageType: "magical", rule: "3+ героя, минимум 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
-  { id: "wall", name: "Стена", short: "первые два героя — Силовики 6+", tier: 2, positional: true, basePower: 18, baseMult: 1.9, damageType: "physical", rule: "3+ героя: в первых двух слотах два Силовика с силой 6+", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "FRONT_IS", attr: "str", minPower: 6 }] } },
-  { id: "wedge", name: "Клин", short: "самый сильный герой — в центре", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "pure", rule: "3+ героя: самый сильный герой стоит в центре строя", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "PEAK_IN_CENTER" }] } },
-  { id: "ramp", name: "Рампа", short: "сила героев растёт слева направо", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "physical", rule: "3+ героя: сила героев растёт от первого слота к последнему", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "RANKS_ASCENDING" }] } },
+  {
+    id: "squad", name: "Отряд", short: "без особого построения", tier: 1,
+    basePower: 12, baseMult: 1.4, damageType: "physical", rule: "3+ героя без выраженной формации",
+    when: { type: "PLAYED_COUNT_ABOVE", value: 2 },
+    example: ["pa", "sven", "slark"],
+    desc: "Страховочный строй: три и больше героев без построения всё равно бьют. Как только отряд складывается в настоящую формацию, она перебивает Отряд по урону.",
+  },
+  {
+    id: "triangle", name: "Треугольник", short: "три разных атрибута в отряде", tier: 2,
+    basePower: 16, baseMult: 1.9, damageType: "magical", rule: "3+ героя, минимум 3 разных атрибута",
+    when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] },
+    example: ["centaur", "pa", "zeus"],
+    desc: "Три разных атрибута в одном отряде: Сила + Ловкость + Интеллект (Универсал тоже считается). Бьёт магией — это выход против башен с высокой бронёй.",
+  },
+  {
+    id: "wall", name: "Стена", short: "первые два героя — Силовики 6+", tier: 2, positional: true,
+    basePower: 18, baseMult: 1.9, damageType: "physical", rule: "3+ героя: в первых двух слотах два Силовика с силой 6+",
+    when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "FRONT_IS", attr: "str", minPower: 6 }] },
+    example: ["tidehunter", "centaur", "zeus"],
+    desc: "Первые два слота занимают два Силовика с силой 6+, за ними — кто угодно. Порядок решает: поставь на фронт Силовика слабее 6, и Стена не соберётся.",
+  },
+  {
+    id: "wedge", name: "Клин", short: "самый сильный герой — в центре", tier: 3, positional: true,
+    basePower: 16, baseMult: 2.1, damageType: "pure", rule: "3+ героя: самый сильный герой стоит в центре строя",
+    when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "PEAK_IN_CENTER" }] },
+    example: ["slark", "tidehunter", "pa"],
+    desc: "Остриё клина — самый сильный герой в центре строя: у троих это слот 2, у пятёрки — слот 3, у четвёрки — один из двух средних. Чистый урон игнорирует броню и сопротивление.",
+  },
+  {
+    id: "ramp", name: "Рампа", short: "сила героев растёт слева направо", tier: 3, positional: true,
+    basePower: 16, baseMult: 2.1, damageType: "physical", rule: "3+ героя: сила героев растёт от первого слота к последнему",
+    when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 2 }, { type: "RANKS_ASCENDING" }] },
+    example: ["bounty", "slark", "snapfire"],
+    desc: "Лесенка по возрастанию силы слева направо: 3 → 4 → 5. Одна перестановка ломает строй, так что Рампа — проверка аккуратности с множителем почти как у Клина.",
+  },
   // Зеркало Клина: сильные по краям, слабые в середине. Гейт 4+ героев: на
   // тройке «клещи» вырождаются в «минимум в центре» и перехватывают всё.
-  { id: "pincers", name: "Клещи", short: "крайние герои сильнее средних", tier: 3, positional: true, basePower: 16, baseMult: 2.1, damageType: "physical", rule: "4+ героя: оба края сильнее каждого, кто между ними", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "RANKS_EDGES_ABOVE" }] } },
+  {
+    id: "pincers", name: "Клещи", short: "крайние герои сильнее средних", tier: 3, positional: true,
+    basePower: 16, baseMult: 2.1, damageType: "physical", rule: "4+ героя: оба края сильнее каждого, кто между ними",
+    when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "RANKS_EDGES_ABOVE" }] },
+    example: ["pa", "bounty", "juggernaut", "centaur"],
+    desc: "Зеркало Клина: сильные герои по краям берут середину в клещи — 9-3-7-10. Нужно минимум четыре героя: оба края должны быть строго сильнее каждого в центре.",
+  },
   // Поздний слой: требует дубликатов рангов (тренировка, пары) — строй-палиндром.
   // Гейт 4+ по той же причине: на тройке это просто «пара через слот».
-  { id: "mirror", name: "Зеркальный строй", short: "ранги повторяются зеркально (5-7-7-5)", tier: 3, positional: true, basePower: 15, baseMult: 2.2, damageType: "magical", rule: "4+ героя: ранги читаются одинаково с обоих концов — палиндром", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "RANKS_PALINDROME" }] } },
-  { id: "phalanx", name: "Фаланга", short: "4+ героя одного атрибута", tier: 3, basePower: 20, baseMult: 2.2, damageType: "byAttribute", rule: "4+ героя одного атрибута", when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 3 }] } },
+  {
+    id: "mirror", name: "Зеркальный строй", short: "ранги повторяются зеркально (5-7-7-5)", tier: 3, positional: true,
+    basePower: 15, baseMult: 2.2, damageType: "magical", rule: "4+ героя: ранги читаются одинаково с обоих концов — палиндром",
+    when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "RANKS_PALINDROME" }] },
+    example: ["ogre_magi", "kez", "pudge", "marci"],
+    desc: "Строй-палиндром: ранги читаются одинаково с обоих концов, 4-7-7-4. Нужны повторяющиеся силы — пары героев одного ранга или тренировка, поэтому собирается поздно.",
+  },
+  {
+    id: "phalanx", name: "Фаланга", short: "4+ героя одного атрибута", tier: 3,
+    basePower: 20, baseMult: 2.2, damageType: "byAttribute", rule: "4+ героя одного атрибута",
+    when: { all: [{ type: "PLAYED_COUNT_ABOVE", value: 3 }, { type: "SAME_ATTRIBUTE_COUNT_ABOVE", value: 3 }] },
+    example: ["huskar", "sven", "legion", "centaur"],
+    desc: "Монолит одного цвета: четыре героя одного атрибута. Тип урона берётся от цвета: Сила и Ловкость бьют физикой, Интеллект — магией, Универсал — чистым уроном.",
+  },
   // margin 4, а не 3 — ручка из §10: при margin 3 формация перехватывает почти
   // любую руку с пиком в центре и убивает A/B-тест гипотезы.
-  { id: "protect", name: "4 Protect 1", short: "кэрри в центре и сильнее каждого из свиты", tier: 5, positional: true, basePower: 23, baseMult: 3.0, damageType: "pure", rule: "5 героев: кэрри в центре и сильнее каждого из свиты минимум на 4", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "CARRY_PROTECTED", margin: 4 }] } },
-  { id: "teamwipe", name: "Тимвайп", short: "пятеро: ранги подряд и разные атрибуты", tier: 5, basePower: 23, baseMult: 3.4, damageType: "magical", rule: "5 героев: силы идут подряд (4-5-6-7-8) и 3 разных атрибута", when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "RANK_RUN", value: 5 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] } },
+  {
+    id: "protect", name: "4 Protect 1", short: "кэрри в центре и сильнее каждого из свиты", tier: 5, positional: true,
+    basePower: 23, baseMult: 3.0, damageType: "pure", rule: "5 героев: кэрри в центре и сильнее каждого из свиты минимум на 4",
+    when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "CARRY_PROTECTED", margin: 4 }] },
+    example: ["zeus", "slark", "ursa", "bounty", "lina"],
+    desc: "Кэрри стоит в центре пятёрки (слот 3) и сильнее каждого из свиты минимум на 4. Свите не нужно быть сильной — она тащит связки и способности, пока кэрри разносит башню.",
+  },
+  {
+    id: "teamwipe", name: "Тимвайп", short: "пятеро: ранги подряд и разные атрибуты", tier: 5,
+    basePower: 23, baseMult: 3.4, damageType: "magical", rule: "5 героев: силы идут подряд (4-5-6-7-8) и 3 разных атрибута",
+    when: { all: [{ type: "PLAYED_COUNT_IS", value: 5 }, { type: "RANK_RUN", value: 5 }, { type: "DISTINCT_ATTRIBUTES_ABOVE", value: 2 }] },
+    example: ["skywrath", "snapfire", "phantom_lancer", "kez", "sven"],
+    desc: "Формация-топ: полная пятёрка с непрерывной лесенкой рангов (4-5-6-7-8) и минимум тремя разными атрибутами. Порядок слотов не важен — важен сам набор сил.",
+  },
 ];
 
 // Связки — пороги признаков, все активные складываются. Одна ступень на связку,
 // без ролей (роли вернутся после разметки hero.roles, ROADMAP акт 3).
+// example — образец для справочника (минимальный отряд, выполняющий условие),
+// note — что именно показывает пример.
 const BONDS_DATA = [
-  { id: "str2", trait: "Сила", when: { type: "COUNT_ATTR", attr: "str", min: 2 }, power: 5, mult: 0 },
-  { id: "agi2", trait: "Ловкость", when: { type: "COUNT_ATTR", attr: "agi", min: 2 }, power: 4, mult: 0.2 },
-  { id: "int2", trait: "Интеллект", when: { type: "COUNT_ATTR", attr: "int", min: 2 }, power: 0, mult: 0.4 },
-  { id: "gang2", trait: "Ганг", when: { type: "SAME_RANK_GROUP", size: 2 }, power: 6, mult: 0 },
-  { id: "chain3", trait: "Цепочка", when: { type: "RANK_RUN", value: 3 }, power: 6, mult: 0 },
-  { id: "front", trait: "Фронт", when: { type: "FRONT_IS", attr: "str", minPower: 5 }, power: 4, mult: 0 },
-  { id: "back", trait: "Тыл", when: { type: "BACK_IS", attr: "int", minPower: 0 }, power: 0, mult: 0.2 },
+  { id: "str2", trait: "Сила", when: { type: "COUNT_ATTR", attr: "str", min: 2 }, power: 5, mult: 0,
+    example: ["axe", "pudge"], note: "два и больше Силовиков в отряде" },
+  { id: "agi2", trait: "Ловкость", when: { type: "COUNT_ATTR", attr: "agi", min: 2 }, power: 4, mult: 0.2,
+    example: ["slark", "pa"], note: "две и больше Ловкости в отряде" },
+  { id: "int2", trait: "Интеллект", when: { type: "COUNT_ATTR", attr: "int", min: 2 }, power: 0, mult: 0.4,
+    example: ["zeus", "lina"], note: "два и больше Интеллекта в отряде" },
+  { id: "gang2", trait: "Ганг", when: { type: "SAME_RANK_GROUP", size: 2 }, power: 6, mult: 0,
+    example: ["pa", "huskar"], note: "два героя одной силы — здесь две девятки" },
+  { id: "chain3", trait: "Цепочка", when: { type: "RANK_RUN", value: 3 }, power: 6, mult: 0,
+    example: ["tusk", "slark", "axe"], note: "три силы подряд (3-4-5) в любом порядке слотов" },
+  { id: "front", trait: "Фронт", when: { type: "FRONT_IS", attr: "str", minPower: 5 }, power: 4, mult: 0,
+    example: ["centaur", "pudge", "zeus"], note: "два Силовика 5+ в первых двух слотах" },
+  { id: "back", trait: "Тыл", when: { type: "BACK_IS", attr: "int", minPower: 0 }, power: 0, mult: 0.2,
+    example: ["centaur", "sven", "zeus", "lina"], note: "два Интеллекта в двух последних слотах (отряд от 4)" },
 ];
 
 // Третья ось: числовая защита башен. physical −armor (плоско, но не больше

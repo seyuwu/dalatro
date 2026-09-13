@@ -694,6 +694,8 @@ function adminCookieToken(cookie) {
   return m ? m[1] : "";
 }
 
+// Возвращает Buffer: JSON-ветки сами делают .toString("utf8"), бинарная
+// загрузка промо-картинок берёт сырые байты (utf8-декод ломает PNG/JPG).
 function readBody(req, cap = 65536) {
   return new Promise((resolve, reject) => {
     let size = 0;
@@ -703,7 +705,7 @@ function readBody(req, cap = 65536) {
       if (size > cap) { reject(new Error("body too large")); req.destroy(); return; }
       chunks.push(chunk);
     });
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
 }
@@ -786,9 +788,9 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         return;
       }
       const waveId = m2[1];
-      let raw;
-      try { raw = await readBody(req, 400 * 1024); } catch { raw = null; }
-      const buf = raw ? Buffer.from(raw, "binary") : Buffer.alloc(0);
+      let buf;
+      try { buf = await readBody(req, 400 * 1024); } catch { buf = Buffer.alloc(0); }
+      if (!Buffer.isBuffer(buf)) buf = Buffer.alloc(0);
       const isPng = buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
       const isJpg = buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8;
       if (!isPng && !isJpg) {
@@ -811,7 +813,7 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         return;
       }
       let body = {};
-      try { body = JSON.parse((await readBody(req)) || "{}"); } catch {}
+      try { body = JSON.parse((await readBody(req)).toString("utf8") || "{}"); } catch {}
       const waveId = typeof body.waveId === "string" && /^[a-z0-9_]{1,20}$/.test(body.waveId) ? body.waveId : null;
       if (waveId) for (const ext of ["png", "jpg"]) { try { rmSync(join(dataDir, "promo-img", waveId + "." + ext)); } catch {} }
       const marked = backend.call("POST", "/admin/promo-image", { body: { waveId, hasImage: false }, isAdmin: true });
@@ -839,7 +841,7 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         return;
       }
       let promoBody = {};
-      try { promoBody = JSON.parse((await readBody(req)) || "{}"); } catch { promoBody = {}; }
+      try { promoBody = JSON.parse((await readBody(req)).toString("utf8") || "{}"); } catch { promoBody = {}; }
       const result = backend.call("POST", "/admin/promo", { body: promoBody, isAdmin: true });
       res.writeHead(result.status, headers).end(JSON.stringify(result.json));
       return;
@@ -855,7 +857,7 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
       if (req.method === "POST") {
         try {
           const raw = await readBody(req);
-          body = raw ? JSON.parse(raw) : {};
+          body = raw.length ? JSON.parse(raw.toString("utf8")) : {};
         } catch {
           res.writeHead(400, headers).end(JSON.stringify({ error: "битый JSON" }));
           return;
