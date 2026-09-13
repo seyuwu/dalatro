@@ -25,7 +25,7 @@ function normalizePath(pathname) {
 }
 
 function newDayBucket() {
-  return { requests: 0, api: 0, views: 0, errors: 0, runs: 0, wins: 0, registers: 0, logins: 0, latSum: 0, statuses: {}, ips: {}, players: {}, paths: {} };
+  return { requests: 0, api: 0, views: 0, errors: 0, runs: 0, wins: 0, registers: 0, logins: 0, promoClicks: 0, latSum: 0, statuses: {}, ips: {}, players: {}, paths: {} };
 }
 function newHourBucket() {
   return { requests: 0, api: 0, views: 0, errors: 0, runs: 0 };
@@ -82,8 +82,11 @@ export function createAnalytics({ dataFile, maxDays = 30, maxHours = 48, maxRece
     if (e.type === "run") { day.runs += 1; if (e.won) day.wins += 1; }
     if (e.type === "register") day.registers += 1;
     if (e.type === "login") day.logins += 1;
+    if (e.type === "promo") day.promoClicks += 1;
     if (e.name) bumpMap(day.players, e.name);
-    state.eventsLog.push({ t, type: e.type, ...(e.name ? { name: e.name } : {}), ...(e.type === "run" ? { won: e.won, rank: e.rank, score: e.score } : {}) });
+    const entry = { t, type: e.type };
+    for (const key of Object.keys(e)) if (key !== "type") entry[key] = e[key];
+    state.eventsLog.push(entry);
     if (state.eventsLog.length > maxRecent) state.eventsLog = state.eventsLog.slice(-maxRecent);
   }
 
@@ -106,6 +109,7 @@ export function createAnalytics({ dataFile, maxDays = 30, maxHours = 48, maxRece
         wins: day.wins,
         registers: day.registers,
         logins: day.logins,
+        promoClicks: day.promoClicks || 0,
         statuses: day.statuses,
       },
       hourly: Object.keys(state.hours).sort().map((k) => ({ hour: k, ...state.hours[k] })),

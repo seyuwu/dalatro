@@ -729,7 +729,9 @@
     const dmgPct = live ? Math.max(0, Math.min(hpPct, remainPct + Math.round((preview.damage / wave.maxHp) * 100)) - remainPct) : 0;
     const kill = live && preview.damage >= hp;
     const isBoss = !!wave.isBoss;
-    const faction = isBoss || wave.miniBoss ? "БОСС АКТА" : "ПОСТРОЙКА СВЕТА";
+    // Промо-босс (src/content/promo.js): враг = проект-партнёр, клик = переход.
+    const promo = isBoss ? Content.promo.byId[wave.id] : null;
+    const faction = isBoss || wave.miniBoss ? (promo ? "ПРОЕКТ-БОСС" : "БОСС АКТА") : "ПОСТРОЙКА СВЕТА";
     const slots = Array.from({ length: max }, (_, i) => {
       const uid = state.combat.selectedUids[i];
       const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
@@ -753,10 +755,12 @@
       <div class="scene-shade"></div>
       <div class="scene-inner">
         <header class="scene-target">
-          <div class="scene-emblem ${isBoss ? "boss" : ""}">${isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30)}</div>
+          <div class="scene-emblem ${isBoss ? "boss" : ""}" ${promo ? `data-action="promo-view" data-promo="${wave.id}" title="Клик по врагу — интерес учтён"` : ""}>${isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30)}</div>
           <div class="scene-title">
             <span class="section-label">${faction} · ВОЛНА ${state.run.waveIndex % 5 + 1}/5</span>
-            <h2>${wave.name}${wave.miniBoss ? " — мини-босс" : ""}</h2>
+            ${promo
+      ? `<h2><button class="promo-name" data-action="promo-visit" data-promo="${wave.id}" title="Перейти на ${esc(promo.url)}">${esc(promo.name)} ${icon("arrow", 16)}</button></h2>`
+      : `<h2>${wave.name}${wave.miniBoss ? " — мини-босс" : ""}</h2>`}
           </div>
           <div class="scene-hp">
             <div class="scene-hp-num">${icon("heart", 14)}<strong>${fmt(hp)}</strong><span>/ ${fmt(wave.maxHp)}</span></div>
@@ -769,6 +773,11 @@
           <div class="scene-reward" data-tip><span>Награда</span><b>${icon("coins", 13)}${Game.waveClearGold(state)}+</b>
             <span class="pop"><strong>Награда за зачистку</strong><p>${Game.waveClearGold(state)}G — база. «+» — бонусы: +1G за каждый неиспользованный бой и сброс, плюс золото с оверкилла.</p></span></div>
         </header>
+        ${promo ? `<div class="promo-ribbon" data-action="promo-view" data-promo="${wave.id}">
+          <span class="promo-emoji">📣</span>
+          <div class="promo-text"><b>${esc(promo.tagline)}</b><span>${esc(promo.desc)}</span></div>
+          <button class="secondary-button promo-link" data-action="promo-visit" data-promo="${wave.id}">Перейти на сайт ${icon("arrow", 13)}</button>
+        </div>` : ""}
         <div class="rule-chips">${waveRuleChips(state)}</div>
         ${state.run.routeUndo && !state.combat.outcome ? `<div class="undo-route-row"><button class="secondary-button" data-action="undo-route">↩️ Отменить тропу</button></div>` : ""}
         <div class="scene-stage">

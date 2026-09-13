@@ -1442,6 +1442,15 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .guest-offer b { color: #e9c98f; }
 .guest-offer .primary-button { padding: 8px 13px; font-size: 11px; white-space: nowrap; }
 
+/* ── Промо-боссы (src/content/promo.js): враг = проект-партнёр ──────────── */
+.promo-name { font: inherit; background: none; border: none; padding: 0; color: #e9c98f; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; border-bottom: 1px dashed #7a6437; transition: color .15s, border-color .15s; }
+.promo-name:hover { color: #ffd98f; border-color: #e9c98f; }
+.promo-ribbon { display: flex; align-items: center; gap: 11px; margin-bottom: 8px; padding: 9px 13px; background: #2c241399; border: 1px solid #7a6437; border-radius: 6px; cursor: pointer; }
+.promo-emoji { font-size: 19px; }
+.promo-text { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 11px; line-height: 1.45; color: #c9d3bd; min-width: 0; }
+.promo-text b { color: #e9c98f; font-size: 11px; }
+.promo-link { flex-shrink: 0; font-size: 11px; padding: 7px 11px; }
+
 /* dotora — tutorial: слой интерактивного онбординга. Живёт вне #app,
    z-стек: под тостами (100), над модалками (50). Отдельный файл — чтобы
    не конфликтовать с параллельными правками styles.css. // TUTORIAL */
@@ -3947,6 +3956,46 @@ const AGHANIMS_DATA = [
 
 </script>
   <script>
+// ═══════════════════════════════════════════════════════════════════════════
+// РЕКЛАМНЫЕ БОССЫ — МЕНЯТЬ ЗДЕСЬ.
+// Ключ = id босса из WAVES_DATA (3 акта → 3 босса):
+//   roshan  — босс акта 1  (Roshan)
+//   fboss   — босс акта 2  (Древний Рошан)
+//   pfinal  — босс акта 3  (Трон)
+// Босс без записи здесь рисуется как обычный враг, без промо.
+//
+// Поля:
+//   name    — название проекта (клик по нему = переход на сайт + счётчик «переход»)
+//   url     — куда ведёт переход (открывается в новой вкладке)
+//   tagline — короткая строка-клич (показывается в плашке)
+//   desc    — описание проекта в 1–2 строки (показывается там же)
+// Клики считаются в аналитике: «переход» (нажали название/кнопку) и
+// «просмотр» (кликнули по врагу/плашке, не уходя с сайта) → /admin.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PROMO_DATA = {
+  roshan: {
+    name: "dota.opinia.ru",
+    url: "https://dota.opinia.ru",
+    tagline: "Рошан играет за наш проект — выбей из него рекламу",
+    desc: "Dota-вертикаль Opinia: репутация игроков, конфирмейшны и статистика матчей. Игроки подтверждают друг другу качество игры — фидеры и смурфы не проходят.",
+  },
+  fboss: {
+    name: "dota.opinia.ru",
+    url: "https://dota.opinia.ru",
+    tagline: "Древний Рошан охраняет секрет нашего проекта",
+    desc: "Заходи на dota.opinia.ru — проверяй союзников перед матчем, собирай репутацию и попадай в топы. Чем честнее играешь, тем выше твой профиль.",
+  },
+  pfinal: {
+    name: "dota.opinia.ru",
+    url: "https://dota.opinia.ru",
+    tagline: "Трон открывается только тем, кто знает наш проект",
+    desc: "Финальный босс — рекламная площадка dota.opinia.ru: профили игроков Dota 2 с реальной репутацией сообщества. Победи его — и переходи проверять своих тиммейтов.",
+  },
+};
+
+</script>
+  <script>
 // dotora — content registry. The engine only ever talks to Content.
 const Content = (function () {
   function byId(list) {
@@ -3982,11 +4031,13 @@ const Content = (function () {
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
   const towerDefense = { byId: TOWER_DEFENSE };
+  // Промо-боссы (src/content/promo.js): ключи — id боссовых волн.
+  const promo = { byId: PROMO_DATA };
 
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, aghanims, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, aghanims, formations, bonds, towerDefense, promo, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();
 
 </script>
@@ -9428,6 +9479,13 @@ const Net = (function () {
       .catch(() => null);
   }
 
+  // Клик по промо-боссу: "visit" — переход на сайт партнёра, "view" —
+  // просто кликнул на врага. Фаер-энд-форжет: игре сеть не важна.
+  function trackPromo(promo, target) {
+    if (!state.online) return Promise.resolve(null);
+    return api("POST", "/api/promo", { promo, target }).catch(() => null);
+  }
+
   function boardKey(view, rank) { return view + "|" + (rank || ""); }
 
   function leaderboard(view, rank) {
@@ -9450,7 +9508,7 @@ const Net = (function () {
       .catch(() => {});
   }
 
-  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile };
+  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile, trackPromo };
 })();
 
 </script>
@@ -10463,7 +10521,9 @@ const Art = (function () {
     const dmgPct = live ? Math.max(0, Math.min(hpPct, remainPct + Math.round((preview.damage / wave.maxHp) * 100)) - remainPct) : 0;
     const kill = live && preview.damage >= hp;
     const isBoss = !!wave.isBoss;
-    const faction = isBoss || wave.miniBoss ? "БОСС АКТА" : "ПОСТРОЙКА СВЕТА";
+    // Промо-босс (src/content/promo.js): враг = проект-партнёр, клик = переход.
+    const promo = isBoss ? Content.promo.byId[wave.id] : null;
+    const faction = isBoss || wave.miniBoss ? (promo ? "ПРОЕКТ-БОСС" : "БОСС АКТА") : "ПОСТРОЙКА СВЕТА";
     const slots = Array.from({ length: max }, (_, i) => {
       const uid = state.combat.selectedUids[i];
       const hero = uid ? Content.heroes.byId[state.cards[uid].heroId] : null;
@@ -10487,10 +10547,12 @@ const Art = (function () {
       <div class="scene-shade"></div>
       <div class="scene-inner">
         <header class="scene-target">
-          <div class="scene-emblem ${isBoss ? "boss" : ""}">${isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30)}</div>
+          <div class="scene-emblem ${isBoss ? "boss" : ""}" ${promo ? `data-action="promo-view" data-promo="${wave.id}" title="Клик по врагу — интерес учтён"` : ""}>${isBoss || wave.miniBoss ? icon("skull", 30) : icon("castle", 30)}</div>
           <div class="scene-title">
             <span class="section-label">${faction} · ВОЛНА ${state.run.waveIndex % 5 + 1}/5</span>
-            <h2>${wave.name}${wave.miniBoss ? " — мини-босс" : ""}</h2>
+            ${promo
+      ? `<h2><button class="promo-name" data-action="promo-visit" data-promo="${wave.id}" title="Перейти на ${esc(promo.url)}">${esc(promo.name)} ${icon("arrow", 16)}</button></h2>`
+      : `<h2>${wave.name}${wave.miniBoss ? " — мини-босс" : ""}</h2>`}
           </div>
           <div class="scene-hp">
             <div class="scene-hp-num">${icon("heart", 14)}<strong>${fmt(hp)}</strong><span>/ ${fmt(wave.maxHp)}</span></div>
@@ -10503,6 +10565,11 @@ const Art = (function () {
           <div class="scene-reward" data-tip><span>Награда</span><b>${icon("coins", 13)}${Game.waveClearGold(state)}+</b>
             <span class="pop"><strong>Награда за зачистку</strong><p>${Game.waveClearGold(state)}G — база. «+» — бонусы: +1G за каждый неиспользованный бой и сброс, плюс золото с оверкилла.</p></span></div>
         </header>
+        ${promo ? `<div class="promo-ribbon" data-action="promo-view" data-promo="${wave.id}">
+          <span class="promo-emoji">📣</span>
+          <div class="promo-text"><b>${esc(promo.tagline)}</b><span>${esc(promo.desc)}</span></div>
+          <button class="secondary-button promo-link" data-action="promo-visit" data-promo="${wave.id}">Перейти на сайт ${icon("arrow", 13)}</button>
+        </div>` : ""}
         <div class="rule-chips">${waveRuleChips(state)}</div>
         ${state.run.routeUndo && !state.combat.outcome ? `<div class="undo-route-row"><button class="secondary-button" data-action="undo-route">↩️ Отменить тропу</button></div>` : ""}
         <div class="scene-stage">
@@ -13548,6 +13615,18 @@ const Art = (function () {
         Net.state.error = "";
         rerender();
         break;
+      case "promo-visit": {
+        const promo = Content.promo.byId[el.dataset.promo];
+        if (promo) {
+          Net.trackPromo(el.dataset.promo, "visit");
+          window.open(promo.url, "_blank", "noopener");
+        }
+        break;
+      }
+      case "promo-view": {
+        if (Content.promo.byId[el.dataset.promo]) Net.trackPromo(el.dataset.promo, "view");
+        break;
+      }
       case "auth-submit": submitAuth(); break;
       case "logout":
         Net.logout().then(() => { UI.UIState.toast = "Вы вышли из аккаунта."; rerender(); });

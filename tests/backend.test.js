@@ -291,3 +291,20 @@ test("runs: капы абуза — гигантский удар и время 
   assertEq(call({ timeMs: 24 * 3600 * 1000 }).status, 200, "ровно сутки принимается");
 });
 
+
+test("promo: клики по промо-боссам считаются в аналитике", () => {
+  const events = [];
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir(), onEvent: (e) => events.push(e) });
+  assertEq(b.call("POST", "/promo", { body: { promo: "roshan", target: "visit" } }).status, 200);
+  assertEq(b.call("POST", "/promo", { body: { promo: "roshan", target: "view" } }).status, 200);
+  assertEq(b.call("POST", "/promo", { body: { promo: "roshan", target: "купить" } }).status, 400, "неизвестный тип");
+  assertEq(b.call("POST", "/promo", { body: { promo: "<script>", target: "visit" } }).status, 400, "мусор в id");
+  assertEq(events.length, 2);
+  assertEq(events[0].type, "promo");
+  assertEq(events[0].promo, "roshan");
+  assertEq(events[0].target, "visit");
+  // аноним тоже считается; залогиненный — с именем
+  const token = b.call("POST", "/register", { body: { name: "Clicker", password: "123456" } }).setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
+  b.call("POST", "/promo", { body: { promo: "pfinal", target: "visit" }, cookie: "dalatro_sess=" + token });
+  assertEq(events[2].name, "Clicker");
+});

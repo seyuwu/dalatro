@@ -355,6 +355,16 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       return send(200, result);
     }
 
+    // Клик по промо-боссу: анонимно, без состояния — просто счётчик интереса.
+    if (method === "POST" && path === "/promo") {
+      const promo = body && body.promo;
+      const target = body && body.target;
+      if (typeof promo !== "string" || !/^[a-z0-9_.-]{1,40}$/.test(promo)) return send(400, { error: "неизвестный промо-босс" });
+      if (target !== "visit" && target !== "view") return send(400, { error: "неизвестный тип клика" });
+      onEvent({ type: "promo", promo, target, ...(me ? { name: me.name } : {}) });
+      return send(200, { ok: true });
+    }
+
     let m;
     if (method === "GET" && (m = path.match(/^\/leaderboard$/))) {
       return send(200, leaderboard(body || {}));

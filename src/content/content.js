@@ -33,9 +33,11 @@ const Content = (function () {
   const formations = { list: FORMATIONS_DATA, byId: byId(FORMATIONS_DATA) };
   const bonds = { list: BONDS_DATA, byId: byId(BONDS_DATA) };
   const towerDefense = { byId: TOWER_DEFENSE };
+  // Промо-боссы (src/content/promo.js): ключи — id боссовых волн.
+  const promo = { byId: PROMO_DATA };
 
   const attrNames = { str: "Сила", agi: "Ловкость", int: "Интеллект", uni: "Универсал" };
   const attrShort = { str: "STR", agi: "AGI", int: "INT", uni: "UNI" };
 
-  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, aghanims, formations, bonds, towerDefense, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
+  return { heroes, items, combos, waves, modifiers, curses, ranks, mutations, rankCurses, archetypes, routes, upgrades, aghanims, formations, bonds, towerDefense, promo, damageTypeNames: DAMAGE_TYPE_NAMES, actNames: ACT_NAMES, attrNames, attrShort };
 })();

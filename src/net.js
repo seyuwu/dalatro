@@ -108,6 +108,13 @@ const Net = (function () {
       .catch(() => null);
   }
 
+  // Клик по промо-боссу: "visit" — переход на сайт партнёра, "view" —
+  // просто кликнул на врага. Фаер-энд-форжет: игре сеть не важна.
+  function trackPromo(promo, target) {
+    if (!state.online) return Promise.resolve(null);
+    return api("POST", "/api/promo", { promo, target }).catch(() => null);
+  }
+
   function boardKey(view, rank) { return view + "|" + (rank || ""); }
 
   function leaderboard(view, rank) {
@@ -130,5 +137,5 @@ const Net = (function () {
       .catch(() => {});
   }
 
-  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile };
+  return { state, ping, auth, logout, submitRun, leaderboard, fetchProfile, trackPromo };
 })();

@@ -521,6 +521,18 @@
         Net.state.error = "";
         rerender();
         break;
+      case "promo-visit": {
+        const promo = Content.promo.byId[el.dataset.promo];
+        if (promo) {
+          Net.trackPromo(el.dataset.promo, "visit");
+          window.open(promo.url, "_blank", "noopener");
+        }
+        break;
+      }
+      case "promo-view": {
+        if (Content.promo.byId[el.dataset.promo]) Net.trackPromo(el.dataset.promo, "view");
+        break;
+      }
       case "auth-submit": submitAuth(); break;
       case "logout":
         Net.logout().then(() => { UI.UIState.toast = "Вы вышли из аккаунта."; rerender(); });

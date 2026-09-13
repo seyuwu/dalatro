@@ -192,6 +192,7 @@ function dashboard(d) {
       card(fmtN(t.uniquePlayers), "Игроки (аккаунты)") +
       card(fmtN(t.registers), "Регистрации") +
       card(fmtN(t.runs), "Забегов сегодня") +
+      card(fmtN(t.promoClicks), "Клики по промо") +
       card(fmtN(s.accounts), "Аккаунтов всего") +
       card(fmtN(s.runs), "Забегов всего") +
       card(t.avgLatencyMs + " мс", "Средняя задержка") +
@@ -210,7 +211,11 @@ function dashboard(d) {
     "</div>" +
     '<div class="grid2">' +
       '<section><h2>Живой хвост запросов</h2>' + tableView(d.recent.slice(0, 25), [["t", "Время", 0, (r) => fmtTime(r.t)], ["method", "Метод"], ["path", "Путь"], ["status", "Код", 0, (r) => '<span class="tag ' + (r.status >= 400 ? "err" : "ok") + '">' + r.status + "</span>"], ["ms", "мс", 1]]) + "</section>" +
-      '<section><h2>Журнал событий</h2>' + tableView(d.eventsLog.slice(0, 25), [["t", "Время", 0, (r) => fmtTime(r.t)], ["type", "Событие"], ["name", "Кто"], ["run", "Забег", 0, (r) => r.type === "run" ? '<span class="tag ' + (r.won ? "win" : "loss") + '">' + (r.won ? "победа" : "поражение") + " · ранг " + r.rank + " · " + fmtN(r.score) + "</span>" : ""]]) + "</section>" +
+      '<section><h2>Журнал событий</h2>' + tableView(d.eventsLog.slice(0, 25), [["t", "Время", 0, (r) => fmtTime(r.t)], ["type", "Событие"], ["name", "Кто"], ["detail", "Детали", 0, (r) => {
+        if (r.type === "run") return '<span class="tag ' + (r.won ? "win" : "loss") + '">' + (r.won ? "победа" : "поражение") + " · ранг " + r.rank + " · " + fmtN(r.score) + "</span>";
+        if (r.type === "promo") return '<span class="tag ' + (r.target === "visit" ? "win" : "ok") + '">' + (r.target === "visit" ? "переход" : "просмотр") + " · " + esc(r.promo || "") + "</span>";
+        return "";
+      }]]) + "</section>" +
     "</div>";
 }
 

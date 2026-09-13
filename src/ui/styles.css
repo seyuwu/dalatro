@@ -1430,3 +1430,12 @@ kbd { font-family: inherit; font-size: 10px; border: 1px solid #405038; border-r
 .guest-offer span { flex: 1; }
 .guest-offer b { color: #e9c98f; }
 .guest-offer .primary-button { padding: 8px 13px; font-size: 11px; white-space: nowrap; }
+
+/* ── Промо-боссы (src/content/promo.js): враг = проект-партнёр ──────────── */
+.promo-name { font: inherit; background: none; border: none; padding: 0; color: #e9c98f; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; border-bottom: 1px dashed #7a6437; transition: color .15s, border-color .15s; }
+.promo-name:hover { color: #ffd98f; border-color: #e9c98f; }
+.promo-ribbon { display: flex; align-items: center; gap: 11px; margin-bottom: 8px; padding: 9px 13px; background: #2c241399; border: 1px solid #7a6437; border-radius: 6px; cursor: pointer; }
+.promo-emoji { font-size: 19px; }
+.promo-text { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 11px; line-height: 1.45; color: #c9d3bd; min-width: 0; }
+.promo-text b { color: #e9c98f; font-size: 11px; }
+.promo-link { flex-shrink: 0; font-size: 11px; padding: 7px 11px; }
