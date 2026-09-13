@@ -427,7 +427,8 @@
       </div>
       <div class="hero-card-bottom">
         <span class="hero-attribute">${ATTR_SYMBOLS[effAttr]} ${ATTR_NAMES[effAttr]}${effAttr !== hero.attr ? " <i class=\"attr-changed\" title=\"Было: " + ATTR_NAMES[hero.attr] + "\">⇄</i>" : ""}</span>
-        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${dot}${augBadges}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
+        <span class="hero-ability">${hero.ability ? hero.ability.name : "—"}${dot}${lvl ? ` <span class="xp-badge" title="Опыт ${xp}: уровень ${lvl} (+${lvl} силы)">ур.${lvl}</span>` : ""}</span>
+        ${augBadges ? `<span class="augh-badges">${augBadges}</span>` : ""}
         <div class="card-foot"><span>${rank} ${icon("zap", 10)}</span><kbd>${index + 1}</kbd></div>
       </div>
       <span class="hero-tooltip">
