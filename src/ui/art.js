@@ -1,12 +1,13 @@
 // dotora — art pool.
-// Hero portraits come from Valve's public Dota 2 CDN (the canonical look).
-// The hand-drawn SVG sigils stay as an automatic fallback when the CDN is
-// unreachable — and as the original- art path for a public release, see
-// VISUAL_SPEC.md (IP note).
+// Портреты героев и иконки предметов — локальное зеркало Valve CDN
+// (images/cdn/, скачаны scripts-ом при переезде на прод): same-origin
+// значит работает оффлайн, за любыми блокировщиками и без зависимости
+// от внешнего CDN. SVG-сигилы остаются фолбэком на 404.
+// Оригинал: https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/
 const Art = (function () {
   const S = 'viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"';
-  const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes";
-  const ITEM_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items";
+  const CDN = "/images/cdn/heroes";
+  const ITEM_CDN = "/images/cdn/items";
 
   // heroId -> Steam internal name (legacy names: antimage, wisp,
   // obsidian_destroyer).

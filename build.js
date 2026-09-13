@@ -1,7 +1,7 @@
 // Builds dist/index.html — the whole game in ONE file (player-facing deliverable).
 // Inlines CSS and all scripts in the exact order from index.html, copies static
 // assets (battlefield background) next to it.
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,5 +27,14 @@ if (/<script src=/.test(out)) {
 mkdirSync(join(root, "dist", "images"), { recursive: true });
 writeFileSync(join(root, "dist", "index.html"), out);
 copyFileSync(join(root, "images", "battlefield.jpg"), join(root, "dist", "images", "battlefield.jpg"));
+// Локальное зеркало арта (портреты героев, иконки предметов) — в dist,
+// чтобы one-file-сборка работала без внешнего CDN.
+mkdirSync(join(root, "dist", "images", "cdn", "heroes"), { recursive: true });
+mkdirSync(join(root, "dist", "images", "cdn", "items"), { recursive: true });
+for (const kind of ["heroes", "items"]) {
+  for (const f of readdirSync(join(root, "images", "cdn", kind))) {
+    copyFileSync(join(root, "images", "cdn", kind, f), join(root, "dist", "images", "cdn", kind, f));
+  }
+}
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 console.log(`OK → dist/index.html (${Math.round(Buffer.byteLength(out) / 1024)} KB, ${scriptTags.length} scripts inlined, v${pkg.version})`);
