@@ -789,13 +789,13 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
       }
       const waveId = m2[1];
       let buf;
-      try { buf = await readBody(req, 400 * 1024); } catch { buf = Buffer.alloc(0); }
+      try { buf = await readBody(req, 600 * 1024); } catch { buf = Buffer.alloc(0); }
       if (!Buffer.isBuffer(buf)) buf = Buffer.alloc(0);
       const isPng = buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
       const isJpg = buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8;
       const isWebp = buf.length > 12 && buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP";
       if (!isPng && !isJpg && !isWebp) {
-        res.writeHead(400, headers).end(JSON.stringify({ error: "нужен PNG, JPEG или WebP (админка жмёт сама)" }));
+        res.writeHead(400, headers).end(JSON.stringify({ error: "нужен PNG, JPEG или WebP до 600 КБ (админка жмёт сама)" }));
         return;
       }
       const ext = isPng ? "png" : isJpg ? "jpg" : "webp";
