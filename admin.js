@@ -208,7 +208,7 @@ function dashboard(d) {
       card(t.avgLatencyMs + " мс", "Средняя задержка") +
       card(errRate, "Доля ошибок", t.errors > 0) +
     "</div>" +
-    '<section><h2>Промо-башни (реклама волн)</h2><div id="promo-rows" class="muted">Загрузка…</div></section>' +
+    '<div id="promo-slot"></div>' +
     '<section><h2>Трафик по часам (48 ч)</h2>' + barChart(hours, "requests", "api", "все запросы", "API") + "</section>" +
     '<div class="grid2">' +
       '<section><h2>Топ путей (сегодня)</h2>' + tableView(d.topPaths, [["path", "Путь"], ["count", "Запросов", 1, (r) => fmtN(r.count)]]) + "</section>" +
@@ -236,6 +236,9 @@ const esc2 = esc;
 async function loadPromoEditor() {
   try {
     PROMO_CFG = await api("/api/promo-config");
+    const slot = document.getElementById("promo-slot");
+    if (!slot || document.getElementById("promo-sec")) return; // уже отрисован
+    slot.innerHTML = '<section id="promo-sec"><h2>Промо-башни (реклама волн)</h2><div id="promo-rows" class="muted">Загрузка…</div></section>';
     const host = document.getElementById("promo-rows");
     if (!host) return;
     host.className = "";
@@ -268,7 +271,14 @@ async function loadPromoEditor() {
           tagline: row.querySelector(".pr-tag").value,
           desc: row.querySelector(".pr-desc").value,
         }) }).catch((e) => ({ error: e.message }));
-        if (res && res.ok) { st.style.color = "var(--green)"; st.textContent = res.deleted ? "промо убрано" : "сохранено"; setTimeout(() => refresh(), 600); }
+        if (res && res.ok) {
+          st.style.color = "var(--green)"; st.textContent = res.deleted ? "промо убрано" : "сохранено";
+          // Обновляем строку на месте: полный refresh стёр бы заполнение соседних полей.
+          if (res.deleted) delete PROMO_CFG.promos[waveId];
+          else PROMO_CFG.promos[waveId] = { ...(PROMO_CFG.promos[waveId] || { hasImage: false }), name: row.querySelector(".pr-name").value, url: row.querySelector(".pr-url").value.trim(), tagline: row.querySelector(".pr-tag").value, desc: row.querySelector(".pr-desc").value };
+          const p2 = PROMO_CFG.promos[waveId];
+          row.querySelector("summary").innerHTML = 'Акт ' + (PROMO_CFG.waves.find((w) => w.id === waveId) || {}).act + ' · ' + esc((PROMO_CFG.waves.find((w) => w.id === waveId) || {}).name) + (p2 && p2.name ? ' — <b style="color:var(--gold)">' + esc(p2.name) + '</b>' : '');
+        }
         else { st.style.color = "var(--red)"; st.textContent = (res && res.error) || "ошибка"; }
       };
       row.querySelector(".pr-file").onchange = async (e) => {
@@ -279,14 +289,24 @@ async function loadPromoEditor() {
         const buf = await file.arrayBuffer();
         const res = await fetch("/api/admin/promo-image/" + waveId, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: buf })
           .then((r) => r.json()).catch((e2) => ({ error: e2.message }));
-        if (res && res.ok) { st.style.color = "var(--green)"; st.textContent = "картинка загружена"; setTimeout(() => refresh(), 600); }
+        if (res && res.ok) {
+          st.style.color = "var(--green)"; st.textContent = "картинка загружена";
+          if (PROMO_CFG.promos[waveId]) PROMO_CFG.promos[waveId].hasImage = true;
+          const actions = row.querySelector(".pr-actions");
+          let thumb = row.querySelector(".pr-thumb");
+          if (!thumb) { thumb = document.createElement("img"); thumb.className = "pr-thumb"; actions.prepend(thumb); }
+          thumb.src = "/promo-image/" + waveId + "?v=" + Date.now();
+          if (!row.querySelector(".pr-imgdel")) {
+            const del = document.createElement("button");
+            del.className = "pr-imgdel"; del.textContent = "Убрать картинку";
+            del.onclick = () => removePromoImage(waveId, row);
+            actions.insertBefore(del, st);
+          }
+        }
         else { st.style.color = "var(--red)"; st.textContent = (res && res.error) || "ошибка"; }
       };
       const del = row.querySelector(".pr-imgdel");
-      if (del) del.onclick = async () => {
-        await fetch("/api/admin/promo-image-remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ waveId }) }).catch(() => {});
-        refresh();
-      };
+      if (del) del.onclick = () => removePromoImage(waveId, row);
     });
   } catch (e) {
     const host = document.getElementById("promo-rows");
@@ -294,12 +314,29 @@ async function loadPromoEditor() {
   }
 }
 
+async function removePromoImage(waveId, row) {
+  await fetch("/api/admin/promo-image-remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ waveId }) }).catch(() => {});
+  if (PROMO_CFG.promos[waveId]) PROMO_CFG.promos[waveId].hasImage = false;
+  const thumb = row.querySelector(".pr-thumb");
+  if (thumb) thumb.remove();
+  const del = row.querySelector(".pr-imgdel");
+  if (del) del.remove();
+  const st = row.querySelector(".pr-status");
+  if (st) { st.style.color = "var(--green)"; st.textContent = "картинка убрана"; }
+}
+
 async function refresh() {
   try {
     const d = await api("/api/admin/stats");
     document.getElementById("updated").textContent = "обновлено " + fmtTime(Date.now());
-    dashboard(d);
-    loadPromoEditor();
+    // Секция промо вынимается перед перерисовкой и возвращается на место:
+    // человек мог заполнять поля — автообновление не имеет права их стирать.
+    const promoSec = document.getElementById("promo-sec");
+    if (promoSec) promoSec.remove();
+    app.innerHTML = dashboard(d);
+    const slot = document.getElementById("promo-slot");
+    if (promoSec) slot.appendChild(promoSec);
+    else loadPromoEditor();
   } catch (e) {
     if (e.status === 401) { loginView(); return; }
     app.innerHTML = '<div class="card bad"><b>—</b><span>Сервер не ответил: ' + esc(e.message) + '</span></div>';
