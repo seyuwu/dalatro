@@ -5,6 +5,9 @@ import { readFile } from "node:fs/promises";
 import { join, extname, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+// Тот же белый список, что у прода: data/ (там хэши и токены), .git и
+// служебные каталоги не раздаются даже с дев-сервера.
+import { staticPathAllowed } from "./server.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.argv[2]) || 8000;
@@ -24,6 +27,7 @@ const server = createServer(async (req, res) => {
   try {
     let path = decodeURIComponent(new URL(req.url, "http://x").pathname);
     if (path === "/") path = "/index.html";
+    if (!staticPathAllowed(path)) throw new Error("forbidden");
     const file = normalize(join(root, path));
     if (!file.startsWith(root)) throw new Error("forbidden");
     const data = await readFile(file);

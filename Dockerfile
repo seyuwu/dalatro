@@ -15,5 +15,10 @@ COPY images ./images
 
 # data/ (аккаунты, забеги, аналитика) — bind-mount с хоста в compose:
 # переживает пересборку образа, бэкап = tar каталога на хосте.
+# Не-root: в образе есть пользователь node (uid 1000) — эскалация из
+# процесса в контейнере не даёт root. На хосте владелец data/ — uid 1000:
+#   mkdir -p data && chown 1000:1000 data
+USER node
+
 EXPOSE 8787
 CMD ["node", "server.js"]

@@ -271,3 +271,23 @@ test("static: служебные каталоги и точечные пути �
   assertEq(Backend.staticPathAllowed("/images/battlefield.jpg"), true);
   assertEq(Backend.staticPathAllowed("/dist/index.html"), true);
 });
+
+test("static: подъём из разрешённого каталога (../ и backslash) не проходит", () => {
+  // В сервере путь декодируется ДО проверки — тесты подают уже декодированные.
+  assertEq(Backend.staticPathAllowed("/src/../data/accounts.json"), false, "подъём из /src в data");
+  assertEq(Backend.staticPathAllowed("/src/..\\data\\accounts.json"), false, "backslash-вариант (Windows)");
+  assertEq(Backend.staticPathAllowed("/images/../../data/admin.json"), false, "два подъёма из /images");
+  assertEq(Backend.staticPathAllowed("/dist/../../server.js"), false, "подъём выше корня");
+});
+
+test("runs: капы абуза — гигантский удар и время больше суток отклоняются", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir(), runGapMs: 0 });
+  b.call("POST", "/register", { body: { name: "Capper", password: "123456" } });
+  const tok = b.call("POST", "/login", { body: { name: "capper", password: "123456" } }).setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
+  const call = (over) => b.call("POST", "/runs", { body: winRun(over), cookie: "dalatro_sess=" + tok });
+  assertEq(call({ biggestHit: 1000001 }).status, 400, "удар больше 1e6 — мусор");
+  assertEq(call({ biggestHit: 1000000 }).status, 200, "граница 1e6 принимается");
+  assertEq(call({ timeMs: 24 * 3600 * 1000 + 1 }).status, 400, "время больше суток");
+  assertEq(call({ timeMs: 24 * 3600 * 1000 }).status, 200, "ровно сутки принимается");
+});
+

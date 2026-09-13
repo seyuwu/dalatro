@@ -125,7 +125,7 @@ export function createAnalytics({ dataFile, maxDays = 30, maxHours = 48, maxRece
     if (!dataFile) return;
     try { mkdirSync(dirname(dataFile), { recursive: true }); } catch { /* уже есть */ }
     const tmp = dataFile + ".tmp";
-    writeFileSync(tmp, JSON.stringify(state));
+    writeFileSync(tmp, JSON.stringify(state), { mode: 0o600 }); // внутри — IP посетителей
     renameSync(tmp, dataFile);
   }
 

@@ -47,9 +47,9 @@ npm start         # node server.js → http://localhost:8787
 консоль (хранится в `data/admin.json`); свой — `DOTORA_ADMIN_PASSWORD` при
 первом запуске.
 
-**Прод:** Selectel VDS рядом с logITika/opinia, Docker, порт 8891 на
-loopback, nginx + certbot на хосте. Полный ранбук —
-[deploy/DEPLOY.md](deploy/DEPLOY.md).
+**Прод:** [https://dotora.ru](https://dotora.ru) — Selectel VDS рядом с
+logITika/opinia, Docker, порт 8891 на loopback, nginx + certbot на хосте.
+Полный ранбук — [deploy/DEPLOY.md](deploy/DEPLOY.md).
 
 ## Как играть
 

@@ -30,7 +30,7 @@ export function createAdminAuth({ dataFile, envPassword, ttl = SESSION_TTL, onCr
     store = { salt, hash: hashPassword(password, salt) };
     try { mkdirSync(dirname(dataFile), { recursive: true }); } catch { /* уже есть */ }
     const tmp = dataFile + ".tmp";
-    writeFileSync(tmp, JSON.stringify(store));
+    writeFileSync(tmp, JSON.stringify(store), { mode: 0o600 }); // соль+хэш пароля админки
     renameSync(tmp, dataFile);
     created = true;
     if (onCreated) onCreated(password);

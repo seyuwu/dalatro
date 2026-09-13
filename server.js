@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync, renameSync, mkdirSync, rmSync } from "node
 import { join, dirname, extname, normalize } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { createAnalytics } from "./analytics.js";
 import { createAdminAuth, adminPageHtml, ADMIN_COOKIE } from "./admin.js";
 
@@ -29,14 +29,16 @@ const RUNS_TOTAL = 20000;
 
 // ---------- хранилище ----------
 function makeStore(dataDir) {
-  mkdirSync(dataDir, { recursive: true });
+  // 0700/0600: в файлах хэши паролей и токены сессий — читать их должен
+  // только владелец процесса (на Windows режим игнорируется, там это не важно).
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const path = (name) => join(dataDir, name);
   function load(name, fallback) {
     try { return JSON.parse(readFileSync(path(name), "utf8")); } catch { return fallback; }
   }
   function save(name, value) {
     const tmp = path(name + ".tmp");
-    writeFileSync(tmp, JSON.stringify(value));
+    writeFileSync(tmp, JSON.stringify(value), { mode: 0o600 });
     renameSync(tmp, path(name)); // атомарная замена: сбой не оставит битый JSON
   }
   return { load, save, dir: dataDir };
@@ -52,6 +54,22 @@ function checkPassword(password, salt, expectedHex) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
+// Выравнивание времени ответа: scrypt гоняется и для несуществующего имени
+// и для битого пароля, иначе перебор имён отличает «аккаунт есть» (~150 мс)
+// от «аккаунта нет» (~3 мс) по времени 401.
+const PAD_SALT = "dotora-timing-pad";
+const PAD_HASH = scryptSync("dotora-timing-pad-password", PAD_SALT, 64);
+function burnScrypt(password) {
+  const actual = scryptSync(typeof password === "string" ? password : "", PAD_SALT, 64);
+  timingSafeEqual(actual, PAD_HASH);
+}
+
+// Токены сессий в accounts.json лежат хэшем: утечка файла не отдаёт живые
+// куки, их нельзя ни применить, ни подобрать по хэшу (сами токены 192 бита).
+function tokenHash(token) {
+  return createHash("sha256").update(String(token)).digest("hex");
+}
+
 function validName(name) {
   return typeof name === "string" && /^[A-Za-z0-9_.-]{2,20}$/.test(name);
 }
@@ -62,6 +80,17 @@ function validName(name) {
 
 function intIn(v, min, max) {
   return Number.isInteger(v) && v >= min && v <= max;
+}
+
+// Вытеснение в картах лимитов: выкидываем только протухшие ключи, а не карту
+// целиком — иначе шквал одноразовых IP выметает счётчики честных клиентов.
+// Значения — либо массивы таймстампов, либо бакеты { start, count }.
+function pruneMap(map, maxAgeMs) {
+  const cutoff = Date.now() - maxAgeMs;
+  for (const [k, v] of map) {
+    const newest = Array.isArray(v) ? v[v.length - 1] : v && v.start;
+    if (newest === undefined || newest < cutoff) map.delete(k);
+  }
 }
 
 // ---------- API-ядро (синхронное) ----------
@@ -99,17 +128,18 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     }
     const keys = Object.keys(acc.sessions);
     if (keys.length >= MAX_SESSIONS) delete acc.sessions[keys[0]];
-    acc.sessions[token] = now + SESSION_TTL;
+    acc.sessions[tokenHash(token)] = now + SESSION_TTL;
     return token;
   }
 
   function accountByToken(token) {
     if (!token) return null;
+    const h = tokenHash(token);
     const now = Date.now();
     for (const key of Object.keys(accounts)) {
       const acc = accounts[key];
-      if (acc.sessions && acc.sessions[token]) {
-        if (acc.sessions[token] < now) { delete acc.sessions[token]; saveAccounts(); return null; }
+      if (acc.sessions && acc.sessions[h]) {
+        if (acc.sessions[h] < now) { delete acc.sessions[h]; saveAccounts(); return null; }
         return acc;
       }
     }
@@ -135,10 +165,12 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     if (typeof r.won !== "boolean") return "won — булево";
     if (r.won && r.waves !== waveCount) return `победа — это все ${waveCount} волн`;
     if (!intIn(r.deaths, 0, 1000)) return "смерти 0..1000";
-    if (!intIn(r.timeMs, 0, 7 * 24 * 3600 * 1000)) return "время забега слишком большое";
+    if (!intIn(r.timeMs, 0, 24 * 3600 * 1000)) return "время забега слишком большое";
     if (r.won && r.timeMs < 180000) return "победа быстрее трёх минут — так не бывает";
     if (!intIn(r.barracks, 0, 2)) return "казармы 0..2";
-    if (!intIn(r.biggestHit, 0, 1e9)) return "лучший удар 0..1e9";
+    // Синтетический кап: реальные удары (симуляция движка) — сотни, максимум
+    // единицы тысяч; в счёт и так идёт обрезка до 99999. 1e6 отсекает мусор.
+    if (!intIn(r.biggestHit, 0, 1e6)) return "лучший удар слишком большой";
     if (!intIn(r.spareResets, 0, 10)) return "заряды 0..10";
     if (typeof r.seed !== "string" || !/^[A-Za-z0-9_-]{0,24}$/.test(r.seed)) return "seed — до 24 символов латиницы/цифр";
     if (!intIn(r.startedAt, 0, Date.now() + 60000)) return "startedAt — время начала забега";
@@ -148,7 +180,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
   // Регистрации: не больше 5 в минуту с одного IP — аккаунты не фармятся.
   const registerTimes = new Map();
   function registerMarked(ip) {
-    if (!registerTimes.has(ip) && registerTimes.size > 5000) registerTimes.clear();
+    if (!registerTimes.has(ip) && registerTimes.size > 5000) { pruneMap(registerTimes, 60000); if (registerTimes.size > 5000) registerTimes.clear(); }
     const arr = registerTimes.get(ip) || [];
     arr.push(Date.now());
     registerTimes.set(ip, arr);
@@ -173,7 +205,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     return fresh.length >= LOGIN_FAILS_MAX;
   }
   function loginFail(key) {
-    if (!loginFails.has(key) && loginFails.size > 5000) loginFails.clear();
+    if (!loginFails.has(key) && loginFails.size > 5000) { pruneMap(loginFails, LOGIN_WINDOW); if (loginFails.size > 5000) loginFails.clear(); }
     const arr = loginFails.get(key) || [];
     arr.push(Date.now());
     loginFails.set(key, arr);
@@ -196,7 +228,12 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       if (registerLimited(ip)) return send(429, { error: "слишком много регистраций с одного адреса — попробуйте позже" });
       if (Object.keys(accounts).length >= 100000) return send(503, { error: "регистрация временно закрыта" });
       const key = name.toLowerCase();
-      if (accounts[key]) return send(400, { error: "Такое имя уже занято" });
+      if (accounts[key]) {
+        // Имя занято: ответ такой же по времени, как успешная регистрация
+        // (scrypt), иначе /register становится оракулом «занято ли имя».
+        burnScrypt(password);
+        return send(400, { error: "Такое имя уже занято" });
+      }
       const salt = randomBytes(16).toString("hex");
       const acc = {
         name,
@@ -222,7 +259,12 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       }
       const acc = findAccount(body && body.name);
       const password = body && body.password;
-      if (!acc || !validPassword(password) || !checkPassword(password, acc.salt, acc.hash)) {
+      if (!acc || !validPassword(password)) {
+        burnScrypt(password);
+        loginFail(throttleKey);
+        return send(401, { error: "Неверное имя или пароль" });
+      }
+      if (!checkPassword(password, acc.salt, acc.hash)) {
         loginFail(throttleKey);
         return send(401, { error: "Неверное имя или пароль" });
       }
@@ -235,7 +277,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     }
 
     if (method === "POST" && path === "/logout") {
-      if (me && token) { delete me.sessions[token]; saveAccounts(); }
+      if (me && token) { delete me.sessions[tokenHash(token)]; saveAccounts(); }
       return send(200, { ok: true }, sessionCookie("", 0));
     }
 
@@ -342,7 +384,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     return fresh.length >= GUEST_RUNS_MAX;
   }
   function guestRunAccepted(ip) {
-    if (!guestRuns.has(ip) && guestRuns.size > 5000) guestRuns.clear();
+    if (!guestRuns.has(ip) && guestRuns.size > 5000) { pruneMap(guestRuns, GUEST_WINDOW); if (guestRuns.size > 5000) guestRuns.clear(); }
     const arr = guestRuns.get(ip) || [];
     arr.push(Date.now());
     guestRuns.set(ip, arr);
@@ -361,6 +403,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     return fresh.length >= RUN_SUBMIT_HOURLY;
   }
   function runSubmitMarked(key) {
+    if (!runSubmits.has(key) && runSubmits.size > 5000) { pruneMap(runSubmits, 3600 * 1000); if (runSubmits.size > 5000) runSubmits.clear(); }
     const arr = runSubmits.get(key) || [];
     arr.push(Date.now());
     runSubmits.set(key, arr);
@@ -514,8 +557,13 @@ function staticPathAllowed(path) {
 }
 
 // Базовые заголовки для всех ответов; HSTS только на HTTPS.
+// CSP: скрипты и стили — свои плюс инлайн (dist-сборка инлайнит всё в один
+// html, админка — один файл); шрифты Google Fonts; внешнего JS нет.
 function securityHeaders(secure) {
   const headers = {
+    "Content-Security-Policy":
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+      "font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
@@ -540,7 +588,13 @@ function clientIp(req) {
   const remote = req.socket.remoteAddress || "?";
   if (isLocalAddress(remote)) {
     const xff = req.headers["x-forwarded-for"];
-    if (xff) return String(xff).split(",")[0].trim();
+    if (xff) {
+      // Берём ПОСЛЕДНИЙ элемент: nginx дописывает реального клиента в конец
+      // ($proxy_add_x_forwarded_for), а всё левее атакующий подделывает сам.
+      // Взяв первый элемент, отдали бы ему ключи всех IP-лимитов.
+      const parts = String(xff).split(",");
+      return parts[parts.length - 1].trim();
+    }
   }
   return remote;
 }
@@ -553,7 +607,7 @@ function rateLimited(ip) {
   let bucket = rateBuckets.get(ip);
   if (!bucket || now - bucket.start > 60000) { bucket = { start: now, count: 0 }; rateBuckets.set(ip, bucket); }
   bucket.count += 1;
-  if (rateBuckets.size > 5000) rateBuckets.clear();
+  if (rateBuckets.size > 5000) { pruneMap(rateBuckets, 60000); if (rateBuckets.size > 5000) rateBuckets.clear(); }
   return bucket.count > RATE_LIMIT;
 }
 
@@ -565,6 +619,7 @@ function adminRateLimited(ip) {
   let bucket = adminBuckets.get(ip);
   if (!bucket || now - bucket.start > 60000) { bucket = { start: now, count: 0 }; adminBuckets.set(ip, bucket); }
   bucket.count += 1;
+  if (adminBuckets.size > 5000) { pruneMap(adminBuckets, 60000); if (adminBuckets.size > 5000) adminBuckets.clear(); }
   return bucket.count > ADMIN_RATE_LIMIT;
 }
 
@@ -651,7 +706,7 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
       return;
     }
     if (url.pathname === "/api/admin/stats") {
-      const headers = { "Content-Type": "application/json", "Cache-Control": "no-cache" };
+      const headers = { ...baseHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache" };
       if (!admin.validate(adminCookieToken(req.headers.cookie || ""))) {
         res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
         return;

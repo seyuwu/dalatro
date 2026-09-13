@@ -1,5 +1,7 @@
 # dotora (dalatro) — деплой на VPS Selectel, рядом с logITika и opinia
 
+**Статус: в проде с 13.09.2026 — [https://dotora.ru](https://dotora.ru) (Docker, `/opt/dotora`, порт 8891, certbot `dotora.ru` + www, бэкап-крон 03:10). Обновление: `git push` → на сервере `/opt/dotora/deploy/deploy.sh`. Пароль админки печатался в `docker logs dotora-prod` при первом старте.**
+
 Тот же сервер `136.234.5.192`, третий проект. Главное отличие от соседей:
 **нет своей БД и отдельного API-поддомена** — один Node-процесс отдаёт и
 статика, и `/api/*`, данные — JSON-файлы в `data/` (bind-mount).
@@ -34,7 +36,7 @@
 ssh -i ~/.ssh/logitika_deploy root@136.234.5.192   # ключ общий на сервер
 
 cd /opt && git clone https://github.com/seyuwu/dalatro.git dotora && cd dotora
-chmod 700 data 2>/dev/null || { mkdir -p data && chmod 700 data; }  # JSON-ы читает только root
+mkdir -p data && chown 1000:1000 data && chmod 700 data  # контейнер работает под node (uid 1000)
 docker compose up -d --build
 curl -s http://127.0.0.1:8891/api/leaderboard?limit=1   # → {"view":"score","rows":[…]}
 ```
@@ -91,7 +93,7 @@ Off-site копия: пока не настроена (тот же открыт�
 | 502 от nginx | `docker compose ps` — контейнер unhealthy/не запущен; `docker logs dotora-prod` |
 | Порт 8891 занят | `ss -tlnp \| grep 8891` — наши порты: 8888/5434 (logITika), 8889/8890 (opinia), 8891 (dotora) |
 | Забыли пароль админки | `docker logs dotora-prod \| grep Админка` (печатался при создании); либо удалить `data/admin.json` и перезапустить — новый пароль в логах |
-| Ошибки записи в data/ | права на хосте: `chown -R root:root data/` (контейнер работает под root) |
+| Ошибки записи в data/ | права на хосте: `chown -R 1000:1000 data/` (контейнер работает под node, uid 1000) |
 | `nginx -t` failed | **не** делать `reload` — упадут все три сайта; править конфиг |
 
 ## 7. Чеклист после выката
