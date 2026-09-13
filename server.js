@@ -838,8 +838,9 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
         return;
       }
-      try { body = JSON.parse((await readBody(req)) || "{}"); } catch { body = {}; }
-      const result = backend.call("POST", "/admin/promo", { body, isAdmin: true });
+      let promoBody = {};
+      try { promoBody = JSON.parse((await readBody(req)) || "{}"); } catch { promoBody = {}; }
+      const result = backend.call("POST", "/admin/promo", { body: promoBody, isAdmin: true });
       res.writeHead(result.status, headers).end(JSON.stringify(result.json));
       return;
     }
