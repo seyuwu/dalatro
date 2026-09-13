@@ -138,3 +138,22 @@ test("reset: трафик обнуляется, промо-клики и их ж
   const s2 = a.snapshot(now);
   assertEq(s2.events.promo, undefined, "полный сброс чистит и промо");
 });
+
+test("аудитория: уникальные IP/игроки за окна 1/7/30 дней", () => {
+  const a = Backend.createAnalytics({});
+  const now = Date.now();
+  const DAY = 24 * 3600 * 1000;
+  // сегодня: ip A, игрок P1; 3 дня назад: ip B, игрок P1+P2; 40 дней назад: ip C
+  a.record({ method: "GET", path: "/", status: 200, ms: 1, ip: "1.1.1.1", t: now });
+  a.event({ type: "login", name: "P1" }, now);
+  a.record({ method: "GET", path: "/", status: 200, ms: 1, ip: "2.2.2.2", t: now - 3 * DAY });
+  a.event({ type: "login", name: "P1" }, now - 3 * DAY);
+  a.event({ type: "login", name: "P2" }, now - 3 * DAY);
+  a.record({ method: "GET", path: "/", status: 200, ms: 1, ip: "3.3.3.3", t: now - 40 * DAY });
+  const s = a.snapshot(now);
+  assertEq(s.audience.ips1, 1);
+  assertEq(s.audience.players1, 1);
+  assertEq(s.audience.ips7, 2, "7 дней: ip A+B");
+  assertEq(s.audience.players7, 2, "7 дней: игроки P1+P2");
+  assertEq(s.audience.ips30, 2, "30 дней не тянет 40-дневний ip (и prune держит 30)");
+});

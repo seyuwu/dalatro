@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 const MAX_ENTRIES = 300; // антираспухание карт ips/paths внутри бакета
+const DAY = 24 * 3600 * 1000;
 
 function dayKey(t) {
   const d = new Date(t);
@@ -120,6 +121,23 @@ export function createAnalytics({ dataFile, maxDays = 30, maxHours = 48, maxRece
       topPaths: sortDesc(day.paths).slice(0, 15).map(([path, count]) => ({ path, count })),
       topIps: sortDesc(day.ips).slice(0, 10).map(([ip, count]) => ({ ip, count })),
       events: { ...state.events },
+      // Аудитория: уникальные IP/аккаунты за окно = объединение дневных множеств
+      audience: (() => {
+        const keys = Object.keys(state.days).sort();
+        const union = (field, fromKey) => {
+          const set = new Set();
+          for (const k of keys) if (k >= fromKey) for (const v of Object.keys(state.days[k][field])) set.add(v);
+          return set.size;
+        };
+        return {
+          ips1: Object.keys(day.ips).length,
+          players1: Object.keys(day.players).length,
+          ips7: union("ips", dayKey(now - 6 * DAY)),
+          players7: union("players", dayKey(now - 6 * DAY)),
+          ips30: union("ips", dayKey(now - 29 * DAY)),
+          players30: union("players", dayKey(now - 29 * DAY)),
+        };
+      })(),
       recent: state.recent.slice(-50).reverse(),
       eventsLog: state.eventsLog.slice(-50).reverse(),
     };

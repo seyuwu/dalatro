@@ -570,6 +570,17 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
     return { accounts: Object.keys(accounts).length, runs: runs.list.length };
   }
 
+  // Воронка для админки: на каких волнах заканчиваются забеги.
+  function waveFunnel() {
+    const funnel = Array.from({ length: waveCount }, (_, i) => ({ wave: i + 1, lost: 0, won: 0 }));
+    for (const r of runs.list) {
+      const idx = Math.min(Math.max(1, r.waves), waveCount) - 1;
+      if (r.won) funnel[waveCount - 1].won += 1;
+      else funnel[idx].lost += 1;
+    }
+    return funnel;
+  }
+
   // Сводка по игрокам для админки (активнейшие вперёд).
   function players(limit = 100) {
     return Object.values(accounts)
@@ -578,7 +589,7 @@ export function createBackend({ dataDir = join(ROOT, "data"), waveCount = 15, on
       .slice(0, limit);
   }
 
-  return { call, leaderboard, wipe, counts, players };
+  return { call, leaderboard, wipe, counts, players, waveFunnel };
 }
 
 function cookieToken(cookie) {
@@ -775,7 +786,7 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
         res.writeHead(401, headers).end(JSON.stringify({ error: "требуется вход админа" }));
         return;
       }
-      res.writeHead(200, headers).end(JSON.stringify({ ...analytics.snapshot(), store: backend.counts(), players: backend.players() }));
+      res.writeHead(200, headers).end(JSON.stringify({ ...analytics.snapshot(), store: backend.counts(), players: backend.players(), funnel: backend.waveFunnel() }));
       return;
     }
 

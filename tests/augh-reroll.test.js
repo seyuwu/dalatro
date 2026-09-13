@@ -77,3 +77,18 @@ test("реролл осколка: предложение либо валидн�
   }
   assert(s.shop.aghanims.every((o) => o.kind !== "scepter" || s.shop.aghanims.some((x) => x.kind === "scepter")), "структура предложений консистентна");
 });
+
+test("воронка: на каких волнах заканчиваются забеги", () => {
+  const b = Backend.createBackend({ dataDir: Backend.tmpDataDir(), runGapMs: 0 });
+  b.call("POST", "/register", { body: { name: "Funneler", password: "123456" } });
+  const token = b.call("POST", "/login", { body: { name: "funneler", password: "123456" } }).setCookie.match(/dalatro_sess=([a-f0-9]+)/)[1];
+  // поражение на волне 1 и на волне 7, победа (15 волн)
+  b.call("POST", "/runs", { body: { seed: "F1", rank: 1, won: false, waves: 1, deaths: 2, timeMs: 120000, barracks: 0, biggestHit: 0, spareResets: 0, startedAt: 1700000000001 }, cookie: "dalatro_sess=" + token });
+  b.call("POST", "/runs", { body: { seed: "F7", rank: 1, won: false, waves: 7, deaths: 2, timeMs: 120000, barracks: 0, biggestHit: 0, spareResets: 0, startedAt: 1700000000002 }, cookie: "dalatro_sess=" + token });
+  b.call("POST", "/runs", { body: { seed: "F15", rank: 1, won: true, waves: 15, deaths: 0, timeMs: 300000, barracks: 2, biggestHit: 0, spareResets: 0, startedAt: 1700000000003 }, cookie: "dalatro_sess=" + token });
+  const funnel = b.waveFunnel();
+  assertEq(funnel[0].lost, 1, "волна 1: одно поражение");
+  assertEq(funnel[6].lost, 1, "волна 7: одно поражение");
+  assertEq(funnel[14].won, 1, "волна 15: одна победа");
+  assertEq(funnel[3].lost + funnel[3].won, 0, "волна 4 пуста");
+});

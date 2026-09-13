@@ -209,6 +209,12 @@ function dashboard(d) {
       card(t.avgLatencyMs + " мс", "Средняя задержка") +
       card(errRate, "Доля ошибок", t.errors > 0) +
     "</div>" +
+    '<section><h2>Аудитория (уникальные)</h2>' + tableView([
+      { p: "Сегодня", ips: d.audience.ips1, pl: d.audience.players1 },
+      { p: "7 дней", ips: d.audience.ips7, pl: d.audience.players7 },
+      { p: "30 дней", ips: d.audience.ips30, pl: d.audience.players30 },
+    ], [["p", "Период"], ["ips", "Посетители (IP)", 1, (r) => fmtN(r.ips)], ["pl", "Игроки (аккаунты)", 1, (r) => fmtN(r.pl)]]) + '</section>' +
+    '<section><h2>Воронка: на каких волнах заканчиваются забеги</h2>' + funnelHtml(d.funnel || []) + '</section>' +
     '<div id="promo-slot"></div>' +
     '<section><h2>Трафик по часам (48 ч)</h2>' + barChart(hours, "requests", "api", "все запросы", "API") + "</section>" +
     '<div class="grid2">' +
@@ -362,6 +368,21 @@ async function loadPromoEditor() {
     const host = document.getElementById("promo-rows");
     if (host) host.textContent = "Не загрузился конфиг: " + e.message;
   }
+}
+
+function funnelHtml(f) {
+  const total = f.reduce((a, x) => a + x.lost + x.won, 0);
+  if (!total) return '<div class="muted">Забегов пока нет — воронка появится с первыми финишами.</div>';
+  return '<table><tr><th>Волна</th><th>Завершилось здесь</th><th style="width:34%">Доля от забегов</th><th>Причина</th></tr>' +
+    f.map((x) => {
+      const n = x.lost + x.won;
+      if (!n) return "";
+      const pct = Math.round(n / total * 100);
+      return '<tr><td>Волна ' + x.wave + '</td><td class="num">' + n + '</td>' +
+        '<td><div style="background:#4a6b3f;height:10px;width:' + Math.max(2, pct) + '%;border-radius:3px"></div></td>' +
+        '<td class="num">' + pct + '%</td>' +
+        '<td>' + (x.won ? '<span class="tag win">победы</span>' : "") + (x.lost ? '<span class="tag loss">поражения</span>' : "") + '</td></tr>';
+    }).join("") + '</table>';
 }
 
 async function removePromoImage(waveId, row) {
