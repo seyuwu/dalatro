@@ -823,10 +823,10 @@ export function startServer({ port = 8787, dataDir = join(ROOT, "data") } = {}) 
     }
     // Публичная раздача промо-картинок из data/promo-img
     if ((m2 = url.pathname.match(/^\/promo-image\/([a-z0-9_]{1,20})$/)) && req.method === "GET") {
-      for (const ext of ["png", "jpg"]) {
+      for (const [ext, type] of [["png", "image/png"], ["jpg", "image/jpeg"], ["webp", "image/webp"]]) {
         try {
           const data = readFileSync(join(dataDir, "promo-img", m2[1] + "." + ext));
-          res.writeHead(200, { ...baseHeaders, "Content-Type": ext === "png" ? "image/png" : "image/jpeg", "Cache-Control": "public, max-age=120" });
+          res.writeHead(200, { ...baseHeaders, "Content-Type": type, "Cache-Control": "public, max-age=120" });
           res.end(data);
           return;
         } catch {}
