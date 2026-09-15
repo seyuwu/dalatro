@@ -631,12 +631,15 @@ function staticPathAllowed(path) {
 
 // Базовые заголовки для всех ответов; HSTS только на HTTPS.
 // CSP: скрипты и стили — свои плюс инлайн (dist-сборка инлайнит всё в один
-// html, админка — один файл); шрифты Google Fonts; внешнего JS нет.
+// html, админка — один файл); шрифты Google Fonts; внешний JS — только
+// gtag.js (GA4, см. index.html) и домены сбора google-analytics.com.
 function securityHeaders(secure) {
   const headers = {
     "Content-Security-Policy":
-      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-      "font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+      "font-src https://fonts.gstatic.com; img-src 'self' data: https://www.googletagmanager.com https://www.google-analytics.com https://*.analytics.google.com; " +
+      "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com; " +
+      "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
